@@ -1,0 +1,35 @@
+{
+  "rules": [
+    {
+      "name": "SQL Injection - Basic",
+      "pattern": "(?i)(\\s*union\\s+all\\s+select|\\s*select\\s+.*\\s+from|\\s*drop\\s+table|\\s*delete\\s+from|\\s*update\\s+.*\\s+set)",
+      "block": true
+    },
+    {
+      "name": "SQL Injection - Comments",
+      "pattern": "(?i)(--\\s*|\\/\\*.*\\*\\/|#\\s*)",
+      "block": true
+    },
+    {
+      "name": "XSS - Script tags",
+      "pattern": "(?i)(<script.*?>.*?<\\/script>|javascript:.*|on\\w+\\s*=|\\balert\\s*\\()",
+      "block": true
+    },
+    {
+      "name": "Remote File Inclusion",
+      "pattern": "(?i)(\\.\\.\\/|\\.\\.\\\\\\|\\/etc\\/passwd|\\/etc\\/shadow|C:\\\\Windows)",
+      "block": true
+    },
+    {
+      "name": "NoSQL Injection",
+      "pattern": "(\\$\\w+|\\\"\\$ne\\\"|\\\"\\$gt\\\"|\\\"\\$lt\\\"|\\\"\\$in\\\")",
+      "block": true
+    },
+    {
+      "name": "Shell Injection",
+      "pattern": "(;|\\|\\||&&|\\$\\()",
+      "block": true
+    }
+  ],
+  "globalExcludes": ["/health", "/metrics", "/favicon.ico"]
+}
