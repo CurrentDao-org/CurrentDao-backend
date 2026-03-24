@@ -1,0 +1,168 @@
+# ============================================================================
+# Terraform Variables Example File
+# ============================================================================
+# Copy this file to terraform/terraform.tfvars and update with your values
+# This file contains all configurable options for the infrastructure
+
+# =============================================================================
+# Required Variables
+# =============================================================================
+
+# Environment (dev, staging, prod)
+environment = "dev"
+
+# AWS Region
+aws_region = "us-east-1"
+
+# =============================================================================
+# Default Tags (Required for cost allocation)
+# =============================================================================
+default_tags = {
+  Project     = "CurrentDao"
+  ManagedBy   = "Terraform"
+  Environment = "dev"
+  CostCenter  = "Engineering"
+  Team        = "Platform"
+  Owner       = "platform@currentdao.com"
+}
+
+# =============================================================================
+# VPC Configuration
+# =============================================================================
+vpc_cidr              = "10.0.0.0/16"
+availability_zones    = ["us-east-1a", "us-east-1b", "us-east-1c"]
+public_subnet_cidrs   = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs  = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
+database_subnet_cidrs = ["10.0.21.0/24", "10.0.22.0/24", "10.0.23.0/24"]
+
+# =============================================================================
+# EC2 Configuration
+# =============================================================================
+instance_type          = "t3.medium"
+instance_count         = 2
+instance_volume_size   = 30
+instance_volume_type   = "gp3"
+enable_monitoring      = true
+
+# User data script (base64 encoded)
+# user_data = <<-EOF
+#              #!/bin/bash
+#              yum update -y
+#              yum install -y nginx
+#              systemctl start nginx
+#              EOF
+
+# =============================================================================
+# Auto Scaling Configuration
+# =============================================================================
+asg_min_size         = 1
+asg_max_size         = 4
+asg_desired_capacity = 2
+asg_scale_up_threshold = 70
+asg_scale_down_threshold = 30
+
+# =============================================================================
+# Database Configuration
+# =============================================================================
+database_engine          = "postgres"
+database_engine_version  = "15.3"
+database_instance_class  = "db.t3.medium"
+database_allocated_storage = 100
+database_max_allocated_storage = 500
+database_name            = "currentdao"
+
+# Database credentials (REQUIRED - use environment variables in CI/CD)
+# database_username = "dbadmin"
+# database_password = "changeme"
+
+database_multi_az              = false
+database_backup_retention_days = 7
+database_skip_final_snapshot   = true
+
+# =============================================================================
+# Cache Configuration
+# =============================================================================
+cache_engine                    = "redis"
+cache_node_type                 = "cache.t3.medium"
+cache_num_cache_nodes           = 2
+cache_port                      = 6379
+cache_at_rest_encryption_enabled = true
+cache_transit_encryption_enabled = true
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+allowed_cidr_blocks       = ["0.0.0.0/0"]
+allowed_ssh_cidr_blocks  = ["10.0.0.0/16"]
+enable_deletion_protection = true
+
+# =============================================================================
+# DNS Configuration
+# =============================================================================
+enable_dns      = false
+domain_name     = "example.com"
+certificate_arn = ""
+
+# =============================================================================
+# Load Balancer Configuration
+# =============================================================================
+enable_deletion_protection_lb = true
+
+# =============================================================================
+# Monitoring Configuration
+# =============================================================================
+enable_cloudwatch_logs = true
+log_retention_days     = 30
+enable_alarms          = true
+notification_email     = "alerts@currentdao.com"
+
+# =============================================================================
+# Cost Optimization
+# =============================================================================
+enable_spot_instances  = false
+enable_cost_alerts     = true
+monthly_budget_limit   = 1000
+
+# =============================================================================
+# Backup Configuration
+# =============================================================================
+enable_backup          = false
+backup_schedule       = "cron(0 5 ? * * *)"
+backup_retention_days = 30
+
+# =============================================================================
+# S3 Bucket Configuration
+# =============================================================================
+s3_buckets = {
+  "assets" = {
+    acl           = "private"
+    versioning    = true
+    lifecycle_rule = [{
+      enabled       = true
+      id            = "archive-old-objects"
+      expiration_days = 365
+      transition_days = 30
+      storage_class = "GLACIER"
+    }]
+  },
+  "uploads" = {
+    acl           = "private"
+    versioning    = true
+    lifecycle_rule = [{
+      enabled       = true
+      id            = "transition-to-ia"
+      expiration_days = 180
+      transition_days = 60
+      storage_class = "STANDARD_IA"
+    }]
+  }
+}
+
+# =============================================================================
+# Cost Allocation Tags
+# =============================================================================
+cost_allocation_tags = {
+  Environment = "dev"
+  Team        = "Platform"
+  Project     = "CurrentDao"
+}

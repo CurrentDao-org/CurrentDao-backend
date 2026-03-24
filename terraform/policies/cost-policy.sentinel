@@ -1,0 +1,46 @@
+# ============================================================================
+# Sentinel Cost Policies
+# ============================================================================
+# These policies ensure cost optimization for Terraform resources
+
+# Import: tfplan/v2
+import "tfplan/v2" as tfplan
+
+# Get all AWS resources
+aws_resources = filter tfplan.resource_changes as rc {
+  rc.provider_name is "aws"
+}
+
+# =============================================================================
+# Policy: Require Appropriate Instance Sizes
+# =============================================================================
+main = rule {
+  all aws_resources as r {
+    if r.type is "aws_instance" {
+      # Production should not use t2.micro or t3.micro
+      if r.change.after.instance_type contains "micro" {
+        r.module_address contains "prod" is false
+      }
+      else {
+        true
+      }
+    }
+    else {
+      true
+    }
+  }
+}
+
+# =============================================================================
+# Policy: Require Budget Alerts
+# =============================================================================
+main = rule {
+  all aws_resources as r {
+    if r.type is "aws_budgets_budget" {
+      r.change.after.notification is not null
+    }
+    else {
+      true
+    }
+  }
+}
