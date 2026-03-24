@@ -1,0 +1,79 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "title": "Requests per Second",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[5s])",
+          "legendFormat": "{{method}} {{path}}"
+        }
+      ]
+    },
+    {
+      "title": "CPU Load - %",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "system_cpu_usage * 100"
+        }
+      ]
+    },
+    {
+      "title": "Heap Memory Usage - MB",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "system_memory_usage / 1024 / 1024"
+        }
+      ]
+    },
+    {
+      "title": "SLA Monitor - Uptime %",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "monitoring_uptime_percentage"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["APM", "Performance"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m"]
+  },
+  "timezone": "",
+  "title": "CurrentDao APM - Service Dashboard",
+  "uid": "apm_main",
+  "version": 1,
+  "weekStart": ""
+}
