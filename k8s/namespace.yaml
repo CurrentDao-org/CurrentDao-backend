@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: currentdao-prod
+  labels:
+    name: currentdao-prod
+    environment: production
+    istio-injection: enabled
+  annotations:
+    description: "Production namespace for CurrentDao backend services"
+    contact: "devops@currentdao.org"
+spec:
+  finalizers:
+  - kubernetes
