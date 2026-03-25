@@ -15,6 +15,8 @@ import { ApmModule } from './apm/apm.module';
 import { TracingModule } from './tracing/tracing.module';
 import { ShardingModule } from './database/sharding/sharding.module';
 import { ContractsModule } from './contracts/contracts.module';
+import { MatchingModule } from './matching/matching.module';
+import { EnergyModule } from './energy/energy.module';
 
 @Module({
   imports: [
@@ -39,8 +41,10 @@ import { ContractsModule } from './contracts/contracts.module';
     RiskManagementModule,
     CrossBorderModule,
     ContractsModule,
+    MatchingModule,
+    EnergyModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
