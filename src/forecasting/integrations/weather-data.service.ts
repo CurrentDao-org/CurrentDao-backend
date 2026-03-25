@@ -53,11 +53,11 @@ export class WeatherDataService {
             appid: this.weatherApiKey,
             units: 'metric',
           },
-        })
+        }),
       );
 
       const data = response.data;
-      
+
       return {
         timestamp: new Date(),
         temperature: data.main.temp,
@@ -72,22 +72,29 @@ export class WeatherDataService {
         location: data.name,
       };
     } catch (error) {
-      this.logger.error(`Failed to fetch current weather for ${location}`, error);
+      this.logger.error(
+        `Failed to fetch current weather for ${location}`,
+        error,
+      );
       throw error;
     }
   }
 
-  async getHistoricalWeather(location: string, startDate: Date, endDate: Date): Promise<WeatherData[]> {
+  async getHistoricalWeather(
+    location: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<WeatherData[]> {
     try {
       const weatherData: WeatherData[] = [];
       const currentDate = new Date(startDate);
-      
+
       while (currentDate <= endDate) {
         const timestamp = Math.floor(currentDate.getTime() / 1000);
-        
+
         // OpenWeatherMap historical data requires coordinates
         const coordinates = await this.getCoordinates(location);
-        
+
         const response = await firstValueFrom(
           this.httpService.get(`${this.baseUrl}/onecall/timemachine`, {
             params: {
@@ -97,12 +104,12 @@ export class WeatherDataService {
               appid: this.weatherApiKey,
               units: 'metric',
             },
-          })
+          }),
         );
 
         const data = response.data;
         const current = data.current;
-        
+
         weatherData.push({
           timestamp: new Date(current.dt * 1000),
           temperature: current.temp,
@@ -116,21 +123,27 @@ export class WeatherDataService {
           uvIndex: current.uvi,
           location,
         });
-        
+
         currentDate.setDate(currentDate.getDate() + 1);
       }
-      
+
       return weatherData;
     } catch (error) {
-      this.logger.error(`Failed to fetch historical weather for ${location}`, error);
+      this.logger.error(
+        `Failed to fetch historical weather for ${location}`,
+        error,
+      );
       throw error;
     }
   }
 
-  async getWeatherForecast(location: string, days: number = 7): Promise<WeatherForecast[]> {
+  async getWeatherForecast(
+    location: string,
+    days: number = 7,
+  ): Promise<WeatherForecast[]> {
     try {
       const coordinates = await this.getCoordinates(location);
-      
+
       const response = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/onecall`, {
           params: {
@@ -140,11 +153,11 @@ export class WeatherDataService {
             units: 'metric',
             exclude: 'minutely,alerts',
           },
-        })
+        }),
       );
 
       const data = response.data;
-      
+
       return data.daily.slice(0, days).map((day: any) => ({
         timestamp: new Date(day.dt * 1000),
         temperature: {
@@ -165,12 +178,15 @@ export class WeatherDataService {
         conditions: day.weather[0].description,
       }));
     } catch (error) {
-      this.logger.error(`Failed to fetch weather forecast for ${location}`, error);
+      this.logger.error(
+        `Failed to fetch weather forecast for ${location}`,
+        error,
+      );
       throw error;
     }
   }
 
-  async getWeatherImpactOnEnergy(weatherData: WeatherData[]): Promise<Record<string, number>> {
+  getWeatherImpactOnEnergy(weatherData: WeatherData[]): Record<string, number> {
     const impactFactors: Record<string, number> = {
       temperature: 0,
       humidity: 0,
@@ -182,71 +198,89 @@ export class WeatherDataService {
     if (weatherData.length === 0) return impactFactors;
 
     // Temperature impact on heating/cooling demand
-    const avgTemp = weatherData.reduce((sum, d) => sum + d.temperature, 0) / weatherData.length;
+    const avgTemp =
+      weatherData.reduce((sum, d) => sum + d.temperature, 0) /
+      weatherData.length;
     impactFactors.temperature = this.calculateTemperatureImpact(avgTemp);
 
     // Humidity impact on cooling systems
-    const avgHumidity = weatherData.reduce((sum, d) => sum + d.humidity, 0) / weatherData.length;
+    const avgHumidity =
+      weatherData.reduce((sum, d) => sum + d.humidity, 0) / weatherData.length;
     impactFactors.humidity = this.calculateHumidityImpact(avgHumidity);
 
     // Wind speed impact on wind energy generation
-    const avgWindSpeed = weatherData.reduce((sum, d) => sum + d.windSpeed, 0) / weatherData.length;
+    const avgWindSpeed =
+      weatherData.reduce((sum, d) => sum + d.windSpeed, 0) / weatherData.length;
     impactFactors.windSpeed = this.calculateWindImpact(avgWindSpeed);
 
     // Precipitation impact on hydroelectric generation
-    const totalPrecipitation = weatherData.reduce((sum, d) => sum + d.precipitation, 0);
-    impactFactors.precipitation = this.calculatePrecipitationImpact(totalPrecipitation);
+    const totalPrecipitation = weatherData.reduce(
+      (sum, d) => sum + d.precipitation,
+      0,
+    );
+    impactFactors.precipitation =
+      this.calculatePrecipitationImpact(totalPrecipitation);
 
     // Cloud cover impact on solar generation
-    const avgCloudCover = weatherData.reduce((sum, d) => sum + d.cloudCover, 0) / weatherData.length;
+    const avgCloudCover =
+      weatherData.reduce((sum, d) => sum + d.cloudCover, 0) /
+      weatherData.length;
     impactFactors.cloudCover = this.calculateCloudImpact(avgCloudCover);
 
     return impactFactors;
   }
 
-  async correlateWeatherWithEnergyDemand(
+  correlateWeatherWithEnergyDemand(
     weatherData: WeatherData[],
-    energyData: { timestamp: Date; demand: number }[]
-  ): Promise<Record<string, number>> {
+    energyData: { timestamp: Date; demand: number }[],
+  ): Record<string, number> {
     const correlations: Record<string, number> = {};
 
     // Align data by timestamp
     const alignedData = this.alignDataByTimestamp(weatherData, energyData);
-    
+
     if (alignedData.length < 2) {
-      return { temperature: 0, humidity: 0, windSpeed: 0, precipitation: 0, cloudCover: 0 };
+      return {
+        temperature: 0,
+        humidity: 0,
+        windSpeed: 0,
+        precipitation: 0,
+        cloudCover: 0,
+      };
     }
 
     // Calculate correlations
     correlations.temperature = this.calculateCorrelation(
-      alignedData.map(d => d.temperature),
-      alignedData.map(d => d.demand)
+      alignedData.map((d) => d.temperature),
+      alignedData.map((d) => d.demand),
     );
 
     correlations.humidity = this.calculateCorrelation(
-      alignedData.map(d => d.humidity),
-      alignedData.map(d => d.demand)
+      alignedData.map((d) => d.humidity),
+      alignedData.map((d) => d.demand),
     );
 
     correlations.windSpeed = this.calculateCorrelation(
-      alignedData.map(d => d.windSpeed),
-      alignedData.map(d => d.demand)
+      alignedData.map((d) => d.windSpeed),
+      alignedData.map((d) => d.demand),
     );
 
     correlations.precipitation = this.calculateCorrelation(
-      alignedData.map(d => d.precipitation),
-      alignedData.map(d => d.demand)
+      alignedData.map((d) => d.precipitation),
+      alignedData.map((d) => d.demand),
     );
 
     correlations.cloudCover = this.calculateCorrelation(
-      alignedData.map(d => d.cloudCover),
-      alignedData.map(d => d.demand)
+      alignedData.map((d) => d.cloudCover),
+      alignedData.map((d) => d.demand),
     );
 
     return correlations;
   }
 
-  private async getCoordinates(location: string): Promise<{ lat: number; lon: number }> {
+  private async getCoordinates(
+    location: string,
+  ): Promise<{ lat: number; lon: number }> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/weather`, {
@@ -254,7 +288,7 @@ export class WeatherDataService {
             q: location,
             appid: this.weatherApiKey,
           },
-        })
+        }),
       );
 
       return {
@@ -304,15 +338,17 @@ export class WeatherDataService {
 
   private alignDataByTimestamp(
     weatherData: WeatherData[],
-    energyData: { timestamp: Date; demand: number }[]
+    energyData: { timestamp: Date; demand: number }[],
   ): Array<WeatherData & { demand: number }> {
     const aligned: Array<WeatherData & { demand: number }> = [];
 
-    weatherData.forEach(weather => {
-      const energy = energyData.find(e => 
-        Math.abs(e.timestamp.getTime() - weather.timestamp.getTime()) < 3600000 // Within 1 hour
+    weatherData.forEach((weather) => {
+      const energy = energyData.find(
+        (e) =>
+          Math.abs(e.timestamp.getTime() - weather.timestamp.getTime()) <
+          3600000, // Within 1 hour
       );
-      
+
       if (energy) {
         aligned.push({ ...weather, demand: energy.demand });
       }
@@ -332,7 +368,9 @@ export class WeatherDataService {
     const sumY2 = y.reduce((sum, val) => sum + val * val, 0);
 
     const numerator = n * sumXY - sumX * sumY;
-    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    const denominator = Math.sqrt(
+      (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY),
+    );
 
     return denominator === 0 ? 0 : numerator / denominator;
   }
@@ -340,7 +378,7 @@ export class WeatherDataService {
   async getWeatherAlerts(location: string): Promise<any[]> {
     try {
       const coordinates = await this.getCoordinates(location);
-      
+
       const response = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/onecall`, {
           params: {
@@ -349,12 +387,15 @@ export class WeatherDataService {
             appid: this.weatherApiKey,
             exclude: 'minutely,hourly,daily',
           },
-        })
+        }),
       );
 
       return response.data.alerts || [];
     } catch (error) {
-      this.logger.error(`Failed to fetch weather alerts for ${location}`, error);
+      this.logger.error(
+        `Failed to fetch weather alerts for ${location}`,
+        error,
+      );
       return [];
     }
   }

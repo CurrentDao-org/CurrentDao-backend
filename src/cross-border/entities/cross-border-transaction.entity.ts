@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum TransactionStatus {
   PENDING = 'pending',
@@ -6,20 +13,20 @@ export enum TransactionStatus {
   COMPLETED = 'completed',
   FAILED = 'failed',
   DISPUTED = 'disputed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 export enum TransactionType {
   IMPORT = 'import',
   EXPORT = 'export',
-  TRANSIT = 'transit'
+  TRANSIT = 'transit',
 }
 
 export enum ComplianceStatus {
   COMPLIANT = 'compliant',
   NON_COMPLIANT = 'non_compliant',
   PENDING_REVIEW = 'pending_review',
-  REQUIREMENTS_MET = 'requirements_met'
+  REQUIREMENTS_MET = 'requirements_met',
 }
 
 @Entity('cross_border_transactions')
@@ -49,22 +56,22 @@ export class CrossBorderTransaction {
   currency: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
-  convertedAmount: number;
+  convertedAmount?: number;
 
   @Column({ length: 3, nullable: true })
-  targetCurrency: string;
+  targetCurrency?: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true })
-  exchangeRate: number;
+  exchangeRate?: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  customsTariff: number;
+  customsTariff?: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  regulatoryFees: number;
+  regulatoryFees?: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
-  totalAmount: number;
+  totalAmount?: number;
 
   @Column({ default: TransactionStatus.PENDING })
   status: TransactionStatus;
@@ -82,13 +89,13 @@ export class CrossBorderTransaction {
   complianceChecks: Record<string, any>;
 
   @Column({ nullable: true })
-  regulatoryReportId: string;
+  regulatoryReportId?: string;
 
   @Column({ nullable: true })
-  customsDeclarationId: string;
+  customsDeclarationId?: string;
 
   @Column({ nullable: true })
-  disputeId: string;
+  disputeId?: string;
 
   @Column({ type: 'text', nullable: true })
   notes?: string;
@@ -103,8 +110,8 @@ export class CrossBorderTransaction {
   updatedAt: Date;
 
   @Column({ nullable: true })
-  processedAt: Date;
+  processedAt?: Date;
 
   @Column({ nullable: true })
-  completedAt: Date;
+  completedAt?: Date;
 }

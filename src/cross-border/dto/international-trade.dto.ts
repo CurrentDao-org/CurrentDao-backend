@@ -1,6 +1,17 @@
-import { IsString, IsNumber, IsEnum, IsOptional, IsDateString, ValidateNested, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  IsDateString,
+  ValidateNested,
+  IsArray,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { TransactionType, ComplianceStatus } from '../entities/cross-border-transaction.entity';
+import {
+  TransactionType,
+  ComplianceStatus,
+} from '../entities/cross-border-transaction.entity';
 
 export class CurrencyConversionDto {
   @IsString()

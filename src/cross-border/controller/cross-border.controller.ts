@@ -1,26 +1,35 @@
-import { 
-  Controller, 
-  Post, 
-  Get, 
-  Put, 
-  Delete, 
-  Body, 
-  Param, 
-  Query, 
-  HttpCode, 
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
   HttpStatus,
-  ValidationPipe
+  ValidationPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { TransactionProcessorService, ProcessingResult } from '../transactions/transaction-processor.service';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import {
+  TransactionProcessorService,
+  ProcessingResult,
+} from '../transactions/transaction-processor.service';
 import { RegulationService } from '../compliance/regulation-service';
 import { CurrencyService } from '../currency/currency-service';
 import { CustomsService } from '../tariffs/customs-service';
 import { RegulatoryReportService } from '../reporting/regulatory-report.service';
-import { 
-  CreateInternationalTradeDto, 
-  UpdateInternationalTradeDto, 
-  FilterInternationalTradeDto 
+import {
+  CreateInternationalTradeDto,
+  UpdateInternationalTradeDto,
+  FilterInternationalTradeDto,
 } from '../dto/international-trade.dto';
 
 @ApiTags('Cross-Border Energy Trading')
@@ -41,7 +50,7 @@ export class CrossBorderController {
   @ApiResponse({ status: 400, description: 'Invalid transaction data' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async createTransaction(
-    @Body(ValidationPipe) transactionData: CreateInternationalTradeDto
+    @Body(ValidationPipe) transactionData: CreateInternationalTradeDto,
   ): Promise<ProcessingResult> {
     return this.transactionProcessor.processTransaction(transactionData);
   }
@@ -51,7 +60,7 @@ export class CrossBorderController {
   @ApiOperation({ summary: 'Process multiple transactions in batch' })
   @ApiResponse({ status: 201, description: 'Batch processed successfully' })
   async processBatchTransactions(
-    @Body(ValidationPipe) transactions: CreateInternationalTradeDto[]
+    @Body(ValidationPipe) transactions: CreateInternationalTradeDto[],
   ): Promise<ProcessingResult[]> {
     return this.transactionProcessor.processBatchTransactions(transactions);
   }
@@ -71,16 +80,21 @@ export class CrossBorderController {
   @ApiQuery({ name: 'targetCountry', required: false })
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'energyType', required: false })
-  @ApiResponse({ status: 200, description: 'Transactions retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transactions retrieved successfully',
+  })
   async getTransactions(@Query() filters: FilterInternationalTradeDto) {
     if (filters.sourceCountry && filters.targetCountry) {
       return this.transactionProcessor.getTransactionsByCountries(
         filters.sourceCountry,
-        filters.targetCountry
+        filters.targetCountry,
       );
     }
-    
-    return this.transactionProcessor.getTransactionsByStatus(filters.status as any);
+
+    return this.transactionProcessor.getTransactionsByStatus(
+      filters.status as any,
+    );
   }
 
   @Put('transactions/:transactionId')
@@ -89,7 +103,7 @@ export class CrossBorderController {
   @ApiResponse({ status: 200, description: 'Transaction updated successfully' })
   async updateTransaction(
     @Param('transactionId') transactionId: string,
-    @Body(ValidationPipe) updateData: UpdateInternationalTradeDto
+    @Body(ValidationPipe) updateData: UpdateInternationalTradeDto,
   ) {
     // Implementation would update the transaction
     return { message: 'Transaction updated successfully', transactionId };
@@ -99,17 +113,22 @@ export class CrossBorderController {
   @ApiOperation({ summary: 'Retry failed transaction' })
   @ApiParam({ name: 'transactionId', description: 'Transaction ID' })
   @ApiResponse({ status: 200, description: 'Transaction retry initiated' })
-  async retryTransaction(@Param('transactionId') transactionId: string): Promise<ProcessingResult> {
+  async retryTransaction(
+    @Param('transactionId') transactionId: string,
+  ): Promise<ProcessingResult> {
     return this.transactionProcessor.retryFailedTransaction(transactionId);
   }
 
   @Post('transactions/:transactionId/cancel')
   @ApiOperation({ summary: 'Cancel transaction' })
   @ApiParam({ name: 'transactionId', description: 'Transaction ID' })
-  @ApiResponse({ status: 200, description: 'Transaction cancelled successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction cancelled successfully',
+  })
   async cancelTransaction(
     @Param('transactionId') transactionId: string,
-    @Body('reason') reason?: string
+    @Body('reason') reason?: string,
   ) {
     return this.transactionProcessor.cancelTransaction(transactionId, reason);
   }
@@ -127,20 +146,23 @@ export class CrossBorderController {
     @Query('targetCountry') targetCountry: string,
     @Query('energyType') energyType: string,
     @Query('amount') amount: number,
-    @Query('transactionType') transactionType: string
+    @Query('transactionType') transactionType: string,
   ) {
     return this.regulationService.checkCompliance(
       sourceCountry,
       targetCountry,
       energyType,
       amount,
-      transactionType
+      transactionType,
     );
   }
 
   @Get('compliance/regulations')
   @ApiOperation({ summary: 'Get all available regulations' })
-  @ApiResponse({ status: 200, description: 'Regulations retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Regulations retrieved successfully',
+  })
   async getRegulations() {
     return this.regulationService.getAllRegulations();
   }
@@ -148,7 +170,10 @@ export class CrossBorderController {
   @Get('compliance/regulations/:country')
   @ApiOperation({ summary: 'Get regulations by country' })
   @ApiParam({ name: 'country', description: 'Country code' })
-  @ApiResponse({ status: 200, description: 'Country regulations retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Country regulations retrieved successfully',
+  })
   async getRegulationsByCountry(@Param('country') country: string) {
     return this.regulationService.getRegulationsByCountry(country);
   }
@@ -159,14 +184,21 @@ export class CrossBorderController {
   async convertCurrency(
     @Body('amount') amount: number,
     @Body('fromCurrency') fromCurrency: string,
-    @Body('toCurrency') toCurrency: string
+    @Body('toCurrency') toCurrency: string,
   ) {
-    return this.currencyService.convertCurrency(amount, fromCurrency, toCurrency);
+    return this.currencyService.convertCurrency(
+      amount,
+      fromCurrency,
+      toCurrency,
+    );
   }
 
   @Get('currency/supported')
   @ApiOperation({ summary: 'Get supported currencies' })
-  @ApiResponse({ status: 200, description: 'Supported currencies retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Supported currencies retrieved successfully',
+  })
   async getSupportedCurrencies() {
     return this.currencyService.getSupportedCurrencies();
   }
@@ -175,12 +207,18 @@ export class CrossBorderController {
   @ApiOperation({ summary: 'Get exchange rate history' })
   @ApiParam({ name: 'fromCurrency', description: 'Source currency' })
   @ApiParam({ name: 'toCurrency', description: 'Target currency' })
-  @ApiResponse({ status: 200, description: 'Exchange rate history retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Exchange rate history retrieved successfully',
+  })
   async getExchangeRateHistory(
     @Param('fromCurrency') fromCurrency: string,
-    @Param('toCurrency') toCurrency: string
+    @Param('toCurrency') toCurrency: string,
   ) {
-    return this.currencyService.getExchangeRateHistory(fromCurrency, toCurrency);
+    return this.currencyService.getExchangeRateHistory(
+      fromCurrency,
+      toCurrency,
+    );
   }
 
   @Post('customs/calculate')
@@ -192,7 +230,7 @@ export class CrossBorderController {
     @Body('amount') amount: number,
     @Body('currency') currency: string,
     @Body('energyType') energyType: string,
-    @Body('customsData') customsData?: any
+    @Body('customsData') customsData?: any,
   ) {
     return this.customsService.calculateCustomsAndTariffs(
       sourceCountry,
@@ -200,14 +238,17 @@ export class CrossBorderController {
       amount,
       currency,
       energyType,
-      customsData
+      customsData,
     );
   }
 
   @Get('customs/tariffs/:energyType')
   @ApiOperation({ summary: 'Get tariff rates by energy type' })
   @ApiParam({ name: 'energyType', description: 'Energy type' })
-  @ApiResponse({ status: 200, description: 'Tariff rates retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tariff rates retrieved successfully',
+  })
   async getTariffRates(@Param('energyType') energyType: string) {
     return this.customsService.getTariffRatesByEnergyType(energyType);
   }
@@ -216,12 +257,18 @@ export class CrossBorderController {
   @ApiOperation({ summary: 'Get customs rules for country pair' })
   @ApiParam({ name: 'sourceCountry', description: 'Source country' })
   @ApiParam({ name: 'targetCountry', description: 'Target country' })
-  @ApiResponse({ status: 200, description: 'Customs rules retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Customs rules retrieved successfully',
+  })
   async getCustomsRules(
     @Param('sourceCountry') sourceCountry: string,
-    @Param('targetCountry') targetCountry: string
+    @Param('targetCountry') targetCountry: string,
   ) {
-    return this.customsService.getCustomsRulesByCountryPair(sourceCountry, targetCountry);
+    return this.customsService.getCustomsRulesByCountryPair(
+      sourceCountry,
+      targetCountry,
+    );
   }
 
   @Post('reports/generate')
@@ -231,11 +278,16 @@ export class CrossBorderController {
     @Body('reportType') reportType: string,
     @Body('startDate') startDate: string,
     @Body('endDate') endDate: string,
-    @Body('jurisdiction') jurisdiction?: string
+    @Body('jurisdiction') jurisdiction?: string,
   ) {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    return this.reportService.generateReport(reportType, start, end, jurisdiction);
+    return this.reportService.generateReport(
+      reportType,
+      start,
+      end,
+      jurisdiction,
+    );
   }
 
   @Post('reports/:reportId/submit')
@@ -260,7 +312,10 @@ export class CrossBorderController {
   @Get('reports/submissions/:submissionId')
   @ApiOperation({ summary: 'Get submission status' })
   @ApiParam({ name: 'submissionId', description: 'Submission ID' })
-  @ApiResponse({ status: 200, description: 'Submission status retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Submission status retrieved successfully',
+  })
   async getSubmissionStatus(@Param('submissionId') submissionId: string) {
     return this.reportService.getSubmissionStatus(submissionId);
   }
@@ -284,8 +339,8 @@ export class CrossBorderController {
         regulationService: 'active',
         currencyService: 'active',
         customsService: 'active',
-        reportService: 'active'
-      }
+        reportService: 'active',
+      },
     };
   }
 }

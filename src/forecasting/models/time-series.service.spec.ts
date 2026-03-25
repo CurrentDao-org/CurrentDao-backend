@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TimeSeriesService, TimeSeriesData, ForecastResult } from './time-series.service';
+import { TimeSeriesService, TimeSeriesData } from './time-series.service';
 import { ForecastHorizon } from '../entities/forecast-data.entity';
 
 describe('TimeSeriesService', () => {
@@ -27,7 +27,10 @@ describe('TimeSeriesService', () => {
         { timestamp: new Date('2023-01-05'), value: 105 },
       ];
 
-      const result = await service.arimaForecast(data, ForecastHorizon.ONE_HOUR);
+      const result = await service.arimaForecast(
+        data,
+        ForecastHorizon.ONE_HOUR,
+      );
 
       expect(result).toBeDefined();
       expect(result.model).toBe('ARIMA');
@@ -35,8 +38,12 @@ describe('TimeSeriesService', () => {
       expect(result.accuracy).toBeGreaterThanOrEqual(0);
       expect(result.accuracy).toBeLessThanOrEqual(1);
       expect(result.confidenceInterval).toBeDefined();
-      expect(result.confidenceInterval.lower).toBeLessThanOrEqual(result.predictedValue);
-      expect(result.confidenceInterval.upper).toBeGreaterThanOrEqual(result.predictedValue);
+      expect(result.confidenceInterval.lower).toBeLessThanOrEqual(
+        result.predictedValue,
+      );
+      expect(result.confidenceInterval.upper).toBeGreaterThanOrEqual(
+        result.predictedValue,
+      );
     });
 
     it('should handle insufficient data', async () => {
@@ -44,7 +51,9 @@ describe('TimeSeriesService', () => {
         { timestamp: new Date('2023-01-01'), value: 100 },
       ];
 
-      await expect(service.arimaForecast(data, ForecastHorizon.ONE_HOUR)).rejects.toThrow();
+      await expect(
+        service.arimaForecast(data, ForecastHorizon.ONE_HOUR),
+      ).rejects.toThrow();
     });
   });
 
@@ -58,7 +67,10 @@ describe('TimeSeriesService', () => {
         { timestamp: new Date('2023-01-05'), value: 105 },
       ];
 
-      const result = await service.exponentialSmoothingForecast(data, ForecastHorizon.ONE_HOUR);
+      const result = await service.exponentialSmoothingForecast(
+        data,
+        ForecastHorizon.ONE_HOUR,
+      );
 
       expect(result).toBeDefined();
       expect(result.model).toBe('ExponentialSmoothing');
@@ -101,7 +113,10 @@ describe('TimeSeriesService', () => {
         { timestamp: new Date('2023-01-05'), value: 105 },
       ];
 
-      const result = await service.prophetForecast(data, ForecastHorizon.ONE_HOUR);
+      const result = await service.prophetForecast(
+        data,
+        ForecastHorizon.ONE_HOUR,
+      );
 
       expect(result).toBeDefined();
       expect(result.model).toBe('Prophet');
@@ -148,7 +163,7 @@ describe('TimeSeriesService', () => {
   });
 
   describe('preprocessData', () => {
-    it('should preprocess data correctly', async () => {
+    it('should preprocess data correctly', () => {
       const data: TimeSeriesData[] = [
         { timestamp: new Date('2023-01-02'), value: 102 },
         { timestamp: new Date('2023-01-01'), value: 100 }, // Out of order
@@ -157,15 +172,17 @@ describe('TimeSeriesService', () => {
         { timestamp: new Date('2023-01-05'), value: 103 },
       ];
 
-      const result = await service.preprocessData(data);
+      const result = service.preprocessData(data);
 
       expect(result).toBeDefined();
       expect(result.length).toBeLessThan(data.length); // Should filter invalid data
-      expect(result[0].timestamp.getTime()).toBeLessThan(result[1].timestamp.getTime()); // Should be sorted
+      expect(result[0].timestamp.getTime()).toBeLessThan(
+        result[1].timestamp.getTime(),
+      ); // Should be sorted
     });
 
-    it('should handle empty data', async () => {
-      const result = await service.preprocessData([]);
+    it('should handle empty data', () => {
+      const result = service.preprocessData([]);
       expect(result).toEqual([]);
     });
   });
@@ -198,10 +215,12 @@ describe('TimeSeriesService', () => {
 
     it('should calculate horizon periods correctly', () => {
       const serviceAny = service as any;
-      
+
       expect(serviceAny.getHorizonPeriods(ForecastHorizon.ONE_HOUR)).toBe(1);
       expect(serviceAny.getHorizonPeriods(ForecastHorizon.SIX_HOURS)).toBe(6);
-      expect(serviceAny.getHorizonPeriods(ForecastHorizon.TWENTY_FOUR_HOURS)).toBe(24);
+      expect(
+        serviceAny.getHorizonPeriods(ForecastHorizon.TWENTY_FOUR_HOURS),
+      ).toBe(24);
       expect(serviceAny.getHorizonPeriods(ForecastHorizon.ONE_WEEK)).toBe(168);
       expect(serviceAny.getHorizonPeriods(ForecastHorizon.ONE_YEAR)).toBe(8760);
     });
@@ -229,7 +248,6 @@ describe('TimeSeriesService', () => {
     it('should detect and handle outliers', () => {
       const serviceAny = service as any;
       const values = [10, 12, 11, 13, 12, 100, 11]; // 100 is an outlier
-      const q1 = 11;
       const q3 = 13;
       const iqr = 2;
 

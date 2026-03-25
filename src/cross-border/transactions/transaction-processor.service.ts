@@ -1,9 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { CrossBorderTransaction, TransactionStatus, ComplianceStatus } from '../entities/cross-border-transaction.entity';
-import { RegulationService, ComplianceResult } from '../compliance/regulation-service';
-import { CurrencyService, ConversionResult } from '../currency/currency-service';
+import { Between, MoreThanOrEqual, Repository } from 'typeorm';
+import {
+  CrossBorderTransaction,
+  TransactionStatus,
+  ComplianceStatus,
+} from '../entities/cross-border-transaction.entity';
+import {
+  RegulationService,
+  ComplianceResult,
+} from '../compliance/regulation-service';
+import {
+  CurrencyService,
+  ConversionResult,
+} from '../currency/currency-service';
 import { CustomsService } from '../tariffs/customs-service';
 import { CreateInternationalTradeDto } from '../dto/international-trade.dto';
 
@@ -11,7 +21,7 @@ export interface ProcessingResult {
   success: boolean;
   transaction: CrossBorderTransaction;
   complianceResult?: ComplianceResult;
-  conversionResult?: ConversionResult;
+  conversionResult?: ConversionResult | null;
   customsResult?: any;
   errors?: string[];
   processingTime: number;
@@ -37,7 +47,7 @@ export class TransactionProcessorService {
     averageProcessingTime: 0,
     complianceRate: 0,
     currencyConversions: 0,
-    customsClearances: 0
+    customsClearances: 0,
   };
 
   constructor(
@@ -49,22 +59,26 @@ export class TransactionProcessorService {
   ) {}
 
   async processTransaction(
-    transactionData: CreateInternationalTradeDto
+    transactionData: CreateInternationalTradeDto,
   ): Promise<ProcessingResult> {
     const startTime = Date.now();
-    this.logger.log(`Processing cross-border transaction: ${transactionData.transactionId}`);
+    this.logger.log(
+      `Processing cross-border transaction: ${transactionData.transactionId}`,
+    );
 
     try {
       const transaction = this.createTransactionEntity(transactionData);
       transaction.status = TransactionStatus.PROCESSING;
 
-      const savedTransaction = await this.transactionRepository.save(transaction);
-      
-      const [complianceResult, conversionResult, customsResult] = await Promise.all([
-        this.performComplianceCheck(transactionData),
-        this.performCurrencyConversion(transactionData),
-        this.performCustomsClearance(transactionData)
-      ]);
+      const savedTransaction =
+        await this.transactionRepository.save(transaction);
+
+      const [complianceResult, conversionResult, customsResult] =
+        await Promise.all([
+          this.performComplianceCheck(transactionData),
+          this.performCurrencyConversion(transactionData),
+          this.performCustomsClearance(transactionData),
+        ]);
 
       const errors: string[] = [];
 
@@ -76,15 +90,21 @@ export class TransactionProcessorService {
         errors.push('Customs clearance failed');
       }
 
-      savedTransaction.complianceStatus = this.mapComplianceStatus(complianceResult.overallStatus);
+      savedTransaction.complianceStatus = this.mapComplianceStatus(
+        complianceResult.overallStatus,
+      );
       savedTransaction.regulatoryData = complianceResult;
-      savedTransaction.convertedAmount = conversionResult?.convertedAmount || null;
-      savedTransaction.targetCurrency = conversionResult?.targetCurrency || null;
-      savedTransaction.exchangeRate = conversionResult?.exchangeRate || null;
+      savedTransaction.convertedAmount = conversionResult?.convertedAmount;
+      savedTransaction.targetCurrency = conversionResult?.targetCurrency;
+      savedTransaction.exchangeRate = conversionResult?.exchangeRate;
       savedTransaction.customsData = customsResult;
       savedTransaction.customsTariff = customsResult?.tariff;
       savedTransaction.regulatoryFees = customsResult?.regulatoryFees;
-      savedTransaction.totalAmount = this.calculateTotalAmount(transactionData, conversionResult, customsResult);
+      savedTransaction.totalAmount = this.calculateTotalAmount(
+        transactionData,
+        conversionResult,
+        customsResult,
+      );
 
       if (errors.length > 0) {
         savedTransaction.status = TransactionStatus.FAILED;
@@ -97,7 +117,8 @@ export class TransactionProcessorService {
         this.processingMetrics.successfulTransactions++;
       }
 
-      const finalTransaction = await this.transactionRepository.save(savedTransaction);
+      const finalTransaction =
+        await this.transactionRepository.save(savedTransaction);
       const processingTime = Date.now() - startTime;
 
       this.updateMetrics(processingTime, errors.length === 0);
@@ -109,23 +130,27 @@ export class TransactionProcessorService {
         conversionResult,
         customsResult,
         errors: errors.length > 0 ? errors : undefined,
-        processingTime
+        processingTime,
       };
-
     } catch (error) {
-      this.logger.error(`Failed to process transaction ${transactionData.transactionId}:`, error);
+      this.logger.error(
+        `Failed to process transaction ${transactionData.transactionId}:`,
+        error,
+      );
       this.processingMetrics.failedTransactions++;
-      
+
       return {
         success: false,
         transaction: null as any,
         errors: [error.message],
-        processingTime: Date.now() - startTime
+        processingTime: Date.now() - startTime,
       };
     }
   }
 
-  private createTransactionEntity(data: CreateInternationalTradeDto): CrossBorderTransaction {
+  private createTransactionEntity(
+    data: CreateInternationalTradeDto,
+  ): CrossBorderTransaction {
     const transaction = new CrossBorderTransaction();
     transaction.transactionId = data.transactionId;
     transaction.transactionType = data.transactionType;
@@ -134,55 +159,64 @@ export class TransactionProcessorService {
     transaction.amount = data.amount;
     transaction.currency = data.currency;
     transaction.notes = data.notes;
-    
+
     return transaction;
   }
 
-  private async performComplianceCheck(data: CreateInternationalTradeDto): Promise<ComplianceResult> {
+  private async performComplianceCheck(
+    data: CreateInternationalTradeDto,
+  ): Promise<ComplianceResult> {
     return this.regulationService.checkCompliance(
       data.sourceCountry,
       data.targetCountry,
       data.energyType || 'electricity',
       data.amount,
-      data.transactionType
+      data.transactionType,
     );
   }
 
-  private async performCurrencyConversion(data: CreateInternationalTradeDto): Promise<ConversionResult | null> {
-    if (!data.currencyConversion || data.currency === data.currencyConversion.targetCurrency) {
-      return undefined;
+  private async performCurrencyConversion(
+    data: CreateInternationalTradeDto,
+  ): Promise<ConversionResult | null> {
+    if (
+      !data.currencyConversion ||
+      data.currency === data.currencyConversion.targetCurrency
+    ) {
+      return null;
     }
 
     return this.currencyService.convertCurrency(
       data.amount,
       data.currency,
-      data.currencyConversion.targetCurrency
+      data.currencyConversion.targetCurrency,
     );
   }
 
-  private async performCustomsClearance(data: CreateInternationalTradeDto): Promise<any> {
+  private async performCustomsClearance(
+    data: CreateInternationalTradeDto,
+  ): Promise<any> {
     return this.customsService.calculateCustomsAndTariffs(
       data.sourceCountry,
       data.targetCountry,
       data.amount,
       data.currency,
       data.energyType || 'electricity',
-      data.customsTariff
+      data.customsTariff,
     );
   }
 
   private calculateTotalAmount(
     transactionData: CreateInternationalTradeDto,
     conversionResult: ConversionResult | null,
-    customsResult: any
+    customsResult: any,
   ): number {
     let total = conversionResult?.totalAmount || transactionData.amount;
-    
+
     if (customsResult) {
       total += customsResult.tariff || 0;
       total += customsResult.regulatoryFees || 0;
     }
-    
+
     return total;
   }
 
@@ -201,29 +235,39 @@ export class TransactionProcessorService {
 
   private updateMetrics(processingTime: number, success: boolean): void {
     this.processingMetrics.totalTransactions++;
-    
-    const totalTime = this.processingMetrics.averageProcessingTime * (this.processingMetrics.totalTransactions - 1) + processingTime;
-    this.processingMetrics.averageProcessingTime = totalTime / this.processingMetrics.totalTransactions;
-    
-    this.processingMetrics.complianceRate = 
-      (this.processingMetrics.successfulTransactions / this.processingMetrics.totalTransactions) * 100;
+
+    const totalTime =
+      this.processingMetrics.averageProcessingTime *
+        (this.processingMetrics.totalTransactions - 1) +
+      processingTime;
+    this.processingMetrics.averageProcessingTime =
+      totalTime / this.processingMetrics.totalTransactions;
+
+    this.processingMetrics.complianceRate =
+      (this.processingMetrics.successfulTransactions /
+        this.processingMetrics.totalTransactions) *
+      100;
   }
 
-  async getTransactionById(transactionId: string): Promise<CrossBorderTransaction | null> {
+  async getTransactionById(
+    transactionId: string,
+  ): Promise<CrossBorderTransaction | null> {
     return this.transactionRepository.findOne({ where: { transactionId } });
   }
 
-  async getTransactionsByStatus(status: TransactionStatus): Promise<CrossBorderTransaction[]> {
+  async getTransactionsByStatus(
+    status: TransactionStatus,
+  ): Promise<CrossBorderTransaction[]> {
     return this.transactionRepository.find({ where: { status } });
   }
 
   async getTransactionsByCountries(
     sourceCountry: string,
-    targetCountry: string
+    targetCountry: string,
   ): Promise<CrossBorderTransaction[]> {
     return this.transactionRepository.find({
       where: { sourceCountry, targetCountry },
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
   }
 
@@ -231,7 +275,9 @@ export class TransactionProcessorService {
     return { ...this.processingMetrics };
   }
 
-  async retryFailedTransaction(transactionId: string): Promise<ProcessingResult> {
+  async retryFailedTransaction(
+    transactionId: string,
+  ): Promise<ProcessingResult> {
     const transaction = await this.getTransactionById(transactionId);
     if (!transaction) {
       throw new Error(`Transaction ${transactionId} not found`);
@@ -248,73 +294,88 @@ export class TransactionProcessorService {
       targetCountry: transaction.targetCountry,
       amount: transaction.amount,
       currency: transaction.currency,
-      notes: transaction.notes
+      notes: transaction.notes,
     };
 
     return this.processTransaction(retryData);
   }
 
-  async cancelTransaction(transactionId: string, reason?: string): Promise<CrossBorderTransaction> {
+  async cancelTransaction(
+    transactionId: string,
+    reason?: string,
+  ): Promise<CrossBorderTransaction> {
     const transaction = await this.getTransactionById(transactionId);
     if (!transaction) {
       throw new Error(`Transaction ${transactionId} not found`);
     }
 
-    if ([TransactionStatus.COMPLETED, TransactionStatus.CANCELLED].includes(transaction.status)) {
-      throw new Error(`Cannot cancel transaction in ${transaction.status} status`);
+    if (
+      [TransactionStatus.COMPLETED, TransactionStatus.CANCELLED].includes(
+        transaction.status,
+      )
+    ) {
+      throw new Error(
+        `Cannot cancel transaction in ${transaction.status} status`,
+      );
     }
 
     transaction.status = TransactionStatus.CANCELLED;
-    transaction.notes = reason ? `${transaction.notes || ''} - Cancelled: ${reason}` : transaction.notes;
-    
+    transaction.notes = reason
+      ? `${transaction.notes || ''} - Cancelled: ${reason}`
+      : transaction.notes;
+
     return this.transactionRepository.save(transaction);
   }
 
-  async getTransactionsByDateRange(startDate: Date, endDate: Date): Promise<CrossBorderTransaction[]> {
+  async getTransactionsByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<CrossBorderTransaction[]> {
     return this.transactionRepository.find({
       where: {
-        createdAt: {
-          $gte: startDate,
-          $lte: endDate
-        }
+        createdAt: Between(startDate, endDate),
       },
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
   }
 
-  async getHighValueTransactions(threshold: number): Promise<CrossBorderTransaction[]> {
+  async getHighValueTransactions(
+    threshold: number,
+  ): Promise<CrossBorderTransaction[]> {
     return this.transactionRepository.find({
       where: {
-        amount: {
-          $gte: threshold
-        }
+        amount: MoreThanOrEqual(threshold),
       },
-      order: { amount: 'DESC' }
+      order: { amount: 'DESC' },
     });
   }
 
   async getPendingComplianceTransactions(): Promise<CrossBorderTransaction[]> {
     return this.transactionRepository.find({
       where: {
-        complianceStatus: ComplianceStatus.PENDING_REVIEW
-      }
+        complianceStatus: ComplianceStatus.PENDING_REVIEW,
+      },
     });
   }
 
-  async processBatchTransactions(transactions: CreateInternationalTradeDto[]): Promise<ProcessingResult[]> {
+  async processBatchTransactions(
+    transactions: CreateInternationalTradeDto[],
+  ): Promise<ProcessingResult[]> {
     this.logger.log(`Processing batch of ${transactions.length} transactions`);
-    
+
     const results = await Promise.allSettled(
-      transactions.map(transaction => this.processTransaction(transaction))
+      transactions.map((transaction) => this.processTransaction(transaction)),
     );
 
-    return results.map(result => 
-      result.status === 'fulfilled' ? result.value : {
-        success: false,
-        transaction: null as any,
-        errors: [result.reason.message],
-        processingTime: 0
-      }
+    return results.map((result) =>
+      result.status === 'fulfilled'
+        ? result.value
+        : {
+            success: false,
+            transaction: null as any,
+            errors: [result.reason.message],
+            processingTime: 0,
+          },
     );
   }
 }

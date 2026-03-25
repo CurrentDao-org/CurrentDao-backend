@@ -10,7 +10,7 @@ export class PartitioningService implements OnModuleInit {
 
   private startPartitioningManager() {
     this.logger.log('Starting Table Partitioning management engine...');
-    
+
     // Check for new monthly partitions every 24 hours
     setInterval(() => {
       this.maintainPartitions();
@@ -20,9 +20,11 @@ export class PartitioningService implements OnModuleInit {
   private maintainPartitions() {
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);
-    
+
     const partitionName = `transactions_${nextMonth.getFullYear()}_${(nextMonth.getMonth() + 1).toString().padStart(2, '0')}`;
-    this.logger.log(`Ensuring monthly partition exists for ${partitionName}...`);
+    this.logger.log(
+      `Ensuring monthly partition exists for ${partitionName}...`,
+    );
 
     // In a real app, this would execute SQL (PostgreSQL declarative partitioning)
     const sql = `CREATE TABLE IF NOT EXISTS ${partitionName} PARTITION OF transactions FOR VALUES FROM ('X') TO ('Y')`;
@@ -47,7 +49,9 @@ export class PartitioningService implements OnModuleInit {
    * Create a new range partition manually
    */
   async createPartitionRange(tableName: string, from: Date, to: Date) {
-    this.logger.log(`Creating range partition for ${tableName} from ${from.toISOString()} to ${to.toISOString()}`);
+    this.logger.log(
+      `Creating range partition for ${tableName} from ${from.toISOString()} to ${to.toISOString()}`,
+    );
     // Simulated DB call
     return true;
   }

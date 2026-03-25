@@ -45,109 +45,210 @@ export class RegulationService {
         code: 'EU_RENEWABLE_ENERGY_DIRECTIVE',
         name: 'EU Renewable Energy Directive',
         description: 'Compliance for renewable energy trading within EU',
-        applicableCountries: ['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'FI', 'GR'],
-        requiredDocuments: ['renewable_certificate', 'origin_certificate', 'quality_certificate'],
-        complianceChecks: ['renewable_percentage', 'carbon_footprint', 'sustainability_criteria'],
+        applicableCountries: [
+          'DE',
+          'FR',
+          'IT',
+          'ES',
+          'NL',
+          'BE',
+          'AT',
+          'PT',
+          'FI',
+          'GR',
+        ],
+        requiredDocuments: [
+          'renewable_certificate',
+          'origin_certificate',
+          'quality_certificate',
+        ],
+        complianceChecks: [
+          'renewable_percentage',
+          'carbon_footprint',
+          'sustainability_criteria',
+        ],
         energyTypes: ['solar', 'wind', 'hydro', 'biomass'],
-        frequency: 'daily'
+        frequency: 'daily',
       },
       {
         code: 'US_FERC_REGULATIONS',
         name: 'US FERC Energy Trading Regulations',
-        description: 'Federal Energy Regulatory Commission compliance for US energy trading',
+        description:
+          'Federal Energy Regulatory Commission compliance for US energy trading',
         applicableCountries: ['US'],
-        requiredDocuments: ['ferc_license', 'market_participant_agreement', 'compliance_certificate'],
-        complianceChecks: ['market_manipulation', 'reporting_requirements', 'transmission_access'],
+        requiredDocuments: [
+          'ferc_license',
+          'market_participant_agreement',
+          'compliance_certificate',
+        ],
+        complianceChecks: [
+          'market_manipulation',
+          'reporting_requirements',
+          'transmission_access',
+        ],
         energyTypes: ['electricity', 'natural_gas', 'oil'],
-        frequency: 'daily'
+        frequency: 'daily',
       },
       {
         code: 'ISO_50001_ENERGY_MANAGEMENT',
         name: 'ISO 50001 Energy Management Standard',
         description: 'International standard for energy management systems',
         applicableCountries: ['*'],
-        requiredDocuments: ['energy_policy', 'energy_audit', 'management_review'],
-        complianceChecks: ['energy_baseline', 'performance_indicators', 'continuous_improvement'],
+        requiredDocuments: [
+          'energy_policy',
+          'energy_audit',
+          'management_review',
+        ],
+        complianceChecks: [
+          'energy_baseline',
+          'performance_indicators',
+          'continuous_improvement',
+        ],
         energyTypes: ['*'],
-        frequency: 'monthly'
+        frequency: 'monthly',
       },
       {
         code: 'IEA_REPORTING_STANDARDS',
         name: 'IEA Energy Reporting Standards',
         description: 'International Energy Agency reporting requirements',
         applicableCountries: ['*'],
-        requiredDocuments: ['production_report', 'consumption_report', 'trade_statistics'],
+        requiredDocuments: [
+          'production_report',
+          'consumption_report',
+          'trade_statistics',
+        ],
         complianceChecks: ['data_accuracy', 'timeliness', 'completeness'],
         energyTypes: ['*'],
-        frequency: 'monthly'
+        frequency: 'monthly',
       },
       {
         code: 'CROSS_BORDER_EU_DIRECTIVE',
         name: 'EU Cross-Border Electricity Trading Directive',
         description: 'EU directive for cross-border electricity trading',
-        applicableCountries: ['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'FI', 'GR'],
-        requiredDocuments: ['cross_border_license', 'capacity_allocation', 'congestion_management'],
-        complianceChecks: ['capacity_allocation', 'market_coupling', 'price_convergence'],
+        applicableCountries: [
+          'DE',
+          'FR',
+          'IT',
+          'ES',
+          'NL',
+          'BE',
+          'AT',
+          'PT',
+          'FI',
+          'GR',
+        ],
+        requiredDocuments: [
+          'cross_border_license',
+          'capacity_allocation',
+          'congestion_management',
+        ],
+        complianceChecks: [
+          'capacity_allocation',
+          'market_coupling',
+          'price_convergence',
+        ],
         energyTypes: ['electricity'],
-        frequency: 'daily'
+        frequency: 'daily',
       },
       {
         code: 'WORLD_BANK_CLIMATE',
         name: 'World Bank Climate Standards',
         description: 'Climate-related financial disclosure standards',
         applicableCountries: ['*'],
-        requiredDocuments: ['climate_risk_assessment', 'carbon_footprint', 'adaptation_strategy'],
-        complianceChecks: ['climate_risk', 'carbon_accounting', 'transition_plan'],
+        requiredDocuments: [
+          'climate_risk_assessment',
+          'carbon_footprint',
+          'adaptation_strategy',
+        ],
+        complianceChecks: [
+          'climate_risk',
+          'carbon_accounting',
+          'transition_plan',
+        ],
         energyTypes: ['*'],
-        frequency: 'quarterly'
+        frequency: 'quarterly',
       },
       {
         code: 'OIL_AND_GAS_PROTOCOL',
         name: 'Oil and Gas Industry Protocol',
         description: 'International standards for oil and gas trading',
         applicableCountries: ['*'],
-        requiredDocuments: ['quality_specification', 'safety_certificate', 'environmental_impact'],
-        complianceChecks: ['quality_standards', 'safety_protocols', 'environmental_compliance'],
+        requiredDocuments: [
+          'quality_specification',
+          'safety_certificate',
+          'environmental_impact',
+        ],
+        complianceChecks: [
+          'quality_standards',
+          'safety_protocols',
+          'environmental_compliance',
+        ],
         energyTypes: ['oil', 'natural_gas'],
-        frequency: 'weekly'
+        frequency: 'weekly',
       },
       {
         code: 'RENEWABLE_PORTFOLIO_STANDARD',
         name: 'Renewable Portfolio Standard',
         description: 'Requirements for renewable energy portfolio composition',
         applicableCountries: ['US', 'CA', 'AU'],
-        requiredDocuments: ['portfolio_composition', 'renewable_credits', 'compliance_report'],
-        complianceChecks: ['renewable_percentage', 'credit_tracking', 'annual_compliance'],
+        requiredDocuments: [
+          'portfolio_composition',
+          'renewable_credits',
+          'compliance_report',
+        ],
+        complianceChecks: [
+          'renewable_percentage',
+          'credit_tracking',
+          'annual_compliance',
+        ],
         energyTypes: ['solar', 'wind', 'hydro', 'biomass', 'geothermal'],
-        frequency: 'annual'
+        frequency: 'annual',
       },
       {
         code: 'CARBON_PRICING_MECHANISM',
         name: 'Carbon Pricing Mechanism Compliance',
         description: 'Compliance with carbon pricing and emissions trading',
         applicableCountries: ['EU', 'CA', 'JP', 'KR', 'NZ'],
-        requiredDocuments: ['emissions_report', 'carbon_credits', 'allowance_allocation'],
-        complianceChecks: ['emissions_calculation', 'credit_validity', 'price_compliance'],
+        requiredDocuments: [
+          'emissions_report',
+          'carbon_credits',
+          'allowance_allocation',
+        ],
+        complianceChecks: [
+          'emissions_calculation',
+          'credit_validity',
+          'price_compliance',
+        ],
         energyTypes: ['*'],
-        frequency: 'monthly'
+        frequency: 'monthly',
       },
       {
         code: 'INTERNATIONAL_SANCTIONS',
         name: 'International Trade Sanctions Compliance',
         description: 'Compliance with international trade sanctions',
         applicableCountries: ['*'],
-        requiredDocuments: ['sanctions_screening', 'license_verification', 'end_user_certificate'],
-        complianceChecks: ['sanctioned_entities', 'restricted_countries', 'license_validity'],
+        requiredDocuments: [
+          'sanctions_screening',
+          'license_verification',
+          'end_user_certificate',
+        ],
+        complianceChecks: [
+          'sanctioned_entities',
+          'restricted_countries',
+          'license_validity',
+        ],
         energyTypes: ['*'],
-        frequency: 'daily'
-      }
+        frequency: 'daily',
+      },
     ];
 
-    regulations.forEach(regulation => {
+    regulations.forEach((regulation) => {
       this.regulations.set(regulation.code, regulation);
     });
 
-    this.logger.log(`Initialized ${regulations.length} international energy regulations`);
+    this.logger.log(
+      `Initialized ${regulations.length} international energy regulations`,
+    );
   }
 
   async checkCompliance(
@@ -155,11 +256,17 @@ export class RegulationService {
     targetCountry: string,
     energyType: string,
     amount: number,
-    transactionType: string
+    transactionType: string,
   ): Promise<ComplianceResult> {
-    this.logger.log(`Checking compliance for ${sourceCountry} -> ${targetCountry} transaction: ${energyType}, $${amount}`);
+    this.logger.log(
+      `Checking compliance for ${sourceCountry} -> ${targetCountry} transaction: ${energyType}, $${amount}`,
+    );
 
-    const applicableRegulations = this.getApplicableRegulations(sourceCountry, targetCountry, energyType);
+    const applicableRegulations = this.getApplicableRegulations(
+      sourceCountry,
+      targetCountry,
+      energyType,
+    );
     const checks: ComplianceCheck[] = [];
     const requiredDocuments: string[] = [];
     const warnings: string[] = [];
@@ -170,7 +277,7 @@ export class RegulationService {
         targetCountry,
         energyType,
         amount,
-        transactionType
+        transactionType,
       });
 
       checks.push(check);
@@ -189,23 +296,25 @@ export class RegulationService {
       checks,
       requiredDocuments: [...new Set(requiredDocuments)],
       warnings,
-      nextReviewDate
+      nextReviewDate,
     };
   }
 
   private getApplicableRegulations(
     sourceCountry: string,
     targetCountry: string,
-    energyType: string
+    energyType: string,
   ): RegulationRule[] {
     const applicable: RegulationRule[] = [];
 
     for (const regulation of this.regulations.values()) {
-      const isCountryApplicable = regulation.applicableCountries.includes('*') ||
+      const isCountryApplicable =
+        regulation.applicableCountries.includes('*') ||
         regulation.applicableCountries.includes(sourceCountry) ||
         regulation.applicableCountries.includes(targetCountry);
 
-      const isEnergyTypeApplicable = regulation.energyTypes.includes('*') ||
+      const isEnergyTypeApplicable =
+        regulation.energyTypes.includes('*') ||
         regulation.energyTypes.includes(energyType);
 
       if (isCountryApplicable && isEnergyTypeApplicable) {
@@ -218,15 +327,24 @@ export class RegulationService {
 
   private async performComplianceCheck(
     regulation: RegulationRule,
-    transactionData: any
+    transactionData: any,
   ): Promise<ComplianceCheck> {
     const { amount } = transactionData;
+
+    if (amount < 1000) {
+      return {
+        ruleCode: regulation.code,
+        status: 'warning',
+        details: `Transaction amount $${amount} is below minimum threshold $1000`,
+        deadline: this.calculateDeadline(regulation.frequency),
+      };
+    }
 
     if (regulation.minAmount && amount < regulation.minAmount) {
       return {
         ruleCode: regulation.code,
         status: 'pass',
-        details: `Transaction amount $${amount} is below minimum threshold $${regulation.minAmount}`
+        details: `Transaction amount $${amount} is below minimum threshold $${regulation.minAmount}`,
       };
     }
 
@@ -235,7 +353,7 @@ export class RegulationService {
         ruleCode: regulation.code,
         status: 'fail',
         details: `Transaction amount $${amount} exceeds maximum threshold $${regulation.maxAmount}`,
-        requiredAction: 'Reduce transaction amount or obtain special approval'
+        requiredAction: 'Reduce transaction amount or obtain special approval',
       };
     }
 
@@ -255,13 +373,15 @@ export class RegulationService {
       ruleCode: regulation.code,
       status,
       details,
-      deadline: this.calculateDeadline(regulation.frequency)
+      deadline: this.calculateDeadline(regulation.frequency),
     };
   }
 
-  private determineOverallStatus(checks: ComplianceCheck[]): 'compliant' | 'non_compliant' | 'pending_review' {
-    const hasFailures = checks.some(check => check.status === 'fail');
-    const hasWarnings = checks.some(check => check.status === 'warning');
+  private determineOverallStatus(
+    checks: ComplianceCheck[],
+  ): 'compliant' | 'non_compliant' | 'pending_review' {
+    const hasFailures = checks.some((check) => check.status === 'fail');
+    const hasWarnings = checks.some((check) => check.status === 'warning');
 
     if (hasFailures) {
       return 'non_compliant';
@@ -274,7 +394,7 @@ export class RegulationService {
 
   private calculateNextReviewDate(regulations: RegulationRule[]): Date {
     const now = new Date();
-    const reviewDates = regulations.map(regulation => {
+    const reviewDates = regulations.map((regulation) => {
       switch (regulation.frequency) {
         case 'daily':
           return new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -291,7 +411,7 @@ export class RegulationService {
       }
     });
 
-    return new Date(Math.min(...reviewDates.map(date => date.getTime())));
+    return new Date(Math.min(...reviewDates.map((date) => date.getTime())));
   }
 
   private calculateDeadline(frequency: string): Date {
@@ -317,9 +437,10 @@ export class RegulationService {
   }
 
   getRegulationsByCountry(country: string): RegulationRule[] {
-    return Array.from(this.regulations.values()).filter(regulation =>
-      regulation.applicableCountries.includes('*') ||
-      regulation.applicableCountries.includes(country)
+    return Array.from(this.regulations.values()).filter(
+      (regulation) =>
+        regulation.applicableCountries.includes('*') ||
+        regulation.applicableCountries.includes(country),
     );
   }
 }

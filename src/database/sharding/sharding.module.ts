@@ -8,15 +8,18 @@ import { ShardHealthService } from './monitoring/shard-health.service';
 
 @Global()
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([ShardMetadataEntity]),
-  ],
+  imports: [TypeOrmModule.forFeature([ShardMetadataEntity])],
   providers: [
     ShardRouterService,
     PartitioningService,
     RebalancingService,
     ShardHealthService,
   ],
-  exports: [ShardRouterService, PartitioningService, RebalancingService, ShardHealthService],
+  exports: [
+    ShardRouterService,
+    PartitioningService,
+    RebalancingService,
+    ShardHealthService,
+  ],
 })
 export class ShardingModule {}

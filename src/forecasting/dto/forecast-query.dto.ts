@@ -1,4 +1,13 @@
-import { IsString, IsEnum, IsDateString, IsNumber, IsOptional, IsArray, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ForecastHorizon } from '../entities/forecast-data.entity';
 
@@ -86,7 +95,12 @@ export class WeatherIntegrationDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  parameters?: string[] = ['temperature', 'humidity', 'windSpeed', 'precipitation'];
+  parameters?: string[] = [
+    'temperature',
+    'humidity',
+    'windSpeed',
+    'precipitation',
+  ];
 }
 
 export class EconomicIndicatorDto {

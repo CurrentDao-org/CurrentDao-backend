@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TimeSeriesService, ForecastResult, TimeSeriesData } from '../models/time-series.service';
+import {
+  TimeSeriesService,
+  ForecastResult,
+  TimeSeriesData,
+} from '../models/time-series.service';
 import { WeatherData } from '../integrations/weather-data.service';
 import { EconomicData } from '../analysis/economic-indicator.service';
 import { ForecastHorizon } from '../entities/forecast-data.entity';
@@ -49,7 +53,7 @@ export class EnsembleMethodsService {
     horizon: ForecastHorizon,
     config: EnsembleConfig,
     weatherData?: WeatherData[],
-    economicData?: EconomicData[]
+    economicData?: EconomicData[],
   ): Promise<EnsembleResult> {
     try {
       // Generate individual forecasts
@@ -58,23 +62,38 @@ export class EnsembleMethodsService {
         horizon,
         config.models,
         weatherData,
-        economicData
+        economicData,
       );
 
+      if (individualForecasts.length === 0) {
+        throw new Error(
+          'No forecasts could be generated for ensemble processing',
+        );
+      }
+
       // Calculate model weights based on performance
-      const weights = await this.calculateOptimalWeights(individualForecasts, config);
+      const weights = await this.calculateOptimalWeights(
+        individualForecasts,
+        config,
+      );
 
       // Apply ensemble method
       const ensembleForecast = this.applyEnsembleMethod(
         individualForecasts,
         weights,
-        config.votingMethod || 'weighted'
+        config.votingMethod || 'weighted',
       );
 
       // Calculate ensemble metrics
       const diversity = this.calculateDiversity(individualForecasts);
-      const errorReduction = this.calculateErrorReduction(individualForecasts, ensembleForecast);
-      const confidence = this.calculateEnsembleConfidence(individualForecasts, weights);
+      const errorReduction = this.calculateErrorReduction(
+        individualForecasts,
+        ensembleForecast,
+      );
+      const confidence = this.calculateEnsembleConfidence(
+        individualForecasts,
+        weights,
+      );
 
       return {
         forecast: ensembleForecast,
@@ -100,7 +119,7 @@ export class EnsembleMethodsService {
     data: TimeSeriesData[],
     horizon: ForecastHorizon,
     candidateModels: string[],
-    validationSplit: number = 0.2
+    validationSplit: number = 0.2,
   ): Promise<EnsembleConfig> {
     try {
       // Split data for validation
@@ -109,13 +128,20 @@ export class EnsembleMethodsService {
       const validationData = data.slice(trainSize);
 
       // Evaluate all candidate models
-      const modelPerformances = await this.evaluateModels(trainData, validationData, horizon, candidateModels);
+      const modelPerformances = await this.evaluateModels(
+        trainData,
+        validationData,
+        horizon,
+        candidateModels,
+      );
 
       // Select best performing models
       const selectedModels = this.selectBestModels(modelPerformances, 5); // Top 5 models
 
       // Calculate optimal weights
-      const weights = this.calculateWeightsFromPerformance(modelPerformances.filter(p => selectedModels.includes(p.model)));
+      const weights = this.calculateWeightsFromPerformance(
+        modelPerformances.filter((p) => selectedModels.includes(p.model)),
+      );
 
       return {
         models: selectedModels,
@@ -134,7 +160,7 @@ export class EnsembleMethodsService {
     data: TimeSeriesData[],
     horizon: ForecastHorizon,
     models: string[],
-    numBootstrap: number = 10
+    numBootstrap: number = 10,
   ): Promise<EnsembleResult> {
     try {
       const bootstrapForecasts: ForecastResult[] = [];
@@ -142,26 +168,28 @@ export class EnsembleMethodsService {
       for (let i = 0; i < numBootstrap; i++) {
         // Create bootstrap sample
         const bootstrapData = this.createBootstrapSample(data);
-        
+
         // Generate forecasts for bootstrap sample
         const bootstrapResult = await this.createEnsembleForecast(
           bootstrapData,
           horizon,
-          { models, votingMethod: 'weighted' }
+          { models, votingMethod: 'weighted' },
         );
-        
+
         bootstrapForecasts.push(bootstrapResult.forecast);
       }
 
       // Aggregate bootstrap forecasts
-      const aggregatedForecast = this.aggregateBootstrapForecasts(bootstrapForecasts);
+      const aggregatedForecast =
+        this.aggregateBootstrapForecasts(bootstrapForecasts);
 
       return {
         forecast: aggregatedForecast,
         individualForecasts: bootstrapForecasts,
         ensembleWeights: this.calculateBootstrapWeights(bootstrapForecasts),
         diversity: this.calculateDiversity(bootstrapForecasts),
-        errorReduction: this.calculateBootstrapErrorReduction(bootstrapForecasts),
+        errorReduction:
+          this.calculateBootstrapErrorReduction(bootstrapForecasts),
         confidence: this.calculateBootstrapConfidence(bootstrapForecasts),
         metadata: {
           method: 'bagging',
@@ -180,7 +208,7 @@ export class EnsembleMethodsService {
     data: TimeSeriesData[],
     horizon: ForecastHorizon,
     models: string[],
-    numIterations: number = 10
+    numIterations: number = 10,
   ): Promise<EnsembleResult> {
     try {
       let currentData = [...data];
@@ -192,21 +220,27 @@ export class EnsembleMethodsService {
         const iterationResult = await this.createEnsembleForecast(
           currentData,
           horizon,
-          { models, votingMethod: 'weighted' }
+          { models, votingMethod: 'weighted' },
         );
 
         // Calculate residuals
-        const residuals = this.calculateResiduals(currentData, iterationResult.forecast);
-        
+        const residuals = this.calculateResiduals(
+          currentData,
+          iterationResult.forecast,
+        );
+
         // Update data weights based on residuals
         currentData = this.updateDataWeights(currentData, residuals);
-        
+
         boostedForecasts.push(iterationResult.forecast);
         modelWeights.push(iterationResult.forecast.accuracy);
       }
 
       // Create final boosted forecast
-      const finalForecast = this.createBoostedForecast(boostedForecasts, modelWeights);
+      const finalForecast = this.createBoostedForecast(
+        boostedForecasts,
+        modelWeights,
+      );
 
       return {
         forecast: finalForecast,
@@ -214,7 +248,10 @@ export class EnsembleMethodsService {
         ensembleWeights: this.createWeightMap(models, modelWeights),
         diversity: this.calculateDiversity(boostedForecasts),
         errorReduction: this.calculateBoostingErrorReduction(boostedForecasts),
-        confidence: this.calculateBoostingConfidence(boostedForecasts, modelWeights),
+        confidence: this.calculateBoostingConfidence(
+          boostedForecasts,
+          modelWeights,
+        ),
         metadata: {
           method: 'boosting',
           modelCount: numIterations,
@@ -232,7 +269,7 @@ export class EnsembleMethodsService {
     data: TimeSeriesData[],
     horizon: ForecastHorizon,
     baseModels: string[],
-    metaModel: string = 'linear'
+    metaModel: string = 'linear',
   ): Promise<EnsembleResult> {
     try {
       // Split data for meta-learning
@@ -248,36 +285,54 @@ export class EnsembleMethodsService {
         const baseForecasts = await this.generateIndividualForecasts(
           trainData,
           horizon,
-          baseModels
+          baseModels,
         );
 
         // Use base models to predict on test data
         const testForecasts = await this.generateIndividualForecasts(
           testData,
           horizon,
-          baseModels
+          baseModels,
         );
 
         // Store predictions as meta-features
-        const features = testForecasts.map(f => f.predictedValue);
-        metaFeatures.push(...features.map(f => [f])); // Simplified for single value
-        metaTargets.push(...testData.map(d => d.value));
+        const features = testForecasts.map((f) => f.predictedValue);
+        metaFeatures.push(...features.map((f) => [f])); // Simplified for single value
+        metaTargets.push(...testData.map((d) => d.value));
       }
 
       // Train meta-model
-      const metaModelWeights = this.trainMetaModel(metaFeatures, metaTargets, metaModel);
+      const metaModelWeights = this.trainMetaModel(
+        metaFeatures,
+        metaTargets,
+        metaModel,
+      );
 
       // Generate final ensemble forecast
-      const finalBaseForecasts = await this.generateIndividualForecasts(data, horizon, baseModels);
-      const finalForecast = this.applyMetaModel(finalBaseForecasts, metaModelWeights, horizon);
+      const finalBaseForecasts = await this.generateIndividualForecasts(
+        data,
+        horizon,
+        baseModels,
+      );
+      const finalForecast = this.applyMetaModel(
+        finalBaseForecasts,
+        metaModelWeights,
+        horizon,
+      );
 
       return {
         forecast: finalForecast,
         individualForecasts: finalBaseForecasts,
         ensembleWeights: this.createWeightMap(baseModels, metaModelWeights),
         diversity: this.calculateDiversity(finalBaseForecasts),
-        errorReduction: this.calculateStackingErrorReduction(finalBaseForecasts, finalForecast),
-        confidence: this.calculateStackingConfidence(finalBaseForecasts, metaModelWeights),
+        errorReduction: this.calculateStackingErrorReduction(
+          finalBaseForecasts,
+          finalForecast,
+        ),
+        confidence: this.calculateStackingConfidence(
+          finalBaseForecasts,
+          metaModelWeights,
+        ),
         metadata: {
           method: 'stacking',
           modelCount: baseModels.length,
@@ -293,7 +348,7 @@ export class EnsembleMethodsService {
 
   async evaluateEnsemblePerformance(
     ensembleResults: EnsembleResult[],
-    actualData: TimeSeriesData[]
+    actualData: TimeSeriesData[],
   ): Promise<{
     overallAccuracy: number;
     errorReduction: number;
@@ -301,19 +356,40 @@ export class EnsembleMethodsService {
     reliability: number;
   }> {
     try {
-      const accuracies = ensembleResults.map(result => result.forecast.accuracy);
-      const errorReductions = ensembleResults.map(result => result.errorReduction);
-      const confidences = ensembleResults.map(result => result.confidence);
+      if (ensembleResults.length === 0) {
+        return {
+          overallAccuracy: 0,
+          errorReduction: 0,
+          consistency: 0,
+          reliability: 0,
+        };
+      }
 
-      const overallAccuracy = accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length;
-      const averageErrorReduction = errorReductions.reduce((sum, red) => sum + red, 0) / errorReductions.length;
-      const averageConfidence = confidences.reduce((sum, conf) => sum + conf, 0) / confidences.length;
+      const accuracies = ensembleResults.map(
+        (result) => result.forecast.accuracy,
+      );
+      const errorReductions = ensembleResults.map(
+        (result) => result.errorReduction,
+      );
+      const confidences = ensembleResults.map((result) => result.confidence);
+
+      const overallAccuracy =
+        accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length;
+      const averageErrorReduction =
+        errorReductions.reduce((sum, red) => sum + red, 0) /
+        errorReductions.length;
+      const averageConfidence =
+        confidences.reduce((sum, conf) => sum + conf, 0) / confidences.length;
 
       // Calculate consistency (variance in performance)
-      const consistency = 1 - (this.calculateVariance(accuracies) / Math.pow(overallAccuracy, 2));
+      const consistency =
+        1 - this.calculateVariance(accuracies) / Math.pow(overallAccuracy, 2);
 
       // Calculate reliability (confidence vs actual accuracy)
-      const reliability = this.calculateReliability(ensembleResults, actualData);
+      const reliability = this.calculateReliability(
+        ensembleResults,
+        actualData,
+      );
 
       return {
         overallAccuracy,
@@ -332,7 +408,7 @@ export class EnsembleMethodsService {
     horizon: ForecastHorizon,
     models: string[],
     weatherData?: WeatherData[],
-    economicData?: EconomicData[]
+    economicData?: EconomicData[],
   ): Promise<ForecastResult[]> {
     const forecasts: ForecastResult[] = [];
 
@@ -342,16 +418,26 @@ export class EnsembleMethodsService {
 
         switch (model) {
           case 'ARIMA':
-            forecast = await this.timeSeriesService.arimaForecast(data, horizon);
+            forecast = await this.timeSeriesService.arimaForecast(
+              data,
+              horizon,
+            );
             break;
           case 'ExponentialSmoothing':
-            forecast = await this.timeSeriesService.exponentialSmoothingForecast(data, horizon);
+            forecast =
+              await this.timeSeriesService.exponentialSmoothingForecast(
+                data,
+                horizon,
+              );
             break;
           case 'LSTM':
             forecast = await this.timeSeriesService.lstmForecast(data, horizon);
             break;
           case 'Prophet':
-            forecast = await this.timeSeriesService.prophetForecast(data, horizon);
+            forecast = await this.timeSeriesService.prophetForecast(
+              data,
+              horizon,
+            );
             break;
           default:
             this.logger.warn(`Unknown model: ${model}, skipping`);
@@ -360,12 +446,19 @@ export class EnsembleMethodsService {
 
         // Enhance forecast with external data if available
         if (weatherData || economicData) {
-          forecast = this.enhanceForecastWithExternalData(forecast, weatherData, economicData);
+          forecast = this.enhanceForecastWithExternalData(
+            forecast,
+            weatherData,
+            economicData,
+          );
         }
 
         forecasts.push(forecast);
       } catch (error) {
-        this.logger.error(`Failed to generate forecast with model ${model}`, error);
+        this.logger.error(
+          `Failed to generate forecast with model ${model}`,
+          error,
+        );
       }
     }
 
@@ -375,14 +468,16 @@ export class EnsembleMethodsService {
   private enhanceForecastWithExternalData(
     forecast: ForecastResult,
     weatherData?: WeatherData[],
-    economicData?: EconomicData[]
+    economicData?: EconomicData[],
   ): ForecastResult {
     let adjustment = 0;
 
     if (weatherData) {
       // Calculate weather impact
       const recentWeather = weatherData.slice(-7);
-      const avgTemp = recentWeather.reduce((sum, d) => sum + d.temperature, 0) / recentWeather.length;
+      const avgTemp =
+        recentWeather.reduce((sum, d) => sum + d.temperature, 0) /
+        recentWeather.length;
       const tempImpact = (avgTemp - 20) * 0.01; // 20°C as baseline
       adjustment += tempImpact;
     }
@@ -390,20 +485,23 @@ export class EnsembleMethodsService {
     if (economicData) {
       // Calculate economic impact
       const latestEconomic = economicData[economicData.length - 1];
-      const gdpImpact = (latestEconomic.gdp - 20000) / 20000 * 0.1; // 20T as baseline
+      const gdpImpact = ((latestEconomic.gdp - 20000) / 20000) * 0.1; // 20T as baseline
       adjustment += gdpImpact;
     }
 
     return {
       ...forecast,
       predictedValue: forecast.predictedValue * (1 + adjustment),
-      accuracy: Math.max(0.5, forecast.accuracy * (1 - Math.abs(adjustment) * 0.1)),
+      accuracy: Math.max(
+        0.5,
+        forecast.accuracy * (1 - Math.abs(adjustment) * 0.1),
+      ),
     };
   }
 
   private async calculateOptimalWeights(
     forecasts: ForecastResult[],
-    config: EnsembleConfig
+    config: EnsembleConfig,
   ): Promise<Record<string, number>> {
     if (config.weights && config.weights.length === forecasts.length) {
       // Use provided weights
@@ -418,7 +516,7 @@ export class EnsembleMethodsService {
     const totalAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy, 0);
     const weights: Record<string, number> = {};
 
-    forecasts.forEach(forecast => {
+    forecasts.forEach((forecast) => {
       weights[forecast.model] = forecast.accuracy / totalAccuracy;
     });
 
@@ -428,7 +526,7 @@ export class EnsembleMethodsService {
   private applyEnsembleMethod(
     forecasts: ForecastResult[],
     weights: Record<string, number>,
-    method: string
+    method: string,
   ): ForecastResult {
     switch (method) {
       case 'weighted':
@@ -442,12 +540,30 @@ export class EnsembleMethodsService {
     }
   }
 
-  private weightedAverage(forecasts: ForecastResult[], weights: Record<string, number>): ForecastResult {
+  private weightedAverage(
+    forecasts: ForecastResult[],
+    weights: Record<string, number>,
+  ): ForecastResult {
+    if (forecasts.length === 0) {
+      return {
+        predictedValue: 0,
+        confidenceInterval: { lower: 0, upper: 0 },
+        accuracy: 0,
+        model: 'Ensemble',
+        horizon: ForecastHorizon.ONE_HOUR,
+        metadata: {
+          method: 'weighted_average',
+          modelCount: 0,
+          variance: 0,
+        },
+      };
+    }
+
     let weightedValue = 0;
     let weightedAccuracy = 0;
     let totalWeight = 0;
 
-    forecasts.forEach(forecast => {
+    forecasts.forEach((forecast) => {
       const weight = weights[forecast.model] || 0;
       weightedValue += forecast.predictedValue * weight;
       weightedAccuracy += forecast.accuracy * weight;
@@ -456,8 +572,11 @@ export class EnsembleMethodsService {
 
     if (totalWeight === 0) {
       // Fallback to simple average
-      weightedValue = forecasts.reduce((sum, f) => sum + f.predictedValue, 0) / forecasts.length;
-      weightedAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
+      weightedValue =
+        forecasts.reduce((sum, f) => sum + f.predictedValue, 0) /
+        forecasts.length;
+      weightedAccuracy =
+        forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
       totalWeight = 1;
     }
 
@@ -465,7 +584,7 @@ export class EnsembleMethodsService {
     const ensembleAccuracy = weightedAccuracy / totalWeight;
 
     // Calculate ensemble confidence intervals
-    const values = forecasts.map(f => f.predictedValue);
+    const values = forecasts.map((f) => f.predictedValue);
     const variance = this.calculateVariance(values);
     const stdDev = Math.sqrt(variance);
 
@@ -487,15 +606,28 @@ export class EnsembleMethodsService {
   }
 
   private majorityVoting(forecasts: ForecastResult[]): ForecastResult {
+    if (forecasts.length === 0) {
+      return {
+        predictedValue: 0,
+        confidenceInterval: { lower: 0, upper: 0 },
+        accuracy: 0,
+        model: 'Ensemble-Majority',
+        horizon: ForecastHorizon.ONE_HOUR,
+      };
+    }
+
     // Sort forecasts by predicted value
-    const sortedForecasts = [...forecasts].sort((a, b) => a.predictedValue - b.predictedValue);
-    
+    const sortedForecasts = [...forecasts].sort(
+      (a, b) => a.predictedValue - b.predictedValue,
+    );
+
     // Take median as majority vote
     const medianIndex = Math.floor(sortedForecasts.length / 2);
     const medianForecast = sortedForecasts[medianIndex];
 
     // Calculate average accuracy
-    const avgAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
+    const avgAccuracy =
+      forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
 
     return {
       ...medianForecast,
@@ -509,9 +641,21 @@ export class EnsembleMethodsService {
   }
 
   private rankedVoting(forecasts: ForecastResult[]): ForecastResult {
+    if (forecasts.length === 0) {
+      return {
+        predictedValue: 0,
+        confidenceInterval: { lower: 0, upper: 0 },
+        accuracy: 0,
+        model: 'Ensemble-Ranked',
+        horizon: ForecastHorizon.ONE_HOUR,
+      };
+    }
+
     // Rank models by accuracy
-    const rankedForecasts = [...forecasts].sort((a, b) => b.accuracy - a.accuracy);
-    
+    const rankedForecasts = [...forecasts].sort(
+      (a, b) => b.accuracy - a.accuracy,
+    );
+
     // Weight by rank (higher accuracy gets more weight)
     let weightedValue = 0;
     let totalWeight = 0;
@@ -523,7 +667,8 @@ export class EnsembleMethodsService {
     });
 
     const ensembleValue = weightedValue / totalWeight;
-    const avgAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
+    const avgAccuracy =
+      forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
 
     return {
       predictedValue: ensembleValue,
@@ -544,7 +689,7 @@ export class EnsembleMethodsService {
   private calculateDiversity(forecasts: ForecastResult[]): number {
     if (forecasts.length < 2) return 0;
 
-    const values = forecasts.map(f => f.predictedValue);
+    const values = forecasts.map((f) => f.predictedValue);
     const variance = this.calculateVariance(values);
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
 
@@ -554,16 +699,35 @@ export class EnsembleMethodsService {
 
   private calculateErrorReduction(
     individualForecasts: ForecastResult[],
-    ensembleForecast: ForecastResult
+    ensembleForecast: ForecastResult,
   ): number {
-    const avgIndividualError = individualForecasts.reduce((sum, f) => sum + (1 - f.accuracy), 0) / individualForecasts.length;
+    if (individualForecasts.length === 0) {
+      return 0;
+    }
+
+    const avgIndividualError =
+      individualForecasts.reduce((sum, f) => sum + (1 - f.accuracy), 0) /
+      individualForecasts.length;
     const ensembleError = 1 - ensembleForecast.accuracy;
 
-    return Math.max(0, (avgIndividualError - ensembleError) / avgIndividualError);
+    if (avgIndividualError <= 0) {
+      return 0;
+    }
+
+    return Math.max(
+      0,
+      (avgIndividualError - ensembleError) / avgIndividualError,
+    );
   }
 
-  private calculateEnsembleConfidence(forecasts: ForecastResult[], weights: Record<string, number>): number {
-    const weightedAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy * (weights[f.model] || 0), 0);
+  private calculateEnsembleConfidence(
+    forecasts: ForecastResult[],
+    weights: Record<string, number>,
+  ): number {
+    const weightedAccuracy = forecasts.reduce(
+      (sum, f) => sum + f.accuracy * (weights[f.model] || 0),
+      0,
+    );
     const totalWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
 
     return totalWeight > 0 ? weightedAccuracy / totalWeight : 0.5;
@@ -572,25 +736,27 @@ export class EnsembleMethodsService {
   private calculateAgreement(forecasts: ForecastResult[]): number {
     if (forecasts.length < 2) return 1;
 
-    const values = forecasts.map(f => f.predictedValue);
+    const values = forecasts.map((f) => f.predictedValue);
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     const variance = this.calculateVariance(values);
 
     // Agreement as inverse of normalized variance
-    return Math.max(0, 1 - (variance / (mean * mean)));
+    return Math.max(0, 1 - variance / (mean * mean));
   }
 
   private calculateForecastVariance(forecasts: ForecastResult[]): number {
-    const values = forecasts.map(f => f.predictedValue);
+    const values = forecasts.map((f) => f.predictedValue);
     return this.calculateVariance(values);
   }
 
   private calculateVariance(values: number[]): number {
     if (values.length === 0) return 0;
-    
+
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-    
+    const variance =
+      values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+      values.length;
+
     return variance;
   }
 
@@ -598,29 +764,35 @@ export class EnsembleMethodsService {
     trainData: TimeSeriesData[],
     validationData: TimeSeriesData[],
     horizon: ForecastHorizon,
-    models: string[]
+    models: string[],
   ): Promise<ModelPerformance[]> {
     const performances: ModelPerformance[] = [];
 
     for (const model of models) {
       try {
         // Generate forecast on training data
-        const forecast = await this.generateIndividualForecasts(trainData, horizon, [model]);
-        
+        const forecast = await this.generateIndividualForecasts(
+          trainData,
+          horizon,
+          [model],
+        );
+
         if (forecast.length === 0) continue;
 
         // Calculate performance metrics
         const predicted = forecast[0].predictedValue;
         const actual = validationData[validationData.length - 1]?.value || 0;
-        
+
         const accuracy = forecast[0].accuracy;
         const error = Math.abs(predicted - actual);
         const mae = error;
         const rmse = Math.sqrt(error * error);
         const mape = actual !== 0 ? (error / actual) * 100 : 0;
         const bias = predicted - actual;
-        const variance = this.calculateVariance(validationData.map(d => d.value));
-        const consistency = 1 - (Math.abs(bias) / actual);
+        const variance = this.calculateVariance(
+          validationData.map((d) => d.value),
+        );
+        const consistency = 1 - Math.abs(bias) / actual;
 
         performances.push({
           model,
@@ -640,16 +812,21 @@ export class EnsembleMethodsService {
     return performances;
   }
 
-  private selectBestModels(performances: ModelPerformance[], count: number): string[] {
+  private selectBestModels(
+    performances: ModelPerformance[],
+    count: number,
+  ): string[] {
     return performances
       .sort((a, b) => b.accuracy - a.accuracy)
       .slice(0, count)
-      .map(p => p.model);
+      .map((p) => p.model);
   }
 
-  private calculateWeightsFromPerformance(performances: ModelPerformance[]): number[] {
+  private calculateWeightsFromPerformance(
+    performances: ModelPerformance[],
+  ): number[] {
     const totalAccuracy = performances.reduce((sum, p) => sum + p.accuracy, 0);
-    return performances.map(p => p.accuracy / totalAccuracy);
+    return performances.map((p) => p.accuracy / totalAccuracy);
   }
 
   private createBootstrapSample(data: TimeSeriesData[]): TimeSeriesData[] {
@@ -658,14 +835,19 @@ export class EnsembleMethodsService {
       const randomIndex = Math.floor(Math.random() * data.length);
       bootstrapData.push(data[randomIndex]);
     }
-    return bootstrapData.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    return bootstrapData.sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+    );
   }
 
-  private aggregateBootstrapForecasts(forecasts: ForecastResult[]): ForecastResult {
-    const values = forecasts.map(f => f.predictedValue);
+  private aggregateBootstrapForecasts(
+    forecasts: ForecastResult[],
+  ): ForecastResult {
+    const values = forecasts.map((f) => f.predictedValue);
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     const variance = this.calculateVariance(values);
-    const avgAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
+    const avgAccuracy =
+      forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
 
     return {
       predictedValue: mean,
@@ -683,7 +865,9 @@ export class EnsembleMethodsService {
     };
   }
 
-  private calculateBootstrapWeights(forecasts: ForecastResult[]): Record<string, number> {
+  private calculateBootstrapWeights(
+    forecasts: ForecastResult[],
+  ): Record<string, number> {
     const weights: Record<string, number> = {};
     forecasts.forEach((forecast, i) => {
       weights[`bootstrap_${i}`] = 1 / forecasts.length;
@@ -691,34 +875,54 @@ export class EnsembleMethodsService {
     return weights;
   }
 
-  private calculateBootstrapErrorReduction(forecasts: ForecastResult[]): number {
-    const avgIndividualAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
-    const ensembleAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
-    
-    return Math.max(0, (ensembleAccuracy - avgIndividualAccuracy) / avgIndividualAccuracy);
+  private calculateBootstrapErrorReduction(
+    forecasts: ForecastResult[],
+  ): number {
+    const avgIndividualAccuracy =
+      forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
+    const ensembleAccuracy =
+      forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
+
+    return Math.max(
+      0,
+      (ensembleAccuracy - avgIndividualAccuracy) / avgIndividualAccuracy,
+    );
   }
 
   private calculateBootstrapConfidence(forecasts: ForecastResult[]): number {
     return forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
   }
 
-  private calculateResiduals(data: TimeSeriesData[], forecast: ForecastResult): number[] {
-    return data.map(d => d.value - forecast.predictedValue);
+  private calculateResiduals(
+    data: TimeSeriesData[],
+    forecast: ForecastResult,
+  ): number[] {
+    return data.map((d) => d.value - forecast.predictedValue);
   }
 
-  private updateDataWeights(data: TimeSeriesData[], residuals: number[]): TimeSeriesData[] {
+  private updateDataWeights(
+    data: TimeSeriesData[],
+    residuals: number[],
+  ): TimeSeriesData[] {
     // Increase weight for poorly predicted samples
     const maxResidual = Math.max(...residuals.map(Math.abs));
     return data.map((d, i) => ({
       ...d,
-      value: d.value * (1 + Math.abs(residuals[i]) / maxResidual * 0.1),
+      value: d.value * (1 + (Math.abs(residuals[i]) / maxResidual) * 0.1),
     }));
   }
 
-  private createBoostedForecast(forecasts: ForecastResult[], weights: number[]): ForecastResult {
-    const weightedValue = forecasts.reduce((sum, f, i) => sum + f.predictedValue * weights[i], 0);
+  private createBoostedForecast(
+    forecasts: ForecastResult[],
+    weights: number[],
+  ): ForecastResult {
+    const weightedValue = forecasts.reduce(
+      (sum, f, i) => sum + f.predictedValue * weights[i],
+      0,
+    );
     const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-    const avgAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
+    const avgAccuracy =
+      forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
 
     return {
       predictedValue: weightedValue / totalWeight,
@@ -736,7 +940,10 @@ export class EnsembleMethodsService {
     };
   }
 
-  private createWeightMap(models: string[], weights: number[]): Record<string, number> {
+  private createWeightMap(
+    models: string[],
+    weights: number[],
+  ): Record<string, number> {
     const weightMap: Record<string, number> = {};
     models.forEach((model, i) => {
       weightMap[model] = weights[i] || 0;
@@ -746,37 +953,51 @@ export class EnsembleMethodsService {
 
   private calculateBoostingErrorReduction(forecasts: ForecastResult[]): number {
     if (forecasts.length < 2) return 0;
-    
+
     const firstAccuracy = forecasts[0].accuracy;
     const lastAccuracy = forecasts[forecasts.length - 1].accuracy;
-    
+
     return Math.max(0, (lastAccuracy - firstAccuracy) / firstAccuracy);
   }
 
-  private calculateBoostingConfidence(forecasts: ForecastResult[], weights: number[]): number {
-    const weightedAccuracy = forecasts.reduce((sum, f, i) => sum + f.accuracy * weights[i], 0);
+  private calculateBoostingConfidence(
+    forecasts: ForecastResult[],
+    weights: number[],
+  ): number {
+    const weightedAccuracy = forecasts.reduce(
+      (sum, f, i) => sum + f.accuracy * weights[i],
+      0,
+    );
     const totalWeight = weights.reduce((sum, w) => sum + w, 0);
     return totalWeight > 0 ? weightedAccuracy / totalWeight : 0.5;
   }
 
-  private createCrossValidationFolds(data: TimeSeriesData[], numFolds: number): Array<{ train: TimeSeriesData[]; test: TimeSeriesData[] }> {
-    const folds: Array<{ train: TimeSeriesData[]; test: TimeSeriesData[] }> = [];
+  private createCrossValidationFolds(
+    data: TimeSeriesData[],
+    numFolds: number,
+  ): Array<{ train: TimeSeriesData[]; test: TimeSeriesData[] }> {
+    const folds: Array<{ train: TimeSeriesData[]; test: TimeSeriesData[] }> =
+      [];
     const foldSize = Math.floor(data.length / numFolds);
 
     for (let i = 0; i < numFolds; i++) {
       const startIndex = i * foldSize;
       const endIndex = i === numFolds - 1 ? data.length : (i + 1) * foldSize;
-      
+
       const test = data.slice(startIndex, endIndex);
       const train = [...data.slice(0, startIndex), ...data.slice(endIndex)];
-      
+
       folds.push({ train, test });
     }
 
     return folds;
   }
 
-  private trainMetaModel(features: number[][], targets: number[], method: string): number[] {
+  private trainMetaModel(
+    features: number[][],
+    targets: number[],
+    method: string,
+  ): number[] {
     switch (method) {
       case 'linear':
         return this.trainLinearRegression(features, targets);
@@ -789,7 +1010,10 @@ export class EnsembleMethodsService {
     }
   }
 
-  private trainLinearRegression(features: number[][], targets: number[]): number[] {
+  private trainLinearRegression(
+    features: number[][],
+    targets: number[],
+  ): number[] {
     // Simplified linear regression
     // In production, use proper ML library
     const n = features.length;
@@ -798,8 +1022,14 @@ export class EnsembleMethodsService {
     const avgFeature = features.reduce((sum, f) => sum + f[0], 0) / n;
     const avgTarget = targets.reduce((sum, t) => sum + t, 0) / n;
 
-    const numerator = features.reduce((sum, f, i) => sum + (f[0] - avgFeature) * (targets[i] - avgTarget), 0);
-    const denominator = features.reduce((sum, f) => sum + Math.pow(f[0] - avgFeature, 2), 0);
+    const numerator = features.reduce(
+      (sum, f, i) => sum + (f[0] - avgFeature) * (targets[i] - avgTarget),
+      0,
+    );
+    const denominator = features.reduce(
+      (sum, f) => sum + Math.pow(f[0] - avgFeature, 2),
+      0,
+    );
 
     const slope = denominator !== 0 ? numerator / denominator : 0;
     const intercept = avgTarget - slope * avgFeature;
@@ -807,25 +1037,36 @@ export class EnsembleMethodsService {
     return [slope, intercept];
   }
 
-  private trainRidgeRegression(features: number[][], targets: number[]): number[] {
+  private trainRidgeRegression(
+    features: number[][],
+    targets: number[],
+  ): number[] {
     // Simplified ridge regression
     const weights = this.trainLinearRegression(features, targets);
     const alpha = 0.1;
-    return weights.map(w => w / (1 + alpha));
+    return weights.map((w) => w / (1 + alpha));
   }
 
-  private trainLassoRegression(features: number[][], targets: number[]): number[] {
+  private trainLassoRegression(
+    features: number[][],
+    targets: number[],
+  ): number[] {
     // Simplified lasso regression
     const weights = this.trainLinearRegression(features, targets);
     const alpha = 0.1;
-    return weights.map(w => Math.sign(w) * Math.max(0, Math.abs(w) - alpha));
+    return weights.map((w) => Math.sign(w) * Math.max(0, Math.abs(w) - alpha));
   }
 
-  private applyMetaModel(forecasts: ForecastResult[], weights: number[], horizon: ForecastHorizon): ForecastResult {
-    const features = forecasts.map(f => f.predictedValue);
+  private applyMetaModel(
+    forecasts: ForecastResult[],
+    weights: number[],
+    horizon: ForecastHorizon,
+  ): ForecastResult {
+    const features = forecasts.map((f) => f.predictedValue);
     const prediction = weights[0] * features[0] + (weights[1] || 0);
 
-    const avgAccuracy = forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
+    const avgAccuracy =
+      forecasts.reduce((sum, f) => sum + f.accuracy, 0) / forecasts.length;
 
     return {
       predictedValue: prediction,
@@ -843,22 +1084,40 @@ export class EnsembleMethodsService {
     };
   }
 
-  private calculateStackingErrorReduction(baseForecasts: ForecastResult[], metaForecast: ForecastResult): number {
-    const avgBaseAccuracy = baseForecasts.reduce((sum, f) => sum + f.accuracy, 0) / baseForecasts.length;
-    return Math.max(0, (metaForecast.accuracy - avgBaseAccuracy) / avgBaseAccuracy);
+  private calculateStackingErrorReduction(
+    baseForecasts: ForecastResult[],
+    metaForecast: ForecastResult,
+  ): number {
+    const avgBaseAccuracy =
+      baseForecasts.reduce((sum, f) => sum + f.accuracy, 0) /
+      baseForecasts.length;
+    return Math.max(
+      0,
+      (metaForecast.accuracy - avgBaseAccuracy) / avgBaseAccuracy,
+    );
   }
 
-  private calculateStackingConfidence(baseForecasts: ForecastResult[], weights: number[]): number {
-    const avgBaseAccuracy = baseForecasts.reduce((sum, f) => sum + f.accuracy, 0) / baseForecasts.length;
-    const weightMagnitude = Math.sqrt(weights.reduce((sum, w) => sum + w * w, 0));
+  private calculateStackingConfidence(
+    baseForecasts: ForecastResult[],
+    weights: number[],
+  ): number {
+    const avgBaseAccuracy =
+      baseForecasts.reduce((sum, f) => sum + f.accuracy, 0) /
+      baseForecasts.length;
+    const weightMagnitude = Math.sqrt(
+      weights.reduce((sum, w) => sum + w * w, 0),
+    );
     return avgBaseAccuracy * (1 + weightMagnitude * 0.1);
   }
 
-  private calculateReliability(ensembleResults: EnsembleResult[], actualData: TimeSeriesData[]): number {
+  private calculateReliability(
+    ensembleResults: EnsembleResult[],
+    actualData: TimeSeriesData[],
+  ): number {
     // Calculate correlation between confidence and actual accuracy
-    const confidences = ensembleResults.map(r => r.confidence);
-    const accuracies = ensembleResults.map(r => r.forecast.accuracy);
-    
+    const confidences = ensembleResults.map((r) => r.confidence);
+    const accuracies = ensembleResults.map((r) => r.forecast.accuracy);
+
     return this.calculateCorrelation(confidences, accuracies);
   }
 
@@ -873,7 +1132,9 @@ export class EnsembleMethodsService {
     const sumY2 = y.reduce((sum, val) => sum + val * val, 0);
 
     const numerator = n * sumXY - sumX * sumY;
-    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    const denominator = Math.sqrt(
+      (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY),
+    );
 
     return denominator === 0 ? 0 : numerator / denominator;
   }

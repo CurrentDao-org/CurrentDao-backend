@@ -21,21 +21,29 @@ export class ShardRouterService implements OnModuleInit {
 
   private loadConfig() {
     try {
-      const configPath = path.resolve(process.cwd(), 'database/sharding-config.json');
+      const configPath = path.resolve(
+        process.cwd(),
+        'database/sharding-config.json',
+      );
       const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       this.nodes = data.nodes;
-      this.logger.log(`Initialized Shard Router with ${this.nodes.length} nodes`);
+      this.logger.log(
+        `Initialized Shard Router with ${this.nodes.length} nodes`,
+      );
     } catch (error) {
-      this.logger.error('Failed to load sharding config, using default shard', error);
+      this.logger.error(
+        'Failed to load sharding config, using default shard',
+        error,
+      );
     }
   }
 
   /**
    * Route a key (e.g. user_id) to the correct shard
    */
-  getShardNode(key: string): ShardNode {
+  getShardNode(key: string): ShardNode | null {
     if (this.nodes.length === 0) return null;
-    
+
     // Simple hash-based partitioning
     const hash = crypto.createHash('md5').update(key).digest('hex');
     const index = parseInt(hash.substring(0, 8), 16) % this.nodes.length;
@@ -51,14 +59,18 @@ export class ShardRouterService implements OnModuleInit {
     this.logger.log('Starting cross-shard parallel execution...');
 
     // Simulated parallel execution across all shards
-    const results = await Promise.all(this.nodes.map(node => this.queryOnShard<T>(node, query)));
-    
+    const results = await Promise.all(
+      this.nodes.map((node) => this.queryOnShard<T>(node, query)),
+    );
+
     // Aggregation (e.g. UNION ALL style)
     const aggregatedResult = results.flat();
-    
+
     const duration = Date.now() - startTime;
-    this.logger.log(`Cross-shard query completed in ${duration}ms across ${this.nodes.length} shards`);
-    
+    this.logger.log(
+      `Cross-shard query completed in ${duration}ms across ${this.nodes.length} shards`,
+    );
+
     return aggregatedResult;
   }
 

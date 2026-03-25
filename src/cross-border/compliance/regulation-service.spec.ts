@@ -34,7 +34,7 @@ describe('RegulationService', () => {
         'DE',
         'electricity',
         100000,
-        'export'
+        'export',
       );
 
       expect(result).toBeDefined();
@@ -46,14 +46,14 @@ describe('RegulationService', () => {
 
     it('should handle different energy types', async () => {
       const energyTypes = ['solar', 'wind', 'natural_gas', 'oil'];
-      
+
       for (const energyType of energyTypes) {
         const result = await service.checkCompliance(
           'US',
           'DE',
           energyType,
           50000,
-          'export'
+          'export',
         );
 
         expect(result.overallStatus).toBeDefined();
@@ -67,12 +67,12 @@ describe('RegulationService', () => {
         'FR',
         'electricity',
         75000,
-        'transit'
+        'transit',
       );
 
-      expect(result.checks.some(check => 
-        check.ruleCode.includes('EU')
-      )).toBe(true);
+      expect(result.checks.some((check) => check.ruleCode.includes('EU'))).toBe(
+        true,
+      );
     });
 
     it('should apply US-specific regulations for US transactions', async () => {
@@ -81,12 +81,12 @@ describe('RegulationService', () => {
         'CA',
         'electricity',
         100000,
-        'import'
+        'import',
       );
 
-      expect(result.checks.some(check => 
-        check.ruleCode.includes('US_FERC')
-      )).toBe(true);
+      expect(
+        result.checks.some((check) => check.ruleCode.includes('US_FERC')),
+      ).toBe(true);
     });
 
     it('should handle high-value transactions appropriately', async () => {
@@ -95,7 +95,7 @@ describe('RegulationService', () => {
         'DE',
         'oil',
         10000000,
-        'export'
+        'export',
       );
 
       expect(result.checks.length).toBeGreaterThan(0);
@@ -108,26 +108,28 @@ describe('RegulationService', () => {
         'FR',
         'solar',
         25000,
-        'export'
+        'export',
       );
 
-      expect(result.checks.some(check => 
-        check.ruleCode.includes('RENEWABLE')
-      )).toBe(true);
+      expect(
+        result.checks.some((check) => check.ruleCode.includes('RENEWABLE')),
+      ).toBe(true);
     });
   });
 
   describe('getRegulationByCode', () => {
     it('should return regulation for valid code', () => {
-      const regulation = service.getRegulationByCode('EU_RENEWABLE_ENERGY_DIRECTIVE');
-      
+      const regulation = service.getRegulationByCode(
+        'EU_RENEWABLE_ENERGY_DIRECTIVE',
+      );
+
       expect(regulation).toBeDefined();
       expect(regulation?.code).toBe('EU_RENEWABLE_ENERGY_DIRECTIVE');
     });
 
     it('should return undefined for invalid code', () => {
       const regulation = service.getRegulationByCode('INVALID_CODE');
-      
+
       expect(regulation).toBeUndefined();
     });
   });
@@ -135,46 +137,55 @@ describe('RegulationService', () => {
   describe('getAllRegulations', () => {
     it('should return all regulations', () => {
       const regulations = service.getAllRegulations();
-      
+
       expect(regulations).toBeDefined();
       expect(regulations.length).toBeGreaterThan(0);
-      expect(regulations.every(reg => 
-        reg.code && 
-        reg.name && 
-        reg.description && 
-        reg.applicableCountries.length > 0
-      )).toBe(true);
+      expect(
+        regulations.every(
+          (reg) =>
+            reg.code &&
+            reg.name &&
+            reg.description &&
+            reg.applicableCountries.length > 0,
+        ),
+      ).toBe(true);
     });
   });
 
   describe('getRegulationsByCountry', () => {
     it('should return regulations for EU countries', () => {
       const regulations = service.getRegulationsByCountry('DE');
-      
+
       expect(regulations.length).toBeGreaterThan(0);
-      expect(regulations.some(reg => 
-        reg.applicableCountries.includes('DE') || 
-        reg.applicableCountries.includes('*')
-      )).toBe(true);
+      expect(
+        regulations.some(
+          (reg) =>
+            reg.applicableCountries.includes('DE') ||
+            reg.applicableCountries.includes('*'),
+        ),
+      ).toBe(true);
     });
 
     it('should return regulations for US', () => {
       const regulations = service.getRegulationsByCountry('US');
-      
+
       expect(regulations.length).toBeGreaterThan(0);
-      expect(regulations.some(reg => 
-        reg.code.includes('US_FERC') || 
-        reg.applicableCountries.includes('*')
-      )).toBe(true);
+      expect(
+        regulations.some(
+          (reg) =>
+            reg.code.includes('US_FERC') ||
+            reg.applicableCountries.includes('*'),
+        ),
+      ).toBe(true);
     });
 
     it('should return international regulations for any country', () => {
       const regulations = service.getRegulationsByCountry('JP');
-      
+
       expect(regulations.length).toBeGreaterThan(0);
-      expect(regulations.some(reg => 
-        reg.applicableCountries.includes('*')
-      )).toBe(true);
+      expect(
+        regulations.some((reg) => reg.applicableCountries.includes('*')),
+      ).toBe(true);
     });
   });
 
@@ -185,13 +196,15 @@ describe('RegulationService', () => {
         'DE',
         'electricity',
         100,
-        'export'
+        'export',
       );
 
       expect(result.overallStatus).toBeDefined();
-      expect(result.checks.some(check => 
-        check.details.includes('below minimum threshold')
-      )).toBe(true);
+      expect(
+        result.checks.some((check) =>
+          check.details.includes('below minimum threshold'),
+        ),
+      ).toBe(true);
     });
 
     it('should handle nuclear energy with special requirements', async () => {
@@ -200,7 +213,7 @@ describe('RegulationService', () => {
         'FR',
         'nuclear',
         500000,
-        'export'
+        'export',
       );
 
       expect(result.checks.length).toBeGreaterThan(0);
@@ -213,13 +226,15 @@ describe('RegulationService', () => {
         'CN',
         'coal',
         200000,
-        'import'
+        'import',
       );
 
       expect(result.overallStatus).toBeDefined();
-      expect(result.checks.some(check => 
-        check.ruleCode.includes('INTERNATIONAL_SANCTIONS')
-      )).toBe(true);
+      expect(
+        result.checks.some((check) =>
+          check.ruleCode.includes('INTERNATIONAL_SANCTIONS'),
+        ),
+      ).toBe(true);
     });
   });
 
@@ -230,16 +245,17 @@ describe('RegulationService', () => {
         'DE',
         'electricity',
         100000,
-        'export'
+        'export',
       );
 
-      const dailyChecks = result.checks.filter(check => 
-        check.ruleCode.includes('US_FERC') || 
-        check.ruleCode.includes('CROSS_BORDER_EU')
+      const dailyChecks = result.checks.filter(
+        (check) =>
+          check.ruleCode.includes('US_FERC') ||
+          check.ruleCode.includes('CROSS_BORDER_EU'),
       );
 
       expect(dailyChecks.length).toBeGreaterThan(0);
-      expect(dailyChecks.every(check => check.deadline)).toBe(true);
+      expect(dailyChecks.every((check) => check.deadline)).toBe(true);
     });
 
     it('should set appropriate deadlines for monthly regulations', async () => {
@@ -248,14 +264,14 @@ describe('RegulationService', () => {
         'DE',
         'electricity',
         100000,
-        'export'
+        'export',
       );
 
-      const monthlyChecks = result.checks.filter(check => 
-        check.ruleCode.includes('IEA_REPORTING')
+      const monthlyChecks = result.checks.filter((check) =>
+        check.ruleCode.includes('IEA_REPORTING'),
       );
 
-      expect(monthlyChecks.every(check => check.deadline)).toBe(true);
+      expect(monthlyChecks.every((check) => check.deadline)).toBe(true);
     });
   });
 });

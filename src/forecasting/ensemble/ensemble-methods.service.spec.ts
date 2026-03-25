@@ -1,6 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EnsembleMethodsService, EnsembleConfig, EnsembleResult } from './ensemble-methods.service';
-import { TimeSeriesService, TimeSeriesData, ForecastResult } from '../models/time-series.service';
+import {
+  EnsembleMethodsService,
+  EnsembleConfig,
+  EnsembleResult,
+} from './ensemble-methods.service';
+import {
+  TimeSeriesService,
+  TimeSeriesData,
+  ForecastResult,
+} from '../models/time-series.service';
 import { ForecastHorizon } from '../entities/forecast-data.entity';
 
 describe('EnsembleMethodsService', () => {
@@ -70,7 +78,9 @@ describe('EnsembleMethodsService', () => {
     beforeEach(() => {
       jest.clearAllMocks();
       mockTimeSeriesService.arimaForecast.mockResolvedValue(mockForecasts[0]);
-      mockTimeSeriesService.exponentialSmoothingForecast.mockResolvedValue(mockForecasts[1]);
+      mockTimeSeriesService.exponentialSmoothingForecast.mockResolvedValue(
+        mockForecasts[1],
+      );
       mockTimeSeriesService.lstmForecast.mockResolvedValue(mockForecasts[2]);
     });
 
@@ -83,7 +93,7 @@ describe('EnsembleMethodsService', () => {
       const result = await service.createEnsembleForecast(
         mockData,
         ForecastHorizon.ONE_HOUR,
-        config
+        config,
       );
 
       expect(result).toBeDefined();
@@ -108,7 +118,7 @@ describe('EnsembleMethodsService', () => {
       const result = await service.createEnsembleForecast(
         mockData,
         ForecastHorizon.ONE_HOUR,
-        config
+        config,
       );
 
       expect(result.metadata.method).toBe('majority');
@@ -123,7 +133,7 @@ describe('EnsembleMethodsService', () => {
       const result = await service.createEnsembleForecast(
         mockData,
         ForecastHorizon.ONE_HOUR,
-        config
+        config,
       );
 
       expect(result.metadata.method).toBe('ranked');
@@ -139,7 +149,7 @@ describe('EnsembleMethodsService', () => {
       const result = await service.createEnsembleForecast(
         mockData,
         ForecastHorizon.ONE_HOUR,
-        config
+        config,
       );
 
       expect(result.ensembleWeights['ARIMA']).toBe(0.5);
@@ -148,7 +158,9 @@ describe('EnsembleMethodsService', () => {
     });
 
     it('should handle model failures gracefully', async () => {
-      mockTimeSeriesService.arimaForecast.mockRejectedValue(new Error('ARIMA failed'));
+      mockTimeSeriesService.arimaForecast.mockRejectedValue(
+        new Error('ARIMA failed'),
+      );
 
       const config: EnsembleConfig = {
         models: ['ARIMA', 'ExponentialSmoothing', 'LSTM'],
@@ -158,16 +170,22 @@ describe('EnsembleMethodsService', () => {
       const result = await service.createEnsembleForecast(
         mockData,
         ForecastHorizon.ONE_HOUR,
-        config
+        config,
       );
 
       expect(result.individualForecasts).toHaveLength(2); // Only successful forecasts
     });
 
     it('should throw error when no forecasts succeed', async () => {
-      mockTimeSeriesService.arimaForecast.mockRejectedValue(new Error('ARIMA failed'));
-      mockTimeSeriesService.exponentialSmoothingForecast.mockRejectedValue(new Error('ES failed'));
-      mockTimeSeriesService.lstmForecast.mockRejectedValue(new Error('LSTM failed'));
+      mockTimeSeriesService.arimaForecast.mockRejectedValue(
+        new Error('ARIMA failed'),
+      );
+      mockTimeSeriesService.exponentialSmoothingForecast.mockRejectedValue(
+        new Error('ES failed'),
+      );
+      mockTimeSeriesService.lstmForecast.mockRejectedValue(
+        new Error('LSTM failed'),
+      );
 
       const config: EnsembleConfig = {
         models: ['ARIMA', 'ExponentialSmoothing', 'LSTM'],
@@ -175,7 +193,11 @@ describe('EnsembleMethodsService', () => {
       };
 
       await expect(
-        service.createEnsembleForecast(mockData, ForecastHorizon.ONE_HOUR, config)
+        service.createEnsembleForecast(
+          mockData,
+          ForecastHorizon.ONE_HOUR,
+          config,
+        ),
       ).rejects.toThrow();
     });
   });
@@ -205,13 +227,18 @@ describe('EnsembleMethodsService', () => {
     });
 
     it('should optimize ensemble configuration', async () => {
-      const candidateModels = ['ARIMA', 'ExponentialSmoothing', 'LSTM', 'Prophet'];
+      const candidateModels = [
+        'ARIMA',
+        'ExponentialSmoothing',
+        'LSTM',
+        'Prophet',
+      ];
 
       const result = await service.optimizeEnsemble(
         mockData,
         ForecastHorizon.ONE_HOUR,
         candidateModels,
-        0.2
+        0.2,
       );
 
       expect(result).toBeDefined();
@@ -224,13 +251,20 @@ describe('EnsembleMethodsService', () => {
     });
 
     it('should select top performing models', async () => {
-      const candidateModels = ['ARIMA', 'ExponentialSmoothing', 'LSTM', 'Prophet', 'Custom1', 'Custom2'];
+      const candidateModels = [
+        'ARIMA',
+        'ExponentialSmoothing',
+        'LSTM',
+        'Prophet',
+        'Custom1',
+        'Custom2',
+      ];
 
       const result = await service.optimizeEnsemble(
         mockData,
         ForecastHorizon.ONE_HOUR,
         candidateModels,
-        0.2
+        0.2,
       );
 
       expect(result.models.length).toBeLessThanOrEqual(5); // Should select top 5
@@ -264,7 +298,7 @@ describe('EnsembleMethodsService', () => {
         mockData,
         ForecastHorizon.ONE_HOUR,
         models,
-        5
+        5,
       );
 
       expect(result).toBeDefined();
@@ -280,12 +314,12 @@ describe('EnsembleMethodsService', () => {
         mockData,
         ForecastHorizon.ONE_HOUR,
         models,
-        3
+        3,
       );
 
       expect(Object.keys(result.ensembleWeights)).toHaveLength(3);
-      Object.values(result.ensembleWeights).forEach(weight => {
-        expect(weight).toBeCloseTo(1/3, 5);
+      Object.values(result.ensembleWeights).forEach((weight) => {
+        expect(weight).toBeCloseTo(1 / 3, 5);
       });
     });
   });
@@ -324,7 +358,7 @@ describe('EnsembleMethodsService', () => {
         ensembleWeights: {},
         diversity: 0.12,
         errorReduction: 0.18,
-        confidence: 0.90,
+        confidence: 0.9,
         metadata: {
           method: 'weighted',
           modelCount: 3,
@@ -342,7 +376,7 @@ describe('EnsembleMethodsService', () => {
     it('should evaluate ensemble performance', async () => {
       const result = await service.evaluateEnsemblePerformance(
         mockEnsembleResults,
-        mockActualData
+        mockActualData,
       );
 
       expect(result).toBeDefined();
@@ -356,7 +390,10 @@ describe('EnsembleMethodsService', () => {
     });
 
     it('should handle empty results', async () => {
-      const result = await service.evaluateEnsemblePerformance([], mockActualData);
+      const result = await service.evaluateEnsemblePerformance(
+        [],
+        mockActualData,
+      );
 
       expect(result.overallAccuracy).toBe(0);
       expect(result.errorReduction).toBe(0);
@@ -369,14 +406,14 @@ describe('EnsembleMethodsService', () => {
     it('should calculate variance correctly', () => {
       const serviceAny = service as any;
       const values = [1, 2, 3, 4, 5];
-      
+
       const variance = serviceAny.calculateVariance(values);
       expect(variance).toBeCloseTo(2, 5);
     });
 
     it('should handle empty array for variance', () => {
       const serviceAny = service as any;
-      
+
       const variance = serviceAny.calculateVariance([]);
       expect(variance).toBe(0);
     });
@@ -384,11 +421,26 @@ describe('EnsembleMethodsService', () => {
     it('should calculate diversity correctly', () => {
       const serviceAny = service as any;
       const forecasts: ForecastResult[] = [
-        { predictedValue: 100, accuracy: 0.8, model: 'A', horizon: ForecastHorizon.ONE_HOUR } as any,
-        { predictedValue: 110, accuracy: 0.85, model: 'B', horizon: ForecastHorizon.ONE_HOUR } as any,
-        { predictedValue: 90, accuracy: 0.82, model: 'C', horizon: ForecastHorizon.ONE_HOUR } as any,
+        {
+          predictedValue: 100,
+          accuracy: 0.8,
+          model: 'A',
+          horizon: ForecastHorizon.ONE_HOUR,
+        } as any,
+        {
+          predictedValue: 110,
+          accuracy: 0.85,
+          model: 'B',
+          horizon: ForecastHorizon.ONE_HOUR,
+        } as any,
+        {
+          predictedValue: 90,
+          accuracy: 0.82,
+          model: 'C',
+          horizon: ForecastHorizon.ONE_HOUR,
+        } as any,
       ];
-      
+
       const diversity = serviceAny.calculateDiversity(forecasts);
       expect(diversity).toBeGreaterThan(0);
     });
@@ -396,9 +448,14 @@ describe('EnsembleMethodsService', () => {
     it('should handle single forecast for diversity', () => {
       const serviceAny = service as any;
       const forecasts: ForecastResult[] = [
-        { predictedValue: 100, accuracy: 0.8, model: 'A', horizon: ForecastHorizon.ONE_HOUR } as any,
+        {
+          predictedValue: 100,
+          accuracy: 0.8,
+          model: 'A',
+          horizon: ForecastHorizon.ONE_HOUR,
+        } as any,
       ];
-      
+
       const diversity = serviceAny.calculateDiversity(forecasts);
       expect(diversity).toBe(0);
     });
@@ -406,11 +463,26 @@ describe('EnsembleMethodsService', () => {
     it('should calculate agreement correctly', () => {
       const serviceAny = service as any;
       const forecasts: ForecastResult[] = [
-        { predictedValue: 100, accuracy: 0.8, model: 'A', horizon: ForecastHorizon.ONE_HOUR } as any,
-        { predictedValue: 101, accuracy: 0.85, model: 'B', horizon: ForecastHorizon.ONE_HOUR } as any,
-        { predictedValue: 99, accuracy: 0.82, model: 'C', horizon: ForecastHorizon.ONE_HOUR } as any,
+        {
+          predictedValue: 100,
+          accuracy: 0.8,
+          model: 'A',
+          horizon: ForecastHorizon.ONE_HOUR,
+        } as any,
+        {
+          predictedValue: 101,
+          accuracy: 0.85,
+          model: 'B',
+          horizon: ForecastHorizon.ONE_HOUR,
+        } as any,
+        {
+          predictedValue: 99,
+          accuracy: 0.82,
+          model: 'C',
+          horizon: ForecastHorizon.ONE_HOUR,
+        } as any,
       ];
-      
+
       const agreement = serviceAny.calculateAgreement(forecasts);
       expect(agreement).toBeGreaterThan(0);
       expect(agreement).toBeLessThanOrEqual(1);

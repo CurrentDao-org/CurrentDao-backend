@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CrossBorderTransaction, TransactionStatus, ComplianceStatus } from '../entities/cross-border-transaction.entity';
+import {
+  CrossBorderTransaction,
+  TransactionStatus,
+  ComplianceStatus,
+} from '../entities/cross-border-transaction.entity';
 import { RegulationService } from '../compliance/regulation-service';
 
 export interface RegulatoryReport {
@@ -106,13 +110,19 @@ export class RegulatoryReportService {
         description: 'Monthly report for renewable energy trading within EU',
         jurisdiction: 'EU',
         frequency: 'monthly',
-        requiredFields: ['transactionId', 'energyType', 'volume', 'value', 'complianceStatus'],
+        requiredFields: [
+          'transactionId',
+          'energyType',
+          'volume',
+          'value',
+          'complianceStatus',
+        ],
         format: 'XML',
         submissionEndpoint: 'https://ec.europa.eu/energy/api/reports',
         authentication: {
           type: 'api_key',
-          credentials: { api_key: 'EU_ENERGY_API_KEY' }
-        }
+          credentials: { api_key: 'EU_ENERGY_API_KEY' },
+        },
       },
       {
         id: 'US_FERC_ENERGY_REPORT',
@@ -120,13 +130,22 @@ export class RegulatoryReportService {
         description: 'Daily report for US energy trading activities',
         jurisdiction: 'US',
         frequency: 'daily',
-        requiredFields: ['transactionId', 'sourceCountry', 'targetCountry', 'value', 'complianceStatus'],
+        requiredFields: [
+          'transactionId',
+          'sourceCountry',
+          'targetCountry',
+          'value',
+          'complianceStatus',
+        ],
         format: 'JSON',
         submissionEndpoint: 'https://www.ferc.gov/api/energy-reports',
         authentication: {
           type: 'oauth',
-          credentials: { client_id: 'FERC_CLIENT_ID', client_secret: 'FERC_CLIENT_SECRET' }
-        }
+          credentials: {
+            client_id: 'FERC_CLIENT_ID',
+            client_secret: 'FERC_CLIENT_SECRET',
+          },
+        },
       },
       {
         id: 'ISO_50001_COMPLIANCE_REPORT',
@@ -138,8 +157,8 @@ export class RegulatoryReportService {
         format: 'PDF',
         authentication: {
           type: 'certificate',
-          credentials: { certificate_path: '/certs/iso50001.pem' }
-        }
+          credentials: { certificate_path: '/certs/iso50001.pem' },
+        },
       },
       {
         id: 'IEA_STATISTICS_REPORT',
@@ -147,13 +166,19 @@ export class RegulatoryReportService {
         description: 'Monthly energy trading statistics for IEA',
         jurisdiction: 'International',
         frequency: 'monthly',
-        requiredFields: ['country', 'energyType', 'imports', 'exports', 'consumption'],
+        requiredFields: [
+          'country',
+          'energyType',
+          'imports',
+          'exports',
+          'consumption',
+        ],
         format: 'CSV',
         submissionEndpoint: 'https://api.iea.org/statistics',
         authentication: {
           type: 'api_key',
-          credentials: { api_key: 'IEA_API_KEY' }
-        }
+          credentials: { api_key: 'IEA_API_KEY' },
+        },
       },
       {
         id: 'CROSS_BORDER_EU_REPORT',
@@ -161,40 +186,58 @@ export class RegulatoryReportService {
         description: 'Daily cross-border electricity trading report for EU',
         jurisdiction: 'EU',
         frequency: 'daily',
-        requiredFields: ['transactionId', 'sourceCountry', 'targetCountry', 'volume', 'price'],
+        requiredFields: [
+          'transactionId',
+          'sourceCountry',
+          'targetCountry',
+          'volume',
+          'price',
+        ],
         format: 'JSON',
         submissionEndpoint: 'https://www.entsoe.eu/api/cross-border',
         authentication: {
           type: 'certificate',
-          credentials: { certificate_path: '/certs/entsoe.pem' }
-        }
-      }
+          credentials: { certificate_path: '/certs/entsoe.pem' },
+        },
+      },
     ];
 
-    templates.forEach(template => {
+    templates.forEach((template) => {
       this.reportTemplates.set(template.id, template);
     });
 
-    this.logger.log(`Initialized ${templates.length} regulatory report templates`);
+    this.logger.log(
+      `Initialized ${templates.length} regulatory report templates`,
+    );
   }
 
   async generateReport(
     reportType: string,
     startDate: Date,
     endDate: Date,
-    jurisdiction?: string
+    jurisdiction?: string,
   ): Promise<RegulatoryReport> {
-    this.logger.log(`Generating ${reportType} report for period ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    this.logger.log(
+      `Generating ${reportType} report for period ${startDate.toISOString()} to ${endDate.toISOString()}`,
+    );
 
     const template = this.reportTemplates.get(reportType);
     if (!template) {
       throw new Error(`Report template not found: ${reportType}`);
     }
 
-    const transactions = await this.getTransactionsForPeriod(startDate, endDate, jurisdiction);
+    const transactions = await this.getTransactionsForPeriod(
+      startDate,
+      endDate,
+      jurisdiction,
+    );
     const transactionReports = await this.buildTransactionReports(transactions);
-    const complianceMetrics = await this.calculateComplianceMetrics(transactions);
-    const summary = this.calculateSummary(transactionReports, complianceMetrics);
+    const complianceMetrics =
+      await this.calculateComplianceMetrics(transactions);
+    const summary = this.calculateSummary(
+      transactionReports,
+      complianceMetrics,
+    );
 
     const report: RegulatoryReport = {
       id: this.generateReportId(),
@@ -205,52 +248,56 @@ export class RegulatoryReportService {
       transactions: transactionReports,
       complianceMetrics,
       generatedAt: new Date(),
-      status: 'draft'
+      status: 'draft',
     };
 
-    this.logger.log(`Generated report ${report.id} with ${transactionReports.length} transactions`);
+    this.logger.log(
+      `Generated report ${report.id} with ${transactionReports.length} transactions`,
+    );
     return report;
   }
 
   private async getTransactionsForPeriod(
     startDate: Date,
     endDate: Date,
-    jurisdiction?: string
+    jurisdiction?: string,
   ): Promise<CrossBorderTransaction[]> {
     const whereCondition: any = {
       createdAt: {
         $gte: startDate,
-        $lte: endDate
-      }
+        $lte: endDate,
+      },
     };
 
     if (jurisdiction && jurisdiction !== 'International') {
       const countries = this.getCountriesByJurisdiction(jurisdiction);
       whereCondition.$or = [
         { sourceCountry: { $in: countries } },
-        { targetCountry: { $in: countries } }
+        { targetCountry: { $in: countries } },
       ];
     }
 
     return this.transactionRepository.find({
       where: whereCondition,
-      order: { createdAt: 'ASC' }
+      order: { createdAt: 'ASC' },
     });
   }
 
   private getCountriesByJurisdiction(jurisdiction: string): string[] {
     const jurisdictionCountries: Record<string, string[]> = {
-      'EU': ['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'FI', 'GR'],
-      'US': ['US'],
-      'CN': ['CN'],
-      'International': ['*']
+      EU: ['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'PT', 'FI', 'GR'],
+      US: ['US'],
+      CN: ['CN'],
+      International: ['*'],
     };
 
     return jurisdictionCountries[jurisdiction] || [];
   }
 
-  private async buildTransactionReports(transactions: CrossBorderTransaction[]): Promise<TransactionReport[]> {
-    return transactions.map(transaction => ({
+  private async buildTransactionReports(
+    transactions: CrossBorderTransaction[],
+  ): Promise<TransactionReport[]> {
+    return transactions.map((transaction) => ({
       transactionId: transaction.transactionId,
       date: transaction.createdAt,
       sourceCountry: transaction.sourceCountry,
@@ -262,7 +309,7 @@ export class RegulatoryReportService {
       complianceStatus: transaction.complianceStatus,
       violations: this.extractViolations(transaction),
       penalties: this.extractPenalties(transaction),
-      regulations: this.extractApplicableRegulations(transaction)
+      regulations: this.extractApplicableRegulations(transaction),
     }));
   }
 
@@ -274,7 +321,10 @@ export class RegulatoryReportService {
   }
 
   private extractVolume(transaction: CrossBorderTransaction): number {
-    if (transaction.regulatoryData && transaction.regulatoryData.energyQuantity) {
+    if (
+      transaction.regulatoryData &&
+      transaction.regulatoryData.energyQuantity
+    ) {
       return transaction.regulatoryData.energyQuantity;
     }
     return transaction.amount; // Use amount as volume proxy
@@ -282,9 +332,11 @@ export class RegulatoryReportService {
 
   private extractViolations(transaction: CrossBorderTransaction): string[] {
     const violations: string[] = [];
-    
+
     if (transaction.complianceChecks) {
-      for (const [regulation, check] of Object.entries(transaction.complianceChecks)) {
+      for (const [regulation, check] of Object.entries(
+        transaction.complianceChecks,
+      )) {
         if (check.status === 'fail') {
           violations.push(`${regulation}: ${check.details}`);
         }
@@ -301,37 +353,45 @@ export class RegulatoryReportService {
     return 0;
   }
 
-  private extractApplicableRegulations(transaction: CrossBorderTransaction): string[] {
+  private extractApplicableRegulations(
+    transaction: CrossBorderTransaction,
+  ): string[] {
     const regulations: string[] = [];
-    
-    if (transaction.regulatoryData && transaction.regulatoryData.applicableRegulations) {
+
+    if (
+      transaction.regulatoryData &&
+      transaction.regulatoryData.applicableRegulations
+    ) {
       regulations.push(...transaction.regulatoryData.applicableRegulations);
     }
 
     return regulations;
   }
 
-  private async calculateComplianceMetrics(transactions: CrossBorderTransaction[]): Promise<ComplianceMetric[]> {
+  private async calculateComplianceMetrics(
+    transactions: CrossBorderTransaction[],
+  ): Promise<ComplianceMetric[]> {
     const regulations = this.regulationService.getAllRegulations();
     const metrics: ComplianceMetric[] = [];
 
     for (const regulation of regulations) {
-      const applicableTransactions = transactions.filter(t => 
-        this.isRegulationApplicable(t, regulation)
+      const applicableTransactions = transactions.filter((t) =>
+        this.isRegulationApplicable(t, regulation),
       );
 
       const totalChecks = applicableTransactions.length;
-      const passedChecks = applicableTransactions.filter(t => 
-        t.complianceStatus === ComplianceStatus.COMPLIANT
+      const passedChecks = applicableTransactions.filter(
+        (t) => t.complianceStatus === ComplianceStatus.COMPLIANT,
       ).length;
-      const failedChecks = applicableTransactions.filter(t => 
-        t.complianceStatus === ComplianceStatus.NON_COMPLIANT
+      const failedChecks = applicableTransactions.filter(
+        (t) => t.complianceStatus === ComplianceStatus.NON_COMPLIANT,
       ).length;
-      const warningChecks = applicableTransactions.filter(t => 
-        t.complianceStatus === ComplianceStatus.PENDING_REVIEW
+      const warningChecks = applicableTransactions.filter(
+        (t) => t.complianceStatus === ComplianceStatus.PENDING_REVIEW,
       ).length;
 
-      const complianceRate = totalChecks > 0 ? (passedChecks / totalChecks) * 100 : 0;
+      const complianceRate =
+        totalChecks > 0 ? (passedChecks / totalChecks) * 100 : 0;
 
       metrics.push({
         regulationCode: regulation.code,
@@ -341,24 +401,33 @@ export class RegulatoryReportService {
         failedChecks,
         warningChecks,
         complianceRate,
-        averageResolutionTime: this.calculateAverageResolutionTime(applicableTransactions),
+        averageResolutionTime: this.calculateAverageResolutionTime(
+          applicableTransactions,
+        ),
         openViolations: failedChecks,
-        closedViolations: passedChecks
+        closedViolations: passedChecks,
       });
     }
 
     return metrics;
   }
 
-  private isRegulationApplicable(transaction: CrossBorderTransaction, regulation: any): boolean {
-    return regulation.applicableCountries.includes('*') ||
+  private isRegulationApplicable(
+    transaction: CrossBorderTransaction,
+    regulation: any,
+  ): boolean {
+    return (
+      regulation.applicableCountries.includes('*') ||
       regulation.applicableCountries.includes(transaction.sourceCountry) ||
-      regulation.applicableCountries.includes(transaction.targetCountry);
+      regulation.applicableCountries.includes(transaction.targetCountry)
+    );
   }
 
-  private calculateAverageResolutionTime(transactions: CrossBorderTransaction[]): number {
-    const completedTransactions = transactions.filter(t => 
-      t.processedAt && t.createdAt
+  private calculateAverageResolutionTime(
+    transactions: CrossBorderTransaction[],
+  ): number {
+    const completedTransactions = transactions.filter(
+      (t) => t.processedAt && t.createdAt,
     );
 
     if (completedTransactions.length === 0) {
@@ -374,18 +443,24 @@ export class RegulatoryReportService {
 
   private calculateSummary(
     transactions: TransactionReport[],
-    complianceMetrics: ComplianceMetric[]
+    complianceMetrics: ComplianceMetric[],
   ): RegulatoryReport['summary'] {
     const totalTransactions = transactions.length;
     const totalVolume = transactions.reduce((sum, t) => sum + t.volume, 0);
     const totalValue = transactions.reduce((sum, t) => sum + t.value, 0);
-    
-    const compliantTransactions = transactions.filter(t => 
-      t.complianceStatus === ComplianceStatus.COMPLIANT
-    ).length;
-    const complianceRate = totalTransactions > 0 ? (compliantTransactions / totalTransactions) * 100 : 0;
 
-    const violations = transactions.reduce((sum, t) => sum + t.violations.length, 0);
+    const compliantTransactions = transactions.filter(
+      (t) => t.complianceStatus === ComplianceStatus.COMPLIANT,
+    ).length;
+    const complianceRate =
+      totalTransactions > 0
+        ? (compliantTransactions / totalTransactions) * 100
+        : 0;
+
+    const violations = transactions.reduce(
+      (sum, t) => sum + t.violations.length,
+      0,
+    );
     const penalties = transactions.reduce((sum, t) => sum + t.penalties, 0);
 
     return {
@@ -394,7 +469,7 @@ export class RegulatoryReportService {
       totalValue,
       complianceRate,
       violations,
-      penalties
+      penalties,
     };
   }
 
@@ -410,7 +485,9 @@ export class RegulatoryReportService {
 
     const template = this.reportTemplates.get(report.reportType);
     if (!template || !template.submissionEndpoint) {
-      throw new Error(`No submission endpoint configured for report type: ${report.reportType}`);
+      throw new Error(
+        `No submission endpoint configured for report type: ${report.reportType}`,
+      );
     }
 
     const submissionId = this.generateSubmissionId();
@@ -419,12 +496,15 @@ export class RegulatoryReportService {
       submissionId,
       endpoint: template.submissionEndpoint,
       status: 'pending',
-      submittedAt: new Date()
+      submittedAt: new Date(),
     };
 
     try {
       const formattedReport = this.formatReport(report, template.format);
-      const response = await this.sendToRegulatoryBody(template, formattedReport);
+      const response = await this.sendToRegulatoryBody(
+        template,
+        formattedReport,
+      );
 
       submission.status = 'submitted';
       submission.response = response;
@@ -432,8 +512,9 @@ export class RegulatoryReportService {
       report.status = 'submitted';
       report.submissionDate = new Date();
 
-      this.logger.log(`Report ${reportId} submitted successfully with submission ID ${submissionId}`);
-
+      this.logger.log(
+        `Report ${reportId} submitted successfully with submission ID ${submissionId}`,
+      );
     } catch (error) {
       submission.status = 'failed';
       submission.error = error.message;
@@ -479,8 +560,17 @@ export class RegulatoryReportService {
   }
 
   private convertToCSV(report: RegulatoryReport): string {
-    const headers = ['Transaction ID', 'Date', 'Source Country', 'Target Country', 'Energy Type', 'Value', 'Currency', 'Compliance Status'];
-    const rows = report.transactions.map(t => [
+    const headers = [
+      'Transaction ID',
+      'Date',
+      'Source Country',
+      'Target Country',
+      'Energy Type',
+      'Value',
+      'Currency',
+      'Compliance Status',
+    ];
+    const rows = report.transactions.map((t) => [
       t.transactionId,
       t.date.toISOString(),
       t.sourceCountry,
@@ -488,10 +578,10 @@ export class RegulatoryReportService {
       t.energyType,
       t.value.toString(),
       t.currency,
-      t.complianceStatus
+      t.complianceStatus,
     ]);
 
-    return [headers, ...rows].map(row => row.join(',')).join('\n');
+    return [headers, ...rows].map((row) => row.join(',')).join('\n');
   }
 
   private convertToPDF(report: RegulatoryReport): Buffer {
@@ -500,12 +590,15 @@ export class RegulatoryReportService {
     return Buffer.from(`PDF Report: ${report.id}`);
   }
 
-  private async sendToRegulatoryBody(template: ReportTemplate, data: any): Promise<any> {
+  private async sendToRegulatoryBody(
+    template: ReportTemplate,
+    data: any,
+  ): Promise<any> {
     // Mock API call - in real implementation, this would make HTTP request
     return {
       status: 'success',
       messageId: `MSG-${Date.now()}`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -518,12 +611,16 @@ export class RegulatoryReportService {
     return null;
   }
 
-  async getReportsByStatus(status: RegulatoryReport['status']): Promise<RegulatoryReport[]> {
+  async getReportsByStatus(
+    status: RegulatoryReport['status'],
+  ): Promise<RegulatoryReport[]> {
     // In a real implementation, this would query the database
     return [];
   }
 
-  async getSubmissionStatus(submissionId: string): Promise<ReportSubmission | null> {
+  async getSubmissionStatus(
+    submissionId: string,
+  ): Promise<ReportSubmission | null> {
     return this.submissions.get(submissionId) || null;
   }
 
@@ -537,7 +634,7 @@ export class RegulatoryReportService {
 
   async scheduleAutomaticReports(): Promise<void> {
     const templates = Array.from(this.reportTemplates.values());
-    
+
     for (const template of templates) {
       // Schedule reports based on template frequency
       this.scheduleReport(template);
@@ -573,20 +670,34 @@ export class RegulatoryReportService {
       this.scheduleReport(template); // Schedule next run
     }, nextRun.getTime() - now.getTime());
 
-    this.logger.log(`Scheduled ${template.name} report for ${nextRun.toISOString()}`);
+    this.logger.log(
+      `Scheduled ${template.name} report for ${nextRun.toISOString()}`,
+    );
   }
 
-  private async generateAndSubmitReport(template: ReportTemplate): Promise<void> {
+  private async generateAndSubmitReport(
+    template: ReportTemplate,
+  ): Promise<void> {
     try {
       const endDate = new Date();
       const startDate = this.calculateStartDate(template.frequency, endDate);
 
-      const report = await this.generateReport(template.id, startDate, endDate, template.jurisdiction);
+      const report = await this.generateReport(
+        template.id,
+        startDate,
+        endDate,
+        template.jurisdiction,
+      );
       await this.submitReport(report.id);
 
-      this.logger.log(`Automatic report ${template.name} generated and submitted successfully`);
+      this.logger.log(
+        `Automatic report ${template.name} generated and submitted successfully`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to generate automatic report ${template.name}:`, error);
+      this.logger.error(
+        `Failed to generate automatic report ${template.name}:`,
+        error,
+      );
     }
   }
 

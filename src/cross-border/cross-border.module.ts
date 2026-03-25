@@ -10,10 +10,7 @@ import { CrossBorderTransaction } from './entities/cross-border-transaction.enti
 import { CrossBorderController } from './controller/cross-border.controller';
 
 @Module({
-  imports: [
-    ConfigModule,
-    TypeOrmModule.forFeature([CrossBorderTransaction]),
-  ],
+  imports: [ConfigModule, TypeOrmModule.forFeature([CrossBorderTransaction])],
   controllers: [CrossBorderController],
   providers: [
     RegulationService,

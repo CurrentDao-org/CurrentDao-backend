@@ -40,18 +40,25 @@ export class EconomicIndicatorService {
 
   constructor(private readonly httpService: HttpService) {}
 
-  async getGDPData(region: string = 'US', startDate: Date, endDate: Date): Promise<EconomicIndicator[]> {
+  async getGDPData(
+    region: string = 'US',
+    startDate: Date,
+    endDate: Date,
+  ): Promise<EconomicIndicator[]> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get('https://api.stlouisfed.org/fred/series/observations', {
-          params: {
-            series_id: this.getGDPSeriesId(region),
-            api_key: this.fredApiKey,
-            observation_start: startDate.toISOString().split('T')[0],
-            observation_end: endDate.toISOString().split('T')[0],
-            file_type: 'json',
+        this.httpService.get(
+          'https://api.stlouisfed.org/fred/series/observations',
+          {
+            params: {
+              series_id: this.getGDPSeriesId(region),
+              api_key: this.fredApiKey,
+              observation_start: startDate.toISOString().split('T')[0],
+              observation_end: endDate.toISOString().split('T')[0],
+              file_type: 'json',
+            },
           },
-        })
+        ),
       );
 
       return response.data.observations.map((obs: any) => ({
@@ -68,18 +75,25 @@ export class EconomicIndicatorService {
     }
   }
 
-  async getInflationData(region: string = 'US', startDate: Date, endDate: Date): Promise<EconomicIndicator[]> {
+  async getInflationData(
+    region: string = 'US',
+    startDate: Date,
+    endDate: Date,
+  ): Promise<EconomicIndicator[]> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get('https://api.stlouisfed.org/fred/series/observations', {
-          params: {
-            series_id: this.getInflationSeriesId(region),
-            api_key: this.fredApiKey,
-            observation_start: startDate.toISOString().split('T')[0],
-            observation_end: endDate.toISOString().split('T')[0],
-            file_type: 'json',
+        this.httpService.get(
+          'https://api.stlouisfed.org/fred/series/observations',
+          {
+            params: {
+              series_id: this.getInflationSeriesId(region),
+              api_key: this.fredApiKey,
+              observation_start: startDate.toISOString().split('T')[0],
+              observation_end: endDate.toISOString().split('T')[0],
+              file_type: 'json',
+            },
           },
-        })
+        ),
       );
 
       return response.data.observations.map((obs: any) => ({
@@ -96,18 +110,25 @@ export class EconomicIndicatorService {
     }
   }
 
-  async getUnemploymentData(region: string = 'US', startDate: Date, endDate: Date): Promise<EconomicIndicator[]> {
+  async getUnemploymentData(
+    region: string = 'US',
+    startDate: Date,
+    endDate: Date,
+  ): Promise<EconomicIndicator[]> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get('https://api.stlouisfed.org/fred/series/observations', {
-          params: {
-            series_id: this.getUnemploymentSeriesId(region),
-            api_key: this.fredApiKey,
-            observation_start: startDate.toISOString().split('T')[0],
-            observation_end: endDate.toISOString().split('T')[0],
-            file_type: 'json',
+        this.httpService.get(
+          'https://api.stlouisfed.org/fred/series/observations',
+          {
+            params: {
+              series_id: this.getUnemploymentSeriesId(region),
+              api_key: this.fredApiKey,
+              observation_start: startDate.toISOString().split('T')[0],
+              observation_end: endDate.toISOString().split('T')[0],
+              file_type: 'json',
+            },
           },
-        })
+        ),
       );
 
       return response.data.observations.map((obs: any) => ({
@@ -124,18 +145,25 @@ export class EconomicIndicatorService {
     }
   }
 
-  async getInterestRateData(region: string = 'US', startDate: Date, endDate: Date): Promise<EconomicIndicator[]> {
+  async getInterestRateData(
+    region: string = 'US',
+    startDate: Date,
+    endDate: Date,
+  ): Promise<EconomicIndicator[]> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get('https://api.stlouisfed.org/fred/series/observations', {
-          params: {
-            series_id: this.getInterestRateSeriesId(region),
-            api_key: this.fredApiKey,
-            observation_start: startDate.toISOString().split('T')[0],
-            observation_end: endDate.toISOString().split('T')[0],
-            file_type: 'json',
+        this.httpService.get(
+          'https://api.stlouisfed.org/fred/series/observations',
+          {
+            params: {
+              series_id: this.getInterestRateSeriesId(region),
+              api_key: this.fredApiKey,
+              observation_start: startDate.toISOString().split('T')[0],
+              observation_end: endDate.toISOString().split('T')[0],
+              file_type: 'json',
+            },
           },
-        })
+        ),
       );
 
       return response.data.observations.map((obs: any) => ({
@@ -152,7 +180,11 @@ export class EconomicIndicatorService {
     }
   }
 
-  async getEnergyPrices(region: string = 'US', startDate: Date, endDate: Date): Promise<EconomicIndicator[]> {
+  async getEnergyPrices(
+    region: string = 'US',
+    startDate: Date,
+    endDate: Date,
+  ): Promise<EconomicIndicator[]> {
     try {
       // Use Alpha Vantage for energy prices
       const response = await firstValueFrom(
@@ -162,19 +194,21 @@ export class EconomicIndicatorService {
             symbol: this.getEnergySymbol(region),
             apikey: this.alphaVantageApiKey,
           },
-        })
+        }),
       );
 
       const data = response.data['Global Quote'];
-      
-      return [{
-        name: 'Energy Prices',
-        value: parseFloat(data['05. price']) || 0,
-        unit: 'USD',
-        timestamp: new Date(),
-        source: 'Alpha Vantage',
-        region,
-      }];
+
+      return [
+        {
+          name: 'Energy Prices',
+          value: parseFloat(data['05. price']) || 0,
+          unit: 'USD',
+          timestamp: new Date(),
+          source: 'Alpha Vantage',
+          region,
+        },
+      ];
     } catch (error) {
       this.logger.error('Failed to fetch energy prices', error);
       return this.getMockEnergyPrices(region, startDate, endDate);
@@ -216,7 +250,7 @@ export class EconomicIndicatorService {
 
   async analyzeEconomicImpact(
     economicData: EconomicData,
-    historicalEnergyData: { timestamp: Date; price: number; demand: number }[]
+    historicalEnergyData: { timestamp: Date; price: number; demand: number }[],
   ): Promise<MarketImpact[]> {
     const impacts: MarketImpact[] = [];
 
@@ -224,8 +258,8 @@ export class EconomicIndicatorService {
     impacts.push({
       indicator: 'GDP',
       correlation: this.calculateCorrelation(
-        historicalEnergyData.map(d => d.demand),
-        [economicData.gdp]
+        historicalEnergyData.map((d) => d.demand),
+        [economicData.gdp],
       ),
       impact: this.calculateGDPImpact(economicData.gdp),
       trend: this.getTrend(economicData.gdp, 20000), // Base GDP of 20T
@@ -236,8 +270,8 @@ export class EconomicIndicatorService {
     impacts.push({
       indicator: 'Inflation',
       correlation: this.calculateCorrelation(
-        historicalEnergyData.map(d => d.price),
-        [economicData.inflation]
+        historicalEnergyData.map((d) => d.price),
+        [economicData.inflation],
       ),
       impact: this.calculateInflationImpact(economicData.inflation),
       trend: this.getTrend(economicData.inflation, 2), // 2% target inflation
@@ -248,8 +282,8 @@ export class EconomicIndicatorService {
     impacts.push({
       indicator: 'Interest Rate',
       correlation: this.calculateCorrelation(
-        historicalEnergyData.map(d => d.price),
-        [economicData.interestRate]
+        historicalEnergyData.map((d) => d.price),
+        [economicData.interestRate],
       ),
       impact: this.calculateInterestRateImpact(economicData.interestRate),
       trend: this.getTrend(economicData.interestRate, 3), // 3% baseline
@@ -260,8 +294,8 @@ export class EconomicIndicatorService {
     impacts.push({
       indicator: 'Unemployment',
       correlation: this.calculateCorrelation(
-        historicalEnergyData.map(d => d.demand),
-        [economicData.unemployment]
+        historicalEnergyData.map((d) => d.demand),
+        [economicData.unemployment],
       ),
       impact: this.calculateUnemploymentImpact(economicData.unemployment),
       trend: this.getTrend(economicData.unemployment, 5), // 5% natural rate
@@ -272,8 +306,8 @@ export class EconomicIndicatorService {
     impacts.push({
       indicator: 'Energy Prices',
       correlation: this.calculateCorrelation(
-        historicalEnergyData.map(d => d.price),
-        [economicData.energyPrices]
+        historicalEnergyData.map((d) => d.price),
+        [economicData.energyPrices],
       ),
       impact: this.calculateEnergyPriceImpact(economicData.energyPrices),
       trend: this.getTrend(economicData.energyPrices, 100), // $100 baseline
@@ -283,18 +317,29 @@ export class EconomicIndicatorService {
     return impacts;
   }
 
-  async predictEconomicTrends(economicData: EconomicData[]): Promise<Record<string, number>> {
+  async predictEconomicTrends(
+    economicData: EconomicData[],
+  ): Promise<Record<string, number>> {
     const trends: Record<string, number> = {};
 
     // Simple linear trend prediction for each indicator
     const indicators = [
-      'gdp', 'inflation', 'unemployment', 'interestRate', 
-      'industrialProduction', 'consumerConfidence', 'manufacturingIndex',
-      'retailSales', 'energyPrices', 'currencyExchange'
+      'gdp',
+      'inflation',
+      'unemployment',
+      'interestRate',
+      'industrialProduction',
+      'consumerConfidence',
+      'manufacturingIndex',
+      'retailSales',
+      'energyPrices',
+      'currencyExchange',
     ];
 
-    indicators.forEach(indicator => {
-      const values = economicData.map(d => d[indicator as keyof EconomicData] as number);
+    indicators.forEach((indicator) => {
+      const values = economicData.map(
+        (d) => d[indicator as keyof EconomicData],
+      );
       trends[indicator] = this.predictNextValue(values);
     });
 
@@ -303,55 +348,55 @@ export class EconomicIndicatorService {
 
   private getGDPSeriesId(region: string): string {
     const seriesMap: Record<string, string> = {
-      'US': 'GDP',
-      'EU': 'CLVMNACSCAB1GQEU',
-      'UK': 'UKNGDP',
-      'JP': 'JPNRGDPEXP',
-      'CN': 'NGDP_CN',
+      US: 'GDP',
+      EU: 'CLVMNACSCAB1GQEU',
+      UK: 'UKNGDP',
+      JP: 'JPNRGDPEXP',
+      CN: 'NGDP_CN',
     };
     return seriesMap[region] || 'GDP';
   }
 
   private getInflationSeriesId(region: string): string {
     const seriesMap: Record<string, string> = {
-      'US': 'CPIAUCSL',
-      'EU': 'CP0000EZ19M086NEST',
-      'UK': 'GBRCPIALLMINMEI',
-      'JP': 'JPNCPIALLMINMEI',
-      'CN': 'CHNCPIALLMINMEI',
+      US: 'CPIAUCSL',
+      EU: 'CP0000EZ19M086NEST',
+      UK: 'GBRCPIALLMINMEI',
+      JP: 'JPNCPIALLMINMEI',
+      CN: 'CHNCPIALLMINMEI',
     };
     return seriesMap[region] || 'CPIAUCSL';
   }
 
   private getUnemploymentSeriesId(region: string): string {
     const seriesMap: Record<string, string> = {
-      'US': 'UNRATE',
-      'EU': 'LRUN64TTZQEU',
-      'UK': 'LRUN64TTGBM',
-      'JP': 'LRUN64TTJPQ156S',
-      'CN': 'LMUNRRTTCHM156S',
+      US: 'UNRATE',
+      EU: 'LRUN64TTZQEU',
+      UK: 'LRUN64TTGBM',
+      JP: 'LRUN64TTJPQ156S',
+      CN: 'LMUNRRTTCHM156S',
     };
     return seriesMap[region] || 'UNRATE';
   }
 
   private getInterestRateSeriesId(region: string): string {
     const seriesMap: Record<string, string> = {
-      'US': 'FEDFUNDS',
-      'EU': 'ESTBC',
-      'UK': 'BOEBGCR',
-      'JP': 'INTSRJPM193N',
-      'CN': 'INTSRJPM193N',
+      US: 'FEDFUNDS',
+      EU: 'ESTBC',
+      UK: 'BOEBGCR',
+      JP: 'INTSRJPM193N',
+      CN: 'INTSRJPM193N',
     };
     return seriesMap[region] || 'FEDFUNDS';
   }
 
   private getEnergySymbol(region: string): string {
     const symbolMap: Record<string, string> = {
-      'US': 'CL=F', // Crude Oil
-      'EU': 'BZ=F', // Brent Crude
-      'UK': 'BZ=F',
-      'JP': 'CL=F',
-      'CN': 'CL=F',
+      US: 'CL=F', // Crude Oil
+      EU: 'BZ=F', // Brent Crude
+      UK: 'BZ=F',
+      JP: 'CL=F',
+      CN: 'CL=F',
     };
     return symbolMap[region] || 'CL=F';
   }
@@ -371,7 +416,9 @@ export class EconomicIndicatorService {
     const sumY2 = y.reduce((sum, val) => sum + val * val, 0);
 
     const numerator = n * sumXY - sumX * sumY;
-    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    const denominator = Math.sqrt(
+      (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY),
+    );
 
     return denominator === 0 ? 0 : numerator / denominator;
   }
@@ -406,7 +453,10 @@ export class EconomicIndicatorService {
     return (price - baseline) / baseline;
   }
 
-  private getTrend(current: number, baseline: number): 'increasing' | 'decreasing' | 'stable' {
+  private getTrend(
+    current: number,
+    baseline: number,
+  ): 'increasing' | 'decreasing' | 'stable' {
     const diff = (current - baseline) / baseline;
     if (diff > 0.05) return 'increasing';
     if (diff < -0.05) return 'decreasing';
@@ -430,10 +480,14 @@ export class EconomicIndicatorService {
   }
 
   // Mock data methods for fallback
-  private getMockGDPData(region: string, startDate: Date, endDate: Date): EconomicIndicator[] {
+  private getMockGDPData(
+    region: string,
+    startDate: Date,
+    endDate: Date,
+  ): EconomicIndicator[] {
     const data: EconomicIndicator[] = [];
     const current = new Date(startDate);
-    
+
     while (current <= endDate) {
       data.push({
         name: 'GDP',
@@ -445,14 +499,18 @@ export class EconomicIndicatorService {
       });
       current.setMonth(current.getMonth() + 1);
     }
-    
+
     return data;
   }
 
-  private getMockInflationData(region: string, startDate: Date, endDate: Date): EconomicIndicator[] {
+  private getMockInflationData(
+    region: string,
+    startDate: Date,
+    endDate: Date,
+  ): EconomicIndicator[] {
     const data: EconomicIndicator[] = [];
     const current = new Date(startDate);
-    
+
     while (current <= endDate) {
       data.push({
         name: 'Inflation',
@@ -464,14 +522,18 @@ export class EconomicIndicatorService {
       });
       current.setMonth(current.getMonth() + 1);
     }
-    
+
     return data;
   }
 
-  private getMockUnemploymentData(region: string, startDate: Date, endDate: Date): EconomicIndicator[] {
+  private getMockUnemploymentData(
+    region: string,
+    startDate: Date,
+    endDate: Date,
+  ): EconomicIndicator[] {
     const data: EconomicIndicator[] = [];
     const current = new Date(startDate);
-    
+
     while (current <= endDate) {
       data.push({
         name: 'Unemployment',
@@ -483,14 +545,18 @@ export class EconomicIndicatorService {
       });
       current.setMonth(current.getMonth() + 1);
     }
-    
+
     return data;
   }
 
-  private getMockInterestRateData(region: string, startDate: Date, endDate: Date): EconomicIndicator[] {
+  private getMockInterestRateData(
+    region: string,
+    startDate: Date,
+    endDate: Date,
+  ): EconomicIndicator[] {
     const data: EconomicIndicator[] = [];
     const current = new Date(startDate);
-    
+
     while (current <= endDate) {
       data.push({
         name: 'Interest Rate',
@@ -502,14 +568,18 @@ export class EconomicIndicatorService {
       });
       current.setMonth(current.getMonth() + 1);
     }
-    
+
     return data;
   }
 
-  private getMockEnergyPrices(region: string, startDate: Date, endDate: Date): EconomicIndicator[] {
+  private getMockEnergyPrices(
+    region: string,
+    startDate: Date,
+    endDate: Date,
+  ): EconomicIndicator[] {
     const data: EconomicIndicator[] = [];
     const current = new Date(startDate);
-    
+
     while (current <= endDate) {
       data.push({
         name: 'Energy Prices',
@@ -521,7 +591,7 @@ export class EconomicIndicatorService {
       });
       current.setMonth(current.getMonth() + 1);
     }
-    
+
     return data;
   }
 

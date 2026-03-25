@@ -63,8 +63,16 @@ export class CustomsService {
   private readonly tariffRates: Map<string, TariffRate[]> = new Map();
   private readonly customsRules: Map<string, CustomsRule[]> = new Map();
   private readonly supportedEnergyTypes = [
-    'electricity', 'natural_gas', 'oil', 'coal', 'nuclear', 
-    'solar', 'wind', 'hydro', 'biomass', 'geothermal'
+    'electricity',
+    'natural_gas',
+    'oil',
+    'coal',
+    'nuclear',
+    'solar',
+    'wind',
+    'hydro',
+    'biomass',
+    'geothermal',
   ];
 
   constructor(private configService: ConfigService) {
@@ -74,67 +82,69 @@ export class CustomsService {
 
   private initializeTariffRates(): void {
     const energyTariffs: Record<string, TariffRate[]> = {
-      'electricity': [
+      electricity: [
         {
           hsCode: '27160000',
           description: 'Electrical energy',
           rate: 0.05,
           unit: 'percentage',
-          effectiveDate: new Date('2024-01-01')
-        }
+          effectiveDate: new Date('2024-01-01'),
+        },
       ],
-      'natural_gas': [
+      natural_gas: [
         {
           hsCode: '27111100',
           description: 'Natural gas',
           rate: 0.08,
           unit: 'percentage',
-          effectiveDate: new Date('2024-01-01')
-        }
+          effectiveDate: new Date('2024-01-01'),
+        },
       ],
-      'oil': [
+      oil: [
         {
           hsCode: '27090000',
           description: 'Petroleum oils',
           rate: 0.12,
           unit: 'percentage',
-          effectiveDate: new Date('2024-01-01')
-        }
+          effectiveDate: new Date('2024-01-01'),
+        },
       ],
-      'coal': [
+      coal: [
         {
           hsCode: '27010000',
           description: 'Coal',
           rate: 0.15,
           unit: 'percentage',
-          effectiveDate: new Date('2024-01-01')
-        }
+          effectiveDate: new Date('2024-01-01'),
+        },
       ],
-      'solar': [
+      solar: [
         {
           hsCode: '85414000',
           description: 'Solar cells',
           rate: 0.02,
           unit: 'percentage',
-          effectiveDate: new Date('2024-01-01')
-        }
+          effectiveDate: new Date('2024-01-01'),
+        },
       ],
-      'wind': [
+      wind: [
         {
           hsCode: '85023100',
           description: 'Wind turbines',
           rate: 0.03,
           unit: 'percentage',
-          effectiveDate: new Date('2024-01-01')
-        }
-      ]
+          effectiveDate: new Date('2024-01-01'),
+        },
+      ],
     };
 
     for (const [energyType, tariffs] of Object.entries(energyTariffs)) {
       this.tariffRates.set(energyType, tariffs);
     }
 
-    this.logger.log(`Initialized tariff rates for ${Object.keys(energyTariffs).length} energy types`);
+    this.logger.log(
+      `Initialized tariff rates for ${Object.keys(energyTariffs).length} energy types`,
+    );
   }
 
   private initializeCustomsRules(): void {
@@ -147,11 +157,15 @@ export class CustomsService {
         tariffRate: 0.05,
         additionalTaxes: [
           { type: 'VAT', rate: 0.21, description: 'Value Added Tax' },
-          { type: 'Excise', rate: 0.02, description: 'Energy Excise Tax' }
+          { type: 'Excise', rate: 0.02, description: 'Energy Excise Tax' },
         ],
         restrictions: ['export_license_required'],
-        requiredDocuments: ['certificate_of_origin', 'quality_certificate', 'export_license'],
-        specialConditions: ['renewable_energy_preferred']
+        requiredDocuments: [
+          'certificate_of_origin',
+          'quality_certificate',
+          'export_license',
+        ],
+        specialConditions: ['renewable_energy_preferred'],
       },
       {
         sourceCountry: 'EU',
@@ -161,11 +175,15 @@ export class CustomsService {
         tariffRate: 0.06,
         additionalTaxes: [
           { type: 'Import', rate: 0.025, description: 'Import Duty' },
-          { type: 'Excise', rate: 0.01, description: 'Federal Excise Tax' }
+          { type: 'Excise', rate: 0.01, description: 'Federal Excise Tax' },
         ],
         restrictions: ['ferc_approval_required'],
-        requiredDocuments: ['certificate_of_origin', 'ferc_approval', 'quality_certificate'],
-        specialConditions: ['market_participant_verification']
+        requiredDocuments: [
+          'certificate_of_origin',
+          'ferc_approval',
+          'quality_certificate',
+        ],
+        specialConditions: ['market_participant_verification'],
       },
       {
         sourceCountry: 'CN',
@@ -175,26 +193,34 @@ export class CustomsService {
         tariffRate: 0.08,
         additionalTaxes: [
           { type: 'VAT', rate: 0.21, description: 'Value Added Tax' },
-          { type: 'AntiDumping', rate: 0.15, description: 'Anti-Dumping Duty' }
+          { type: 'AntiDumping', rate: 0.15, description: 'Anti-Dumping Duty' },
         ],
         restrictions: ['quota_limitations', 'quality_standards'],
-        requiredDocuments: ['certificate_of_origin', 'quality_certificate', 'import_license'],
-        specialConditions: ['carbon_border_adjustment']
+        requiredDocuments: [
+          'certificate_of_origin',
+          'quality_certificate',
+          'import_license',
+        ],
+        specialConditions: ['carbon_border_adjustment'],
       },
       {
         sourceCountry: 'EU',
         targetCountry: 'CN',
         productCategory: 'energy',
         hsCode: '27160000',
-        tariffRate: 0.10,
+        tariffRate: 0.1,
         additionalTaxes: [
           { type: 'VAT', rate: 0.13, description: 'Value Added Tax' },
-          { type: 'Consumption', rate: 0.05, description: 'Consumption Tax' }
+          { type: 'Consumption', rate: 0.05, description: 'Consumption Tax' },
         ],
         restrictions: ['foreign_exchange_approval'],
-        requiredDocuments: ['certificate_of_origin', 'foreign_exchange_approval', 'quality_certificate'],
-        specialConditions: ['state_grid_compliance']
-      }
+        requiredDocuments: [
+          'certificate_of_origin',
+          'foreign_exchange_approval',
+          'quality_certificate',
+        ],
+        specialConditions: ['state_grid_compliance'],
+      },
     ];
 
     for (const rule of rules) {
@@ -205,7 +231,9 @@ export class CustomsService {
       this.customsRules.get(key)!.push(rule);
     }
 
-    this.logger.log(`Initialized customs rules for ${rules.length} country pairs`);
+    this.logger.log(
+      `Initialized customs rules for ${rules.length} country pairs`,
+    );
   }
 
   async calculateCustomsAndTariffs(
@@ -214,31 +242,50 @@ export class CustomsService {
     amount: number,
     currency: string,
     energyType: string,
-    customsData?: any
+    customsData?: any,
   ): Promise<CustomsCalculation> {
     const startTime = Date.now();
-    this.logger.log(`Calculating customs for ${sourceCountry} -> ${targetCountry}: ${energyType}, ${amount} ${currency}`);
+    this.logger.log(
+      `Calculating customs for ${sourceCountry} -> ${targetCountry}: ${energyType}, ${amount} ${currency}`,
+    );
 
     try {
       const hsCode = customsData?.hsCode || this.getDefaultHSCode(energyType);
       const productCategory = customsData?.productCategory || energyType;
       const customsValue = await this.convertToUSD(amount, currency);
 
-      const tariffRate = await this.getTariffRate(hsCode, sourceCountry, targetCountry);
+      const tariffRate = await this.getTariffRate(
+        hsCode,
+        sourceCountry,
+        targetCountry,
+      );
       const tariff = customsValue * tariffRate.rate;
 
-      const taxes = await this.calculateTaxes(customsValue, sourceCountry, targetCountry, energyType);
+      const taxes = await this.calculateTaxes(
+        customsValue,
+        sourceCountry,
+        targetCountry,
+        energyType,
+      );
       const totalTaxes = taxes.reduce((sum, tax) => sum + tax.amount, 0);
 
       const regulatoryFees = await this.calculateRegulatoryFees(
-        customsValue, 
-        sourceCountry, 
-        targetCountry, 
-        energyType
+        customsValue,
+        sourceCountry,
+        targetCountry,
+        energyType,
       );
 
-      const restrictions = await this.checkRestrictions(sourceCountry, targetCountry, energyType);
-      const requiredDocuments = await this.getRequiredDocuments(sourceCountry, targetCountry, energyType);
+      const restrictions = await this.checkRestrictions(
+        sourceCountry,
+        targetCountry,
+        energyType,
+      );
+      const requiredDocuments = await this.getRequiredDocuments(
+        sourceCountry,
+        targetCountry,
+        energyType,
+      );
 
       const approved = restrictions.length === 0 && tariffRate.rate > 0;
 
@@ -254,12 +301,13 @@ export class CustomsService {
         approved,
         restrictions,
         requiredDocuments,
-        processingTime: Date.now() - startTime
+        processingTime: Date.now() - startTime,
       };
 
-      this.logger.log(`Customs calculation completed in ${result.processingTime}ms`);
+      this.logger.log(
+        `Customs calculation completed in ${result.processingTime}ms`,
+      );
       return result;
-
     } catch (error) {
       this.logger.error('Customs calculation failed:', error);
       throw error;
@@ -268,22 +316,25 @@ export class CustomsService {
 
   private getDefaultHSCode(energyType: string): string {
     const hsCodes: Record<string, string> = {
-      'electricity': '27160000',
-      'natural_gas': '27111100',
-      'oil': '27090000',
-      'coal': '27010000',
-      'solar': '85414000',
-      'wind': '85023100',
-      'hydro': '85023900',
-      'biomass': '44013000',
-      'geothermal': '85024000',
-      'nuclear': '84012000'
+      electricity: '27160000',
+      natural_gas: '27111100',
+      oil: '27090000',
+      coal: '27010000',
+      solar: '85414000',
+      wind: '85023100',
+      hydro: '85023900',
+      biomass: '44013000',
+      geothermal: '85024000',
+      nuclear: '84012000',
     };
 
     return hsCodes[energyType] || '27160000';
   }
 
-  private async convertToUSD(amount: number, currency: string): Promise<number> {
+  private async convertToUSD(
+    amount: number,
+    currency: string,
+  ): Promise<number> {
     if (currency === 'USD') {
       return amount;
     }
@@ -291,7 +342,9 @@ export class CustomsService {
     try {
       const apiKey = this.configService.get<string>('EXCHANGE_RATE_API_KEY');
       if (apiKey) {
-        const response = await axios.get(`https://open.er-api.com/v6/latest/USD?apikey=${apiKey}`);
+        const response = await axios.get(
+          `https://open.er-api.com/v6/latest/USD?apikey=${apiKey}`,
+        );
         const rate = response.data.rates[currency];
         if (rate) {
           return amount / rate;
@@ -302,33 +355,37 @@ export class CustomsService {
     }
 
     const mockRates: Record<string, number> = {
-      'EUR': 0.92,
-      'GBP': 0.79,
-      'JPY': 149.50,
-      'CNY': 7.24,
-      'INR': 83.12,
-      'AUD': 1.53,
-      'CAD': 1.36,
-      'CHF': 0.88
+      EUR: 0.92,
+      GBP: 0.79,
+      JPY: 149.5,
+      CNY: 7.24,
+      INR: 83.12,
+      AUD: 1.53,
+      CAD: 1.36,
+      CHF: 0.88,
     };
 
     const rate = mockRates[currency] || 1;
     return amount / rate;
   }
 
-  private async getTariffRate(hsCode: string, sourceCountry: string, targetCountry: string): Promise<TariffRate> {
+  private async getTariffRate(
+    hsCode: string,
+    sourceCountry: string,
+    targetCountry: string,
+  ): Promise<TariffRate> {
     const key = `${sourceCountry}-${targetCountry}`;
     const rules = this.customsRules.get(key);
 
     if (rules && rules.length > 0) {
-      const rule = rules.find(r => r.hsCode === hsCode);
+      const rule = rules.find((r) => r.hsCode === hsCode);
       if (rule) {
         return {
           hsCode,
           description: `${rule.productCategory} tariff`,
           rate: rule.tariffRate,
           unit: 'percentage',
-          effectiveDate: new Date()
+          effectiveDate: new Date(),
         };
       }
     }
@@ -338,7 +395,7 @@ export class CustomsService {
       description: 'Standard energy tariff',
       rate: 0.05,
       unit: 'percentage',
-      effectiveDate: new Date()
+      effectiveDate: new Date(),
     };
   }
 
@@ -346,7 +403,7 @@ export class CustomsService {
     customsValue: number,
     sourceCountry: string,
     targetCountry: string,
-    energyType: string
+    energyType: string,
   ): Promise<TaxCalculation[]> {
     const key = `${sourceCountry}-${targetCountry}`;
     const rules = this.customsRules.get(key);
@@ -359,10 +416,13 @@ export class CustomsService {
     const rule = rules[0];
 
     for (const taxRate of rule.additionalTaxes) {
-      let amount = customsValue * taxRate.rate;
+      const amount = customsValue * taxRate.rate;
 
       if (taxRate.applicableRange) {
-        if (customsValue < taxRate.applicableRange.min || customsValue > taxRate.applicableRange.max) {
+        if (
+          customsValue < taxRate.applicableRange.min ||
+          customsValue > taxRate.applicableRange.max
+        ) {
           continue;
         }
       }
@@ -371,7 +431,7 @@ export class CustomsService {
         type: taxRate.type,
         rate: taxRate.rate,
         amount,
-        description: taxRate.description
+        description: taxRate.description,
       });
     }
 
@@ -380,15 +440,15 @@ export class CustomsService {
 
   private getDefaultTaxes(targetCountry: string): TaxCalculation[] {
     const defaultTaxes: Record<string, TaxCalculation[]> = {
-      'EU': [
-        { type: 'VAT', rate: 0.21, amount: 0, description: 'Value Added Tax' }
+      EU: [
+        { type: 'VAT', rate: 0.21, amount: 0, description: 'Value Added Tax' },
       ],
-      'US': [
-        { type: 'Import', rate: 0.025, amount: 0, description: 'Import Duty' }
+      US: [
+        { type: 'Import', rate: 0.025, amount: 0, description: 'Import Duty' },
       ],
-      'CN': [
-        { type: 'VAT', rate: 0.13, amount: 0, description: 'Value Added Tax' }
-      ]
+      CN: [
+        { type: 'VAT', rate: 0.13, amount: 0, description: 'Value Added Tax' },
+      ],
     };
 
     return defaultTaxes[targetCountry] || [];
@@ -398,7 +458,7 @@ export class CustomsService {
     customsValue: number,
     sourceCountry: string,
     targetCountry: string,
-    energyType: string
+    energyType: string,
   ): Promise<number> {
     let fees = 0;
 
@@ -420,7 +480,7 @@ export class CustomsService {
   private async checkRestrictions(
     sourceCountry: string,
     targetCountry: string,
-    energyType: string
+    energyType: string,
   ): Promise<string[]> {
     const key = `${sourceCountry}-${targetCountry}`;
     const rules = this.customsRules.get(key);
@@ -448,23 +508,32 @@ export class CustomsService {
   private async getRequiredDocuments(
     sourceCountry: string,
     targetCountry: string,
-    energyType: string
+    energyType: string,
   ): Promise<string[]> {
     const key = `${sourceCountry}-${targetCountry}`;
     const rules = this.customsRules.get(key);
 
-    const documents = ['certificate_of_origin', 'commercial_invoice', 'packing_list'];
+    const documents = [
+      'certificate_of_origin',
+      'commercial_invoice',
+      'packing_list',
+    ];
 
     if (rules && rules.length > 0) {
       documents.push(...rules[0].requiredDocuments);
     }
 
-    if (['solar', 'wind', 'hydro', 'biomass', 'geothermal'].includes(energyType)) {
+    if (
+      ['solar', 'wind', 'hydro', 'biomass', 'geothermal'].includes(energyType)
+    ) {
       documents.push('renewable_energy_certificate');
     }
 
     if (energyType === 'nuclear') {
-      documents.push('nuclear_safety_certificate', 'material_handling_procedures');
+      documents.push(
+        'nuclear_safety_certificate',
+        'material_handling_procedures',
+      );
     }
 
     return [...new Set(documents)];
@@ -474,7 +543,10 @@ export class CustomsService {
     return this.tariffRates.get(energyType) || [];
   }
 
-  getCustomsRulesByCountryPair(sourceCountry: string, targetCountry: string): CustomsRule[] {
+  getCustomsRulesByCountryPair(
+    sourceCountry: string,
+    targetCountry: string,
+  ): CustomsRule[] {
     const key = `${sourceCountry}-${targetCountry}`;
     return this.customsRules.get(key) || [];
   }
@@ -499,7 +571,7 @@ export class CustomsService {
   async estimateProcessingTime(
     sourceCountry: string,
     targetCountry: string,
-    energyType: string
+    energyType: string,
   ): Promise<number> {
     let baseTime = 30 * 60 * 1000; // 30 minutes base time
 

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum ForecastHorizon {
   ONE_HOUR = '1h',
@@ -48,7 +55,11 @@ export class ForecastData {
   @Column({ type: 'json', nullable: true })
   inputData: Record<string, any>;
 
-  @Column({ type: 'enum', enum: ForecastStatus, default: ForecastStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: ForecastStatus,
+    default: ForecastStatus.PENDING,
+  })
   status: ForecastStatus;
 
   @Column({ type: 'text', nullable: true })
