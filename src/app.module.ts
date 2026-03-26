@@ -43,6 +43,10 @@ import { ApiGatewayModule } from './gateway/api-gateway.module';
     ApiGatewayModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    ResponseInterceptor,
+    HttpExceptionFilter,
+  ],
 })
 export class AppModule { }

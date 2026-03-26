@@ -5,6 +5,8 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { SecurityHeadersService } from './security/headers/security-headers.service';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -30,7 +32,13 @@ async function bootstrap() {
   // 3. Global Throttler Guard (DDoS Protection)
   app.useGlobalGuards(app.get(ThrottlerGuard));
 
-  // 4. CORS configuration
+  // 4. Global Response Interceptor
+  app.useGlobalInterceptors(app.get(ResponseInterceptor));
+
+  // 5. Global Exception Filter
+  app.useGlobalFilters(app.get(HttpExceptionFilter));
+
+  // 5. CORS configuration
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS || '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
