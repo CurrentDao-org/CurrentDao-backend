@@ -45,4 +45,4 @@ import { ApiGatewayModule } from './gateway/api-gateway.module';
   controllers: [AppController, HealthController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
