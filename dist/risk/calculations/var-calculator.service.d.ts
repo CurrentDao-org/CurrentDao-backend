@@ -1,0 +1,33 @@
+import { Repository } from 'typeorm';
+import { RiskDataEntity } from '../entities/risk-data.entity';
+import { VarCalculationDto } from '../dto/risk-assessment.dto';
+export declare class VarCalculatorService {
+    private readonly riskDataRepository;
+    private readonly logger;
+    constructor(riskDataRepository: Repository<RiskDataEntity>);
+    calculateVar(varDto: VarCalculationDto): Promise<object>;
+    private calculateHistoricalVaR;
+    private calculateParametricVaR;
+    private calculateMonteCarloVaR;
+    private getHistoricalReturns;
+    private generateRandomReturn;
+    private calculateHorizonReturns;
+    private getZScore;
+    private runMonteCarloSimulation;
+    private getPortfolioValue;
+    private calculateMean;
+    private calculateVolatility;
+    private calculateSkewness;
+    private calculateKurtosis;
+    private calculateMaxDrawdown;
+    private calculatePercentiles;
+    private checkConvergence;
+    private calculateVarAccuracy;
+    private backtestVar;
+    private calculateKupiecPValue;
+    private chiSquareCDF;
+    private updateRiskDataWithVar;
+    compareVarMethods(portfolioId: string, confidence: number, timeHorizon: number): Promise<Record<string, any>>;
+    private calculateVariance;
+    private getVarRecommendation;
+}

@@ -1,0 +1,336 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var TransactionMonitorService_1;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TransactionMonitorService = void 0;
+const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const schedule_1 = require("@nestjs/schedule");
+const transaction_status_entity_1 = require("./entities/transaction-status.entity");
+const retry_service_1 = require("./retry/retry.service");
+const alert_service_1 = require("./alerts/alert.service");
+const StellarSdk = require('stellar-sdk');
+let TransactionMonitorService = TransactionMonitorService_1 = class TransactionMonitorService {
+    constructor(transactionStatusRepository, retryService, alertService) {
+        this.transactionStatusRepository = transactionStatusRepository;
+        this.retryService = retryService;
+        this.alertService = alertService;
+        this.logger = new common_1.Logger(TransactionMonitorService_1.name);
+        this.monitoredTransactions = new Map();
+        this.server = new StellarSdk.Horizon.Server(process.env.STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org');
+    }
+    async onModuleInit() {
+        this.logger.log('Transaction Monitor Service initialized');
+        await this.loadPendingTransactions();
+    }
+    async createTransaction(createDto) {
+        const transaction = this.transactionStatusRepository.create({
+            ...createDto,
+            status: transaction_status_entity_1.TransactionStatus.PENDING,
+            retryCount: 0,
+            maxRetries: createDto.maxRetries || 3,
+        });
+        const savedTransaction = await this.transactionStatusRepository.save(transaction);
+        this.startMonitoring(savedTransaction.transactionHash);
+        this.logger.log(`Created transaction monitor for ${savedTransaction.transactionHash}`);
+        return savedTransaction;
+    }
+    async getTransaction(transactionHash) {
+        return this.transactionStatusRepository.findOne({
+            where: { transactionHash },
+        });
+    }
+    async getTransactions(query) {
+        const { status, priority, sourceAccount, destinationAccount, startDate, endDate, minAmount, maxAmount, page = 1, limit = 50, sortBy = 'createdAt', sortOrder = 'DESC', } = query;
+        const where = {};
+        if (status)
+            where.status = status;
+        if (priority)
+            where.priority = priority;
+        if (sourceAccount)
+            where.sourceAccount = sourceAccount;
+        if (destinationAccount)
+            where.destinationAccount = destinationAccount;
+        if (minAmount !== undefined)
+            where.amount = (0, typeorm_2.MoreThan)(minAmount);
+        if (maxAmount !== undefined)
+            where.amount = { ...where.amount, LessThan: maxAmount };
+        if (startDate && endDate) {
+            where.createdAt = (0, typeorm_2.Between)(new Date(startDate), new Date(endDate));
+        }
+        else if (startDate) {
+            where.createdAt = (0, typeorm_2.MoreThan)(new Date(startDate));
+        }
+        else if (endDate) {
+            where.createdAt = (0, typeorm_2.LessThan)(new Date(endDate));
+        }
+        const [transactions, total] = await this.transactionStatusRepository.findAndCount({
+            where,
+            order: { [sortBy]: sortOrder },
+            skip: (page - 1) * limit,
+            take: limit,
+        });
+        return { transactions, total };
+    }
+    async updateTransactionStatus(transactionHash, status, errorMessage) {
+        const transaction = await this.getTransaction(transactionHash);
+        if (!transaction) {
+            this.logger.warn(`Transaction ${transactionHash} not found`);
+            return null;
+        }
+        const oldStatus = transaction.status;
+        transaction.status = status;
+        transaction.updatedAt = new Date();
+        if (status === transaction_status_entity_1.TransactionStatus.CONFIRMED) {
+            transaction.confirmedAt = new Date();
+            this.stopMonitoring(transactionHash);
+            this.logger.log(`Transaction ${transactionHash} confirmed`);
+        }
+        else if (status === transaction_status_entity_1.TransactionStatus.FAILED) {
+            transaction.errorMessage = errorMessage || undefined;
+            this.stopMonitoring(transactionHash);
+            if (transaction.retryCount < transaction.maxRetries) {
+                await this.retryService.scheduleRetry(transaction);
+            }
+            else {
+                await this.alertService.sendCriticalAlert(`Transaction ${transactionHash} failed after ${transaction.maxRetries} retries`, { transactionHash, errorMessage, retryCount: transaction.retryCount });
+            }
+        }
+        await this.transactionStatusRepository.save(transaction);
+        if (oldStatus !== status) {
+            await this.alertService.sendStatusChangeAlert(transaction, oldStatus, status);
+        }
+        return transaction;
+    }
+    async loadPendingTransactions() {
+        const pendingTransactions = await this.transactionStatusRepository.find({
+            where: { status: transaction_status_entity_1.TransactionStatus.PENDING },
+        });
+        this.logger.log(`Loading ${pendingTransactions.length} pending transactions for monitoring`);
+        for (const transaction of pendingTransactions) {
+            this.startMonitoring(transaction.transactionHash);
+        }
+    }
+    startMonitoring(transactionHash) {
+        if (this.monitoredTransactions.has(transactionHash)) {
+            return;
+        }
+        const monitorInterval = setInterval(async () => {
+            await this.checkTransactionStatus(transactionHash);
+        }, 5000);
+        this.monitoredTransactions.set(transactionHash, monitorInterval);
+    }
+    stopMonitoring(transactionHash) {
+        const monitorInterval = this.monitoredTransactions.get(transactionHash);
+        if (monitorInterval) {
+            clearInterval(monitorInterval);
+            this.monitoredTransactions.delete(transactionHash);
+        }
+    }
+    async checkTransactionStatus(transactionHash) {
+        try {
+            const transaction = await this.getTransaction(transactionHash);
+            if (!transaction || transaction.status !== transaction_status_entity_1.TransactionStatus.PENDING) {
+                this.stopMonitoring(transactionHash);
+                return;
+            }
+            const stellarTransaction = await this.server.transactions()
+                .transaction(transactionHash)
+                .call();
+            if (stellarTransaction.successful) {
+                await this.updateTransactionStatus(transactionHash, transaction_status_entity_1.TransactionStatus.CONFIRMED);
+                await this.transactionStatusRepository.update({ transactionHash }, { ledgerSequence: stellarTransaction.ledger });
+            }
+            else {
+                await this.updateTransactionStatus(transactionHash, transaction_status_entity_1.TransactionStatus.FAILED, stellarTransaction.result_xdr || 'Transaction failed on Stellar network');
+            }
+        }
+        catch (error) {
+            if (error.response?.status === 404) {
+                return;
+            }
+            this.logger.error(`Error checking transaction ${transactionHash}:`, error);
+            const transaction = await this.getTransaction(transactionHash);
+            if (transaction) {
+                const now = new Date();
+                const timeoutDuration = 5 * 60 * 1000;
+                if (now.getTime() - transaction.createdAt.getTime() > timeoutDuration) {
+                    await this.updateTransactionStatus(transactionHash, transaction_status_entity_1.TransactionStatus.TIMEOUT, 'Transaction timed out');
+                }
+            }
+        }
+    }
+    async handleTimeoutTransactions() {
+        const timeoutThreshold = new Date(Date.now() - 5 * 60 * 1000);
+        const timeoutTransactions = await this.transactionStatusRepository.find({
+            where: {
+                status: transaction_status_entity_1.TransactionStatus.PENDING,
+                createdAt: (0, typeorm_2.LessThan)(timeoutThreshold),
+            },
+        });
+        for (const transaction of timeoutTransactions) {
+            await this.updateTransactionStatus(transaction.transactionHash, transaction_status_entity_1.TransactionStatus.TIMEOUT, 'Transaction timed out after 5 minutes');
+        }
+    }
+    async getTransactionAnalytics(timeRange = 'day') {
+        const now = new Date();
+        let startDate;
+        switch (timeRange) {
+            case 'hour':
+                startDate = new Date(now.getTime() - 60 * 60 * 1000);
+                break;
+            case 'day':
+                startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                break;
+            case 'week':
+                startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                break;
+            case 'month':
+                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                break;
+        }
+        const transactions = await this.transactionStatusRepository.find({
+            where: {
+                createdAt: (0, typeorm_2.MoreThan)(startDate),
+            },
+        });
+        const totalTransactions = transactions.length;
+        const pendingTransactions = transactions.filter(t => t.status === transaction_status_entity_1.TransactionStatus.PENDING).length;
+        const confirmedTransactions = transactions.filter(t => t.status === transaction_status_entity_1.TransactionStatus.CONFIRMED).length;
+        const failedTransactions = transactions.filter(t => t.status === transaction_status_entity_1.TransactionStatus.FAILED).length;
+        const retryingTransactions = transactions.filter(t => t.status === transaction_status_entity_1.TransactionStatus.RETRYING).length;
+        const timeoutTransactions = transactions.filter(t => t.status === transaction_status_entity_1.TransactionStatus.TIMEOUT).length;
+        const successRate = totalTransactions > 0 ? (confirmedTransactions / totalTransactions) * 100 : 0;
+        const confirmedTx = transactions.filter(t => t.status === transaction_status_entity_1.TransactionStatus.CONFIRMED && t.confirmedAt);
+        const averageConfirmationTime = confirmedTx.length > 0
+            ? confirmedTx.reduce((sum, tx) => {
+                const time = tx.confirmedAt.getTime() - tx.createdAt.getTime();
+                return sum + time;
+            }, 0) / confirmedTx.length / 1000
+            : 0;
+        const averageRetryCount = transactions.length > 0
+            ? transactions.reduce((sum, tx) => sum + tx.retryCount, 0) / transactions.length
+            : 0;
+        const statusBreakdown = transactions.reduce((acc, tx) => {
+            acc[tx.status] = (acc[tx.status] || 0) + 1;
+            return acc;
+        }, {});
+        const priorityBreakdown = transactions.reduce((acc, tx) => {
+            acc[tx.priority] = (acc[tx.priority] || 0) + 1;
+            return acc;
+        }, {});
+        const hourlyStats = this.calculateHourlyStats(transactions, startDate, now);
+        return {
+            totalTransactions,
+            pendingTransactions,
+            confirmedTransactions,
+            failedTransactions,
+            retryingTransactions,
+            timeoutTransactions,
+            successRate,
+            averageConfirmationTime,
+            averageRetryCount,
+            statusBreakdown,
+            priorityBreakdown,
+            hourlyStats,
+        };
+    }
+    calculateHourlyStats(transactions, startDate, endDate) {
+        const hourlyStats = {};
+        const hours = Math.ceil((endDate.getTime() - startDate.getTime()) / (60 * 60 * 1000));
+        for (let i = 0; i < hours; i++) {
+            const hourStart = new Date(startDate.getTime() + i * 60 * 60 * 1000);
+            const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+            const hourKey = hourStart.toISOString().substring(0, 13);
+            const hourTransactions = transactions.filter(tx => tx.createdAt >= hourStart && tx.createdAt < hourEnd);
+            const confirmedInHour = hourTransactions.filter(tx => tx.status === transaction_status_entity_1.TransactionStatus.CONFIRMED);
+            const successRate = hourTransactions.length > 0
+                ? (confirmedInHour.length / hourTransactions.length) * 100
+                : 0;
+            const avgTime = confirmedInHour.length > 0
+                ? confirmedInHour.reduce((sum, tx) => {
+                    if (tx.confirmedAt) {
+                        return sum + (tx.confirmedAt.getTime() - tx.createdAt.getTime()) / 1000;
+                    }
+                    return sum;
+                }, 0) / confirmedInHour.length
+                : 0;
+            hourlyStats[hourKey] = {
+                count: hourTransactions.length,
+                successRate,
+                averageTime: avgTime,
+            };
+        }
+        return hourlyStats;
+    }
+    async archiveOldTransactions() {
+        const archiveThreshold = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+        const oldTransactions = await this.transactionStatusRepository.find({
+            where: {
+                createdAt: (0, typeorm_2.LessThan)(archiveThreshold),
+                isArchived: false,
+            },
+        });
+        for (const transaction of oldTransactions) {
+            transaction.isArchived = true;
+            await this.transactionStatusRepository.save(transaction);
+        }
+        this.logger.log(`Archived ${oldTransactions.length} old transactions`);
+    }
+    async performDailyMaintenance() {
+        await this.archiveOldTransactions();
+        await this.cleanupExpiredTransactions();
+    }
+    async cleanupExpiredTransactions() {
+        const expiredTransactions = await this.transactionStatusRepository.find({
+            where: {
+                expiresAt: (0, typeorm_2.LessThan)(new Date()),
+                status: transaction_status_entity_1.TransactionStatus.PENDING,
+            },
+        });
+        for (const transaction of expiredTransactions) {
+            await this.updateTransactionStatus(transaction.transactionHash, transaction_status_entity_1.TransactionStatus.FAILED, 'Transaction expired');
+        }
+        this.logger.log(`Cleaned up ${expiredTransactions.length} expired transactions`);
+    }
+    getMonitoringStats() {
+        return {
+            activeMonitors: this.monitoredTransactions.size,
+            totalTransactions: 0,
+            pendingTransactions: 0,
+        };
+    }
+};
+exports.TransactionMonitorService = TransactionMonitorService;
+__decorate([
+    (0, schedule_1.Cron)(schedule_1.CronExpression.EVERY_MINUTE),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], TransactionMonitorService.prototype, "handleTimeoutTransactions", null);
+__decorate([
+    (0, schedule_1.Cron)(schedule_1.CronExpression.EVERY_DAY_AT_MIDNIGHT),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], TransactionMonitorService.prototype, "performDailyMaintenance", null);
+exports.TransactionMonitorService = TransactionMonitorService = TransactionMonitorService_1 = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, typeorm_1.InjectRepository)(transaction_status_entity_1.TransactionStatusEntity)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        retry_service_1.RetryService,
+        alert_service_1.AlertService])
+], TransactionMonitorService);
+//# sourceMappingURL=transaction-monitor.service.js.map

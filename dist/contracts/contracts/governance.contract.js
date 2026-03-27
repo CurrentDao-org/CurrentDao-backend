@@ -1,0 +1,87 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GovernanceContract = void 0;
+const common_1 = require("@nestjs/common");
+const contract_call_dto_1 = require("../dto/contract-call.dto");
+const soroban_client_service_1 = require("../soroban-client.service");
+const contract_entity_1 = require("../entities/contract.entity");
+let GovernanceContract = class GovernanceContract {
+    constructor(sorobanClient) {
+        this.sorobanClient = sorobanClient;
+        this.contractType = contract_entity_1.ContractType.GOVERNANCE;
+        this.methods = [
+            {
+                method: 'createProposal',
+                chainMethod: 'create_proposal',
+                readOnly: false,
+                eventTopics: ['proposal_created'],
+            },
+            {
+                method: 'vote',
+                chainMethod: 'vote',
+                readOnly: false,
+                eventTopics: ['vote_cast'],
+            },
+            {
+                method: 'getProposal',
+                chainMethod: 'get_proposal',
+                readOnly: true,
+                cacheTtlMs: 5000,
+            },
+            {
+                method: 'getProposalStatus',
+                chainMethod: 'get_proposal_status',
+                readOnly: true,
+                cacheTtlMs: 5000,
+            },
+            {
+                method: 'executeProposal',
+                chainMethod: 'execute_proposal',
+                readOnly: false,
+                eventTopics: ['proposal_executed'],
+            },
+            {
+                method: 'getQuorum',
+                chainMethod: 'get_quorum',
+                readOnly: true,
+                cacheTtlMs: 30000,
+            },
+        ];
+    }
+    getMethodMetadata() {
+        return this.methods;
+    }
+    supportsMethod(method) {
+        return this.methods.some((candidate) => candidate.method === method);
+    }
+    async invoke(metadata, request) {
+        const method = this.methods.find((candidate) => candidate.method === request.method);
+        return this.sorobanClient.invokeContract({
+            contractId: metadata.contractId,
+            contractType: this.contractType,
+            network: metadata.network,
+            method: method?.chainMethod || request.method,
+            args: request.args,
+            signAndSend: request.mode === contract_call_dto_1.ContractInvocationMode.SIGNED || !method?.readOnly,
+            simulateOnly: request.simulateOnly,
+            signerSecretKey: request.signerSecretKey,
+            sourcePublicKey: request.sourcePublicKey,
+            timeoutInSeconds: request.timeoutInSeconds,
+        });
+    }
+};
+exports.GovernanceContract = GovernanceContract;
+exports.GovernanceContract = GovernanceContract = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [soroban_client_service_1.SorobanClientService])
+], GovernanceContract);
+//# sourceMappingURL=governance.contract.js.map

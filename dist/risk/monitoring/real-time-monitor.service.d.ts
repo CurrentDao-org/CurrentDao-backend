@@ -1,0 +1,31 @@
+import { Repository } from 'typeorm';
+import { RiskDataEntity } from '../entities/risk-data.entity';
+import { RiskMonitoringDto } from '../dto/risk-assessment.dto';
+export declare class RealTimeMonitorService {
+    private readonly riskDataRepository;
+    private readonly logger;
+    private readonly monitoringIntervals;
+    private readonly riskThresholds;
+    constructor(riskDataRepository: Repository<RiskDataEntity>);
+    startMonitoring(monitoringDto: RiskMonitoringDto): Promise<void>;
+    stopMonitoring(portfolioId: string): Promise<void>;
+    private performRiskCheck;
+    private getLatestRiskData;
+    private calculateCurrentRiskLevel;
+    private calculateRealTimeVaR;
+    private getPortfolioValue;
+    private getConfidenceFactor;
+    private getMarketStressFactor;
+    private checkRiskThresholds;
+    private triggerRiskAlert;
+    private storeRiskAlert;
+    private updateRiskMetrics;
+    generateDailyRiskSummary(): Promise<void>;
+    private getActivePortfolios;
+    private generatePortfolioRiskSummary;
+    private getMaxRiskLevel;
+    private getAverageRiskLevel;
+    private getVarBreachCount;
+    private getAlertCount;
+    onModuleDestroy(): void;
+}

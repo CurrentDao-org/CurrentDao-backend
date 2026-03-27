@@ -16,6 +16,9 @@ import { TracingModule } from './tracing/tracing.module';
 import { ShardingModule } from './database/sharding/sharding.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { ApiGatewayModule } from './gateway/api-gateway.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 @Module({
   imports: [
@@ -41,6 +44,7 @@ import { ApiGatewayModule } from './gateway/api-gateway.module';
     CrossBorderModule,
     ContractsModule,
     ApiGatewayModule,
+    MonitoringModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
