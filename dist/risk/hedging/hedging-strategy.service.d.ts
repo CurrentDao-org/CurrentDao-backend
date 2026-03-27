@@ -1,0 +1,32 @@
+import { Repository } from 'typeorm';
+import { RiskDataEntity } from '../entities/risk-data.entity';
+import { HedgingStrategyDto } from '../dto/risk-assessment.dto';
+export declare class HedgingStrategyService {
+    private readonly riskDataRepository;
+    private readonly logger;
+    constructor(riskDataRepository: Repository<RiskDataEntity>);
+    createHedgingStrategy(hedgingDto: HedgingStrategyDto): Promise<object>;
+    private generateOptimalHedgingStrategy;
+    private getPortfolioProfile;
+    private selectOptimalInstrument;
+    private calculateOptimalHedgeRatio;
+    private selectOptimalMaturity;
+    private selectSecondaryInstruments;
+    private calculateRebalancingFrequency;
+    private calculateHedgingEffectiveness;
+    private getInstrumentEffectivenessBonus;
+    private getMaturityEffectivenessBonus;
+    private calculateHedgingCost;
+    private calculateTransactionCosts;
+    private calculateOngoingCosts;
+    private calculateOpportunityCost;
+    private generateImplementationPlan;
+    private generateMonitoringPlan;
+    private updateRiskDataWithHedgingStrategy;
+    evaluateHedgingPerformance(portfolioId: string): Promise<object>;
+    private calculateActualEffectiveness;
+    private getPerformanceRecommendation;
+    adjustHedgingStrategy(portfolioId: string, adjustments: object): Promise<object>;
+    private getCurrentHedgingStrategy;
+    private applyAdjustments;
+}

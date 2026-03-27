@@ -1,0 +1,33 @@
+import { Repository } from 'typeorm';
+import { RiskDataEntity } from '../entities/risk-data.entity';
+import { StressTestDto } from '../dto/risk-assessment.dto';
+export declare class StressTestService {
+    private readonly riskDataRepository;
+    private readonly logger;
+    constructor(riskDataRepository: Repository<RiskDataEntity>);
+    runStressTest(stressTestDto: StressTestDto): Promise<object>;
+    private runScenario;
+    private runCustomScenario;
+    private simulateMarketCrash;
+    private simulateInterestRateShock;
+    private simulateCurrencyCrisis;
+    private simulateCommodityPriceShock;
+    private simulateCreditCrisis;
+    private simulateLiquidityCrisis;
+    private simulateOperationalFailure;
+    private simulateRegulatoryChange;
+    private simulateGeopoliticalCrisis;
+    private simulatePandemic;
+    private simulateGenericShock;
+    private calculateTotalImpact;
+    private calculateRiskIncrease;
+    private calculateScenarioSeverity;
+    private estimateRecoveryTime;
+    private generateStressTestSummary;
+    private calculateOverallResilience;
+    private generateStressTestRecommendations;
+    private getPortfolioValue;
+    private getBaseRiskMetrics;
+    private updateRiskDataWithStressTest;
+    getStressTestLibrary(): Promise<object>;
+}
