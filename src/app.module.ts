@@ -11,6 +11,7 @@ import { AppService } from './app.service';
 import { MarketForecastingModule } from './forecasting/market-forecasting.module';
 import { RiskManagementModule } from './risk/risk-management.module';
 import { CrossBorderModule } from './cross-border/cross-border.module';
+import { BridgeModule } from './bridge/bridge.module';
 import { SecurityModule } from './security/security.module';
 import { ApmModule } from './apm/apm.module';
 import { TracingModule } from './tracing/tracing.module';
@@ -28,8 +29,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
       isGlobal: true,
       load: [databaseConfig, stellarConfig],
     }),
-
-    }),
     SecurityModule,
     ApmModule,
     TracingModule,
@@ -37,6 +36,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     MarketForecastingModule,
     RiskManagementModule,
     CrossBorderModule,
+    BridgeModule,
     ContractsModule,
     ApiGatewayModule,
     MonitoringModule,
