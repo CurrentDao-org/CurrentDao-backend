@@ -1,5 +1,5 @@
 import { AssetModule } from './assets/asset.module';
-import { Module } from '@nestjs/common';
+import { Module, NestMiddleware, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -8,6 +8,9 @@ import stellarConfig from './config/stellar.config';
 import { AppController } from './app.controller';
 import { HealthController } from './health.controller';
 import { AppService } from './app.service';
+import { SecurityMiddleware } from './middleware/security.middleware';
+import { helmetMiddleware, validateSecurityConfig } from './config/security.config';
+import { corsConfig, validateCorsConfig } from './config/cors.config';
 import { MarketForecastingModule } from './forecasting/market-forecasting.module';
 import { RiskManagementModule } from './risk/risk-management.module';
 import { CrossBorderModule } from './cross-border/cross-border.module';
@@ -59,4 +62,18 @@ import { LoggingModule } from './logging/logging.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply helmet security middleware
+    consumer.apply(helmetMiddleware()).forRoutes('*');
+    
+    // Apply custom security middleware
+    consumer
+      .apply(SecurityMiddleware)
+      .forRoutes('*');
+    
+    // Validate configurations on startup
+    validateCorsConfig();
+    validateSecurityConfig();
+  }
+}
