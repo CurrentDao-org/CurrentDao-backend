@@ -122,7 +122,8 @@ export const createClassMockProvider = <T>(
  * Get service from testing module
  */
 export const getService = <T>(module: any, token: any): T => {
-  return module.get<T>(token);
+  const service = module.get(token);
+  return service as T;
 };
 
 /**

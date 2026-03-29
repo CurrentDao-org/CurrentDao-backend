@@ -187,7 +187,7 @@ export class LocationService {
 
     queryBuilder.skip(skip).take(limit);
 
-    const [locations, total] = await queryBuilder.getMany();
+    const [locations, total] = await queryBuilder.getManyAndCount();
 
     return {
       locations,

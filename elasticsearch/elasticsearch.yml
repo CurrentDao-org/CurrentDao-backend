@@ -1,0 +1,39 @@
+cluster.name: "currentdao-logs"
+node.name: "currentdao-log-node-1"
+path.data: /usr/share/elasticsearch/data
+path.logs: /usr/share/elasticsearch/logs
+network.host: 0.0.0.0
+http.port: 9200
+discovery.type: single-node
+
+# Performance settings for high throughput
+thread_pool.write.queue_size: 10000
+thread_pool.search.queue_size: 1000
+
+# Index settings
+index.number_of_shards: 3
+index.number_of_replicas: 0
+index.refresh_interval: 5s
+index.translog.flush_threshold_size: 512mb
+
+# Memory settings
+bootstrap.memory_lock: true
+
+# Security settings
+xpack.security.enabled: true
+xpack.security.transport.ssl.enabled: false
+xpack.security.http.ssl.enabled: false
+
+# Monitoring
+xpack.monitoring.collection.enabled: true
+
+# ILM (Index Lifecycle Management)
+xpack.ilm.enabled: true
+
+# Performance optimizations
+indices.memory.index_buffer_size: 15%
+indices.queries.cache.size: 5%
+indices.fielddata.cache.size: 40%
+
+# Log retention settings
+xpack.monitoring.collection.enabled: true

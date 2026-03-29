@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AnalyticsService } from './analytics.service';
-import { AnalyticsData } from './entities/analytics-data.entity';
+import { AnalyticsData, AnalyticsType, AggregationPeriod } from './entities/analytics-data.entity';
 import { ReportParamsDto } from './dto/report-params.dto';
 import { TradingVolumeReport } from './reports/trading-volume.report';
 import { PriceTrendsReport } from './reports/price-trends.report';
@@ -82,8 +82,8 @@ describe('AnalyticsService', () => {
   describe('generateTradingVolumeReport', () => {
     it('should generate trading volume report', async () => {
       const params: ReportParamsDto = {
-        type: 'trading_volume',
-        period: 'daily',
+        type: AnalyticsType.TRADING_VOLUME,
+        period: AggregationPeriod.DAILY,
       };
 
       const expectedReport = {
@@ -116,8 +116,8 @@ describe('AnalyticsService', () => {
   describe('generatePriceTrendsReport', () => {
     it('should generate price trends report', async () => {
       const params: ReportParamsDto = {
-        type: 'price_trend',
-        period: 'daily',
+        type: AnalyticsType.PRICE_TREND,
+        period: AggregationPeriod.DAILY,
       };
 
       const expectedReport = {
@@ -151,8 +151,8 @@ describe('AnalyticsService', () => {
   describe('generateUserPerformanceReport', () => {
     it('should generate user performance report', async () => {
       const params: ReportParamsDto = {
-        type: 'user_performance',
-        period: 'daily',
+        type: AnalyticsType.USER_PERFORMANCE,
+        period: AggregationPeriod.DAILY,
         userId: 'user-123',
       };
 
@@ -194,8 +194,8 @@ describe('AnalyticsService', () => {
   describe('generateMarketEfficiencyReport', () => {
     it('should generate market efficiency report', async () => {
       const params: ReportParamsDto = {
-        type: 'market_efficiency',
-        period: 'daily',
+        type: AnalyticsType.MARKET_EFFICIENCY,
+        period: AggregationPeriod.DAILY,
       };
 
       const expectedReport = {
@@ -227,8 +227,8 @@ describe('AnalyticsService', () => {
   describe('storeAnalyticsData', () => {
     it('should store analytics data', async () => {
       const analyticsData = {
-        type: 'trading_volume',
-        period: 'daily',
+        type: AnalyticsType.TRADING_VOLUME,
+        period: AggregationPeriod.DAILY,
         timestamp: new Date(),
         data: { volume: 100, value: 5000 },
       };

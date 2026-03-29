@@ -84,6 +84,20 @@ export class BatchEstimateRequestDto {
   maxBatchSize?: number = 10;
 }
 
+export class BatchingRecommendationDto {
+  @ApiProperty({ description: 'Whether batching is recommended' })
+  recommended: boolean;
+
+  @ApiProperty({ description: 'Estimated savings in stroops when batching' })
+  estimatedSavingsStroops: number;
+
+  @ApiProperty({ description: 'Savings percentage versus individual txns' })
+  savingsPercentage: number;
+
+  @ApiProperty({ description: 'Recommended batch size' })
+  recommendedBatchSize: number;
+}
+
 export class GasEstimateResponseDto {
   @ApiProperty({ description: 'Stellar network this estimate applies to' })
   network: ContractNetwork;
@@ -117,20 +131,6 @@ export class GasEstimateResponseDto {
 
   @ApiPropertyOptional({ description: 'Batching recommendation if requested' })
   batchingRecommendation?: BatchingRecommendationDto;
-}
-
-export class BatchingRecommendationDto {
-  @ApiProperty({ description: 'Whether batching is recommended' })
-  recommended: boolean;
-
-  @ApiProperty({ description: 'Estimated savings in stroops when batching' })
-  estimatedSavingsStroops: number;
-
-  @ApiProperty({ description: 'Savings percentage versus individual txns' })
-  savingsPercentage: number;
-
-  @ApiProperty({ description: 'Recommended batch size' })
-  recommendedBatchSize: number;
 }
 
 export class GasAnalyticsResponseDto {

@@ -11,7 +11,7 @@ export interface LocationData {
 
 @Injectable()
 export class LocationAdjustmentAlgorithm {
-  private readonly logger = new Logger(LocationAdjustmentAlgorithm.class.name);
+  private readonly logger = new Logger(LocationAdjustmentAlgorithm.name);
 
   private readonly locationDatabase: Map<string, LocationData> = new Map([
     {
