@@ -1,0 +1,153 @@
+{
+  "version": "7.15.0",
+  "objects": [
+    {
+      "id": "currentdao-security-dashboard",
+      "type": "dashboard",
+      "attributes": {
+        "title": "CurrentDAO - Security Dashboard",
+        "hits": 0,
+        "description": "Security monitoring dashboard for CurrentDAO application",
+        "panelsJSON": "[{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{},\"panelRefName\":\"panel_1\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{},\"panelRefName\":\"panel_2\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":15,\"w\":48,\"h\":15,\"i\":\"3\"},\"panelIndex\":\"3\",\"embeddableConfig\":{},\"panelRefName\":\"panel_3\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":30,\"w\":16,\"h\":15,\"i\":\"4\"},\"panelIndex\":\"4\",\"embeddableConfig\":{},\"panelRefName\":\"panel_4\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":16,\"y\":30,\"w\":16,\"h\":15,\"i\":\"5\"},\"panelIndex\":\"5\",\"embeddableConfig\":{},\"panelRefName\":\"panel_5\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":32,\"y\":30,\"w\":16,\"h\":15,\"i\":\"6\"},\"panelIndex\":\"6\",\"embeddableConfig\":{},\"panelRefName\":\"panel_6\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":45,\"w\":48,\"h\":15,\"i\":\"7\"},\"panelIndex\":\"7\",\"embeddableConfig\":{},\"panelRefName\":\"panel_7\"}]",
+        "timeRestore": false,
+        "timeTo": "now",
+        "timeFrom": "now-24h",
+        "refreshInterval": {
+          "pause": false,
+          "value": 30000
+        },
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"query\":{\"match_all\":{}},\"filter\":[]}"
+        }
+      },
+      "references": [
+        {
+          "name": "panel_1",
+          "type": "visualization",
+          "id": "security-events"
+        },
+        {
+          "name": "panel_2",
+          "type": "visualization",
+          "id": "failed-login-attempts"
+        },
+        {
+          "name": "panel_3",
+          "type": "visualization",
+          "id": "security-timeline"
+        },
+        {
+          "name": "panel_4",
+          "type": "visualization",
+          "id": "blocked-ips"
+        },
+        {
+          "name": "panel_5",
+          "type": "visualization",
+          "id": "unauthorized-access"
+        },
+        {
+          "name": "panel_6",
+          "type": "visualization",
+          "id": "suspicious-activities"
+        },
+        {
+          "name": "panel_7",
+          "type": "visualization",
+          "id": "security-alerts"
+        }
+      ]
+    },
+    {
+      "id": "security-events",
+      "type": "visualization",
+      "attributes": {
+        "title": "Security Events",
+        "visState": "{\"title\":\"Security Events\",\"type\":\"pie\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"categorized_as\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"term\":{\"categorized_as\":\"security\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "failed-login-attempts",
+      "type": "visualization",
+      "attributes": {
+        "title": "Failed Login Attempts",
+        "visState": "{\"title\":\"Failed Login Attempts\",\"type\":\"metric\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"parsed_fields.ip_address\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"bool\":{\"must\":[{\"term\":{\"categorized_as\":\"security\"}},{\"term\":{\"level\":\"warn\"}},{\"wildcard\":{\"message\":\"*failed login*\"}}]}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "security-timeline",
+      "type": "visualization",
+      "attributes": {
+        "title": "Security Events Timeline",
+        "visState": "{\"title\":\"Security Events Timeline\",\"type\":\"line\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"min_doc_count\":1}},{\"id\":\"3\",\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"level\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"term\":{\"categorized_as\":\"security\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "blocked-ips",
+      "type": "visualization",
+      "attributes": {
+        "title": "Top Blocked IPs",
+        "visState": "{\"title\":\"Top Blocked IPs\",\"type\":\"table\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"parsed_fields.ip_address\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"bool\":{\"must\":[{\"term\":{\"categorized_as\":\"security\"}},{\"wildcard\":{\"message\":\"*blocked*\"}}]}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "unauthorized-access",
+      "type": "visualization",
+      "attributes": {
+        "title": "Unauthorized Access Attempts",
+        "visState": "{\"title\":\"Unauthorized Access Attempts\",\"type\":\"table\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"parsed_fields.ip_address\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"bool\":{\"must\":[{\"term\":{\"categorized_as\":\"security\"}},{\"term\":{\"level\":\"error\"}},{\"wildcard\":{\"message\":\"*unauthorized*\"}}]}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "suspicious-activities",
+      "type": "visualization",
+      "attributes": {
+        "title": "Suspicious Activities",
+        "visState": "{\"title\":\"Suspicious Activities\",\"type\":\"table\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"message.keyword\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"bool\":{\"must\":[{\"term\":{\"categorized_as\":\"security\"}},{\"term\":{\"level\":\"warn\"}}]}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "security-alerts",
+      "type": "visualization",
+      "attributes": {
+        "title": "Security Alerts by Severity",
+        "visState": "{\"title\":\"Security Alerts by Severity\",\"type\":\"histogram\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"severity_score\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"bool\":{\"must\":[{\"term\":{\"categorized_as\":\"security\"}},{\"range\":{\"severity_score\":{\"gte\":70}}]}},\"filter\":[]}"
+        }
+      }
+    }
+  ]
+}

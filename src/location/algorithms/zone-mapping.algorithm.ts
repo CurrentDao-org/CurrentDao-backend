@@ -72,14 +72,16 @@ export class ZoneMappingAlgorithm {
    */
   static calculateZoneCentroid(zone: GridZone): Coordinates {
     const coordinates = zone.boundaries.coordinates;
-    
+
     if (zone.boundaries.type === 'Polygon') {
-      return this.calculatePolygonCentroid(coordinates[0]);
+      const polygonCoordinates = coordinates as number[][][];
+      return this.calculatePolygonCentroid(polygonCoordinates[0]);
     } else if (zone.boundaries.type === 'MultiPolygon') {
       // For MultiPolygon, calculate the centroid of the first polygon
       // In a real implementation, you might want to calculate the centroid
       // of all polygons weighted by area
-      return this.calculatePolygonCentroid(coordinates[0][0]);
+      const multipolygonCoordinates = coordinates as number[][][][];
+      return this.calculatePolygonCentroid(multipolygonCoordinates[0][0]);
     }
 
     throw new Error('Unsupported boundary type');
@@ -93,9 +95,11 @@ export class ZoneMappingAlgorithm {
     let totalArea = 0;
 
     if (zone.boundaries.type === 'Polygon') {
-      totalArea = this.calculatePolygonArea(coordinates[0]);
+      const polygonCoordinates = coordinates as number[][][];
+      totalArea = this.calculatePolygonArea(polygonCoordinates[0]);
     } else if (zone.boundaries.type === 'MultiPolygon') {
-      for (const polygon of coordinates) {
+      const multipolygonCoordinates = coordinates as number[][][][];
+      for (const polygon of multipolygonCoordinates) {
         totalArea += this.calculatePolygonArea(polygon[0]);
       }
     }
@@ -110,10 +114,12 @@ export class ZoneMappingAlgorithm {
     const coordinates = zone.boundaries.coordinates;
 
     if (zone.boundaries.type === 'Polygon') {
-      return DistanceAlgorithm.isPointInPolygon(coordinate, coordinates[0]);
+      const polygonCoordinates = coordinates as number[][][];
+      return DistanceAlgorithm.isPointInPolygon(coordinate, polygonCoordinates[0]);
     } else if (zone.boundaries.type === 'MultiPolygon') {
+      const multipolygonCoordinates = coordinates as number[][][][];
       // Check if point is in any of the polygons
-      for (const polygon of coordinates) {
+      for (const polygon of multipolygonCoordinates) {
         if (DistanceAlgorithm.isPointInPolygon(coordinate, polygon[0])) {
           return true;
         }

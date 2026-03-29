@@ -40,10 +40,17 @@ describe('WebhookService', () => {
     generateSignature: jest.fn(),
     verifySignature: jest.fn(),
     signWebhook: jest.fn(),
+    generateTimestamp: jest.fn(() => Date.now()),
+    verifyTimestamp: jest.fn(() => true),
   };
 
   const mockEventFilterService = {
     matchesFilters: jest.fn(),
+    matchesFilter: jest.fn(),
+    matchesObjectFilter: jest.fn(),
+    filterByEventType: jest.fn(),
+    filterByTimeRange: jest.fn(),
+    filterByAmount: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -172,7 +179,7 @@ describe('WebhookService', () => {
         mockWebhookRepository as any,
         mockDeliveryRepository as any,
         mockHmacAuthService,
-        mockEventFilterService,
+        mockEventFilterService as unknown as EventFilterService,
         null as any,
       );
 

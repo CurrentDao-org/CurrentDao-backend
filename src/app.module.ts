@@ -17,11 +17,13 @@ import { TracingModule } from './tracing/tracing.module';
 import { ShardingModule } from './database/sharding/sharding.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { ApiGatewayModule } from './gateway/api-gateway.module';
-import { MultisigModule } from './multisig/multisig.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { SentimentModule } from './sentiment/sentiment.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { FraudDetectionModule } from './fraud/fraud-detection.module';
+import { SyncModule } from './sync/sync.module';
+import { LoggingModule } from './logging/logging.module';
 
 @Module({
   imports: [
@@ -29,16 +31,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [databaseConfig, stellarConfig],
-    }),
-    ConfigModule.forFeature(databaseConfig),
-    ConfigModule.forFeature(stellarConfig),
-    ScheduleModule.forRoot(),
-    TypeOrmModule.forRootAsync({
-      inject: [databaseConfig.KEY],
-      useFactory: (config: ConfigType<typeof databaseConfig>) => ({
-        ...config,
-      }),
-      imports: [ConfigModule.forFeature(databaseConfig)],
     }),
     SecurityModule,
     ApmModule,
@@ -49,9 +41,11 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     CrossBorderModule,
     ContractsModule,
     ApiGatewayModule,
-    MultisigModule,
     MonitoringModule,
     SentimentModule,
+    FraudDetectionModule,
+    SyncModule,
+    LoggingModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
