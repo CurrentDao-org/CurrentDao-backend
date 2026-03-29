@@ -1,6 +1,6 @@
 /**
  * Energy Category Entity
- * 
+ *
  * Defines the taxonomy for different energy types with hierarchical classification.
  */
 
@@ -40,16 +40,16 @@ export enum EnergySubType {
   PHOTOVOLTAIC = 'photovoltaic',
   CONCENTRATED_SOLAR = 'concentrated_solar',
   SOLAR_THERMAL = 'solar_thermal',
-  
+
   // Wind subtypes
   ONSHORE_WIND = 'onshore_wind',
   OFFSHORE_WIND = 'offshore_wind',
-  
+
   // Hydro subtypes
   RUN_OF_RIVER = 'run_of_river',
   RESERVOIR = 'reservoir',
   PUMPED_STORAGE = 'pumped_storage',
-  
+
   // Biomass subtypes
   SOLID_BIOMASS = 'solid_biomass',
   LIQUID_BIOMASS = 'liquid_biomass',
@@ -87,18 +87,13 @@ export class EnergyCategory {
   @Column({ name: 'parent_id', nullable: true })
   parentId: string;
 
-  @ManyToOne(
-    () => EnergyCategory,
-    (category) => category.children,
-    { nullable: true },
-  )
+  @ManyToOne(() => EnergyCategory, (category) => category.children, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'parent_id' })
   parent: EnergyCategory;
 
-  @OneToMany(
-    () => EnergyCategory,
-    (category) => category.parent,
-  )
+  @OneToMany(() => EnergyCategory, (category) => category.parent)
   children: EnergyCategory[];
 
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
@@ -126,16 +121,10 @@ export class EnergyCategory {
   updatedAt: Date;
 
   // Relationships
-  @OneToMany(
-    () => EnergyQuality,
-    (quality) => quality.category,
-  )
+  @OneToMany(() => EnergyQuality, (quality) => quality.category)
   qualities: EnergyQuality[];
 
-  @OneToMany(
-    () => Certification,
-    (certification) => certification.category,
-  )
+  @OneToMany(() => Certification, (certification) => certification.category)
   certifications: Certification[];
 }
 
@@ -146,7 +135,8 @@ export const DEFAULT_ENERGY_CATEGORIES = [
   {
     energyType: EnergyType.SOLAR,
     name: 'Solar Energy',
-    description: 'Energy derived from sunlight through photovoltaic or thermal means',
+    description:
+      'Energy derived from sunlight through photovoltaic or thermal means',
     subType: null,
     priceMultiplier: 1.25,
     isRenewable: true,
@@ -176,7 +166,7 @@ export const DEFAULT_ENERGY_CATEGORIES = [
   {
     energyType: EnergyType.GEOTHERMAL,
     name: 'Geothermal Energy',
-    description: 'Energy derived from heat stored beneath the Earth\'s surface',
+    description: "Energy derived from heat stored beneath the Earth's surface",
     subType: null,
     priceMultiplier: 1.2,
     isRenewable: true,
@@ -253,6 +243,6 @@ export const getPriceMultiplier = (energyType: EnergyType): number => {
     [EnergyType.NUCLEAR]: 0.9,
     [EnergyType.OIL]: 0.8,
   };
-  
+
   return multiplierMap[energyType] || 1.0;
 };

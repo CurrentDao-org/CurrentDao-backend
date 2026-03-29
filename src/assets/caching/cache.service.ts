@@ -14,13 +14,13 @@ export class CacheService {
   get(key: string): any | null {
     const cached = this.cache.get(key);
     if (!cached) return null;
-    
+
     if (Date.now() > cached.expiresAt) {
       this.logger.debug(`Cache expired for key: ${key}`);
       this.cache.delete(key);
       return null;
     }
-    
+
     this.logger.debug(`Cache hit for key: ${key}`);
     return cached.data;
   }

@@ -7,19 +7,9 @@ import { SignatureCollectionWorkflow } from './workflows/signature-collection.wo
 import { RecoveryService } from './recovery/recovery.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([MultisigWallet, Signature]),
-  ],
-  providers: [
-    MultisigService,
-    SignatureCollectionWorkflow,
-    RecoveryService,
-  ],
-  exports: [
-    MultisigService,
-    SignatureCollectionWorkflow,
-    RecoveryService,
-  ],
+  imports: [TypeOrmModule.forFeature([MultisigWallet, Signature])],
+  providers: [MultisigService, SignatureCollectionWorkflow, RecoveryService],
+  exports: [MultisigService, SignatureCollectionWorkflow, RecoveryService],
   controllers: [],
 })
 export class MultisigModule {}

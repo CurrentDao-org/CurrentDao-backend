@@ -1,6 +1,6 @@
 /**
  * Category DTOs
- * 
+ *
  * Data Transfer Objects for energy category operations.
  */
 
@@ -94,27 +94,42 @@ export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {
  * Category filter DTO
  */
 export class CategoryFilterDto {
-  @ApiPropertyOptional({ enum: EnergyType, description: 'Filter by energy type' })
+  @ApiPropertyOptional({
+    enum: EnergyType,
+    description: 'Filter by energy type',
+  })
   @IsEnum(EnergyType)
   @IsOptional()
   energyType?: EnergyType;
 
-  @ApiPropertyOptional({ enum: EnergySubType, description: 'Filter by sub-type' })
+  @ApiPropertyOptional({
+    enum: EnergySubType,
+    description: 'Filter by sub-type',
+  })
   @IsEnum(EnergySubType)
   @IsOptional()
   subType?: EnergySubType;
 
-  @ApiPropertyOptional({ example: true, description: 'Filter by renewable status' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by renewable status',
+  })
   @IsBoolean()
   @IsOptional()
   isRenewable?: boolean;
 
-  @ApiPropertyOptional({ example: true, description: 'Filter by active status' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by active status',
+  })
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ example: 'solar', description: 'Search by name or description' })
+  @ApiPropertyOptional({
+    example: 'solar',
+    description: 'Search by name or description',
+  })
   @IsString()
   @IsOptional()
   search?: string;

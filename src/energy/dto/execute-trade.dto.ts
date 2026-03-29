@@ -1,4 +1,14 @@
-import { IsString, IsNumber, IsEnum, IsOptional, IsBoolean, IsArray, IsObject, ValidateNested, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsObject,
+  ValidateNested,
+  IsDateString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TradeType } from '../entities/trade.entity';
@@ -117,7 +127,9 @@ export class ContractTermsDto {
   @IsString()
   supportLevel?: string;
 
-  @ApiPropertyOptional({ example: ['late_delivery_penalty', 'quality_penalty'] })
+  @ApiPropertyOptional({
+    example: ['late_delivery_penalty', 'quality_penalty'],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -140,7 +152,10 @@ export class QualityAssuranceDto {
   @IsDateString()
   inspectionDate?: string;
 
-  @ApiPropertyOptional({ enum: ['pass', 'fail', 'conditional'], example: 'pass' })
+  @ApiPropertyOptional({
+    enum: ['pass', 'fail', 'conditional'],
+    example: 'pass',
+  })
   @IsOptional()
   @IsEnum(['pass', 'fail', 'conditional'])
   inspectionResult?: 'pass' | 'fail' | 'conditional';
@@ -218,7 +233,10 @@ export class MilestoneDto {
   @IsDateString()
   completedDate?: string;
 
-  @ApiPropertyOptional({ enum: ['pending', 'in_progress', 'completed', 'failed'], example: 'completed' })
+  @ApiPropertyOptional({
+    enum: ['pending', 'in_progress', 'completed', 'failed'],
+    example: 'completed',
+  })
   @IsOptional()
   @IsEnum(['pending', 'in_progress', 'completed', 'failed'])
   status?: 'pending' | 'in_progress' | 'completed' | 'failed';
@@ -307,7 +325,9 @@ export class ExecuteTradeDto {
   @Type(() => MilestoneDto)
   milestones?: MilestoneDto[];
 
-  @ApiPropertyOptional({ example: 'Urgent delivery required for critical infrastructure' })
+  @ApiPropertyOptional({
+    example: 'Urgent delivery required for critical infrastructure',
+  })
   @IsOptional()
   @IsString()
   notes?: string;

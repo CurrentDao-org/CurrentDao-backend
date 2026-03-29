@@ -4,7 +4,9 @@ import { CompressionService } from './compression.service';
 describe('CompressionService', () => {
   let service: CompressionService;
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({ providers: [CompressionService] }).compile();
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [CompressionService],
+    }).compile();
     service = module.get<CompressionService>(CompressionService);
   });
   it('should compress buffer', async () => {

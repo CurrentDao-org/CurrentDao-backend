@@ -2,8 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan } from 'typeorm';
-import { ScheduledJob, JobStatus, RetryStrategy } from '../entities/scheduled-job.entity';
-import { Trade, TradeStatus, PaymentStatus, DeliveryStatus } from '../../energy/entities/trade.entity';
+import {
+  ScheduledJob,
+  JobStatus,
+  RetryStrategy,
+} from '../entities/scheduled-job.entity';
+import {
+  Trade,
+  TradeStatus,
+  PaymentStatus,
+  DeliveryStatus,
+} from '../../energy/entities/trade.entity';
 
 export interface SettlementResult {
   success: boolean;
@@ -70,7 +79,7 @@ export class SettlementJob {
 
   async executeSettlementJob(job: ScheduledJob): Promise<SettlementResult> {
     const startTime = Date.now();
-    
+
     this.logger.log(`Executing settlement job: ${job.id} - ${job.name}`);
 
     try {
@@ -91,10 +100,11 @@ export class SettlementJob {
       await this.updateJobCompletion(job, result);
 
       const executionTime = Date.now() - startTime;
-      this.logger.log(`Settlement job ${job.id} completed in ${executionTime}ms. Settled: ${result.settledTrades.length}, Amount: ${result.totalAmount}`);
+      this.logger.log(
+        `Settlement job ${job.id} completed in ${executionTime}ms. Settled: ${result.settledTrades.length}, Amount: ${result.totalAmount}`,
+      );
 
       return result;
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
       this.logger.error(`Settlement job ${job.id} failed`, error);
@@ -110,7 +120,9 @@ export class SettlementJob {
     }
   }
 
-  private async processSettlement(job: ScheduledJob): Promise<SettlementResult> {
+  private async processSettlement(
+    job: ScheduledJob,
+  ): Promise<SettlementResult> {
     const parameters = job.parameters || {};
     const settlementId = parameters.settlementId;
 
@@ -121,7 +133,10 @@ export class SettlementJob {
     }
   }
 
-  private async processSingleSettlement(settlementId: string, job: ScheduledJob): Promise<SettlementResult> {
+  private async processSingleSettlement(
+    settlementId: string,
+    job: ScheduledJob,
+  ): Promise<SettlementResult> {
     const startTime = Date.now();
 
     try {
@@ -135,7 +150,9 @@ export class SettlementJob {
       }
 
       if (!this.isTradeSettleable(trade)) {
-        throw new Error(`Trade ${settlementId} is not ready for settlement: ${trade.status}/${trade.deliveryStatus}`);
+        throw new Error(
+          `Trade ${settlementId} is not ready for settlement: ${trade.status}/${trade.deliveryStatus}`,
+        );
       }
 
       const result = await this.performSettlement(trade, job);
@@ -149,16 +166,17 @@ export class SettlementJob {
         executionTime: Date.now() - startTime,
         details: result,
       };
-
     } catch (error) {
       return {
         success: false,
         settledTrades: [],
-        failedSettlements: [{
-          tradeId: settlementId,
-          error: error.message,
-          retryable: this.isRetryableError(error),
-        }],
+        failedSettlements: [
+          {
+            tradeId: settlementId,
+            error: error.message,
+            retryable: this.isRetryableError(error),
+          },
+        ],
         totalAmount: 0,
         processedCount: 0,
         executionTime: Date.now() - startTime,
@@ -172,11 +190,18 @@ export class SettlementJob {
     }
   }
 
-  private async processBatchSettlements(job: ScheduledJob): Promise<SettlementResult> {
+  private async processBatchSettlements(
+    job: ScheduledJob,
+  ): Promise<SettlementResult> {
     const startTime = Date.now();
     const batchSize = job.parameters?.batchSize || 20;
     const settledTrades: string[] = [];
-    const failedSettlements: Array<{ tradeId: string; error: string; retryable: boolean; amount?: number }> = [];
+    const failedSettlements: Array<{
+      tradeId: string;
+      error: string;
+      retryable: boolean;
+      amount?: number;
+    }> = [];
     let totalAmount = 0;
 
     const details = {
@@ -189,7 +214,9 @@ export class SettlementJob {
     try {
       const eligibleTrades = await this.getSettleableTrades(batchSize);
 
-      this.logger.log(`Processing batch settlement of ${eligibleTrades.length} trades`);
+      this.logger.log(
+        `Processing batch settlement of ${eligibleTrades.length} trades`,
+      );
 
       for (const trade of eligibleTrades) {
         try {
@@ -201,7 +228,7 @@ export class SettlementJob {
           details.deliveriesConfirmed += result.deliveriesConfirmed || 0;
           details.commissionsCollected += result.commissionsCollected || 0;
           details.refundsProcessed += result.refundsProcessed || 0;
-          
+
           this.logger.debug(`Successfully settled trade ${trade.id}`);
         } catch (error) {
           failedSettlements.push({
@@ -210,7 +237,7 @@ export class SettlementJob {
             retryable: this.isRetryableError(error),
             amount: trade.finalAmount,
           });
-          
+
           this.logger.error(`Failed to settle trade ${trade.id}`, error);
         }
       }
@@ -227,7 +254,6 @@ export class SettlementJob {
         executionTime: Date.now() - startTime,
         details,
       };
-
     } catch (error) {
       return {
         success: false,
@@ -263,14 +289,20 @@ export class SettlementJob {
 
   private isTradeSettleable(trade: Trade): boolean {
     return (
-      (trade.status === TradeStatus.IN_PROGRESS || trade.status === TradeStatus.CONFIRMED) &&
-      (trade.deliveryStatus === DeliveryStatus.DELIVERED || trade.deliveryStatus === DeliveryStatus.CONFIRMED) &&
-      (trade.paymentStatus === PaymentStatus.PENDING || trade.paymentStatus === PaymentStatus.PROCESSING)
+      (trade.status === TradeStatus.IN_PROGRESS ||
+        trade.status === TradeStatus.CONFIRMED) &&
+      (trade.deliveryStatus === DeliveryStatus.DELIVERED ||
+        trade.deliveryStatus === DeliveryStatus.CONFIRMED) &&
+      (trade.paymentStatus === PaymentStatus.PENDING ||
+        trade.paymentStatus === PaymentStatus.PROCESSING)
     );
   }
 
-  private async performSettlement(trade: Trade, job: ScheduledJob): Promise<any> {
-    return await this.dataSource.transaction(async manager => {
+  private async performSettlement(
+    trade: Trade,
+    job: ScheduledJob,
+  ): Promise<any> {
+    return await this.dataSource.transaction(async (manager) => {
       const settlementDetails = {
         settledAt: new Date(),
         settledBy: job.id,
@@ -291,7 +323,10 @@ export class SettlementJob {
         await this.confirmDelivery(trade, manager);
       }
 
-      const commission = await this.calculateAndCollectCommission(trade, manager);
+      const commission = await this.calculateAndCollectCommission(
+        trade,
+        manager,
+      );
       commissionsCollected = commission > 0 ? 1 : 0;
 
       if (this.shouldProcessRefund(trade)) {
@@ -303,7 +338,7 @@ export class SettlementJob {
       trade.paymentStatus = PaymentStatus.COMPLETED;
       trade.completedAt = new Date();
       trade.paymentCompletedAt = new Date();
-      
+
       if (!trade.auditTrail) trade.auditTrail = [];
       trade.auditTrail.push({
         timestamp: new Date(),
@@ -315,7 +350,11 @@ export class SettlementJob {
 
       await manager.save(trade);
 
-      await this.triggerSettlementNotifications(trade, 'settlement_completed', manager);
+      await this.triggerSettlementNotifications(
+        trade,
+        'settlement_completed',
+        manager,
+      );
 
       const result = {
         tradeId: trade.id,
@@ -358,12 +397,17 @@ export class SettlementJob {
     await manager.save(trade);
   }
 
-  private async calculateAndCollectCommission(trade: Trade, manager: any): Promise<number> {
+  private async calculateAndCollectCommission(
+    trade: Trade,
+    manager: any,
+  ): Promise<number> {
     const commissionRate = 0.02; // 2% commission
     const commission = (trade.finalAmount || 0) * commissionRate;
 
     if (commission > 0) {
-      this.logger.log(`Collecting commission of ${commission} for trade ${trade.id}`);
+      this.logger.log(
+        `Collecting commission of ${commission} for trade ${trade.id}`,
+      );
 
       if (!trade.paymentDetails) trade.paymentDetails = {};
       trade.paymentDetails.commission = commission;
@@ -378,9 +422,7 @@ export class SettlementJob {
 
   private shouldProcessRefund(trade: Trade): boolean {
     return (
-      trade.isDisputed ||
-      trade.refundAmount > 0 ||
-      trade.penaltyAmount > 0
+      trade.isDisputed || trade.refundAmount > 0 || trade.penaltyAmount > 0
     );
   }
 
@@ -392,22 +434,29 @@ export class SettlementJob {
     if (refundAmount > 0) {
       trade.paymentStatus = PaymentStatus.REFUNDED;
       trade.refundedAt = new Date();
-      
+
       if (!trade.paymentDetails) trade.paymentDetails = {};
       trade.paymentDetails.refundAmount = refundAmount;
-      trade.paymentDetails.refundReason = trade.disputeReason || 'Settlement refund';
+      trade.paymentDetails.refundReason =
+        trade.disputeReason || 'Settlement refund';
       trade.paymentDetails.refundTransactionId = `refund_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       await manager.save(trade);
     }
   }
 
-  private async triggerSettlementNotifications(trade: Trade, event: string, manager: any): Promise<void> {
+  private async triggerSettlementNotifications(
+    trade: Trade,
+    event: string,
+    manager: any,
+  ): Promise<void> {
     this.logger.log(`Triggering ${event} notifications for trade ${trade.id}`);
-    
   }
 
-  private async updateJobStatus(job: ScheduledJob, status: JobStatus): Promise<void> {
+  private async updateJobStatus(
+    job: ScheduledJob,
+    status: JobStatus,
+  ): Promise<void> {
     job.status = status;
     job.updatedAt = new Date();
 
@@ -418,7 +467,10 @@ export class SettlementJob {
     await this.scheduledJobRepository.save(job);
   }
 
-  private async updateJobCompletion(job: ScheduledJob, result: SettlementResult): Promise<void> {
+  private async updateJobCompletion(
+    job: ScheduledJob,
+    result: SettlementResult,
+  ): Promise<void> {
     job.status = result.success ? JobStatus.COMPLETED : JobStatus.FAILED;
     job.completedAt = new Date();
     job.result = {
@@ -429,15 +481,16 @@ export class SettlementJob {
       duration: result.executionTime,
     };
 
-    if (!job.metrics) job.metrics = {
-      executionCount: 0,
-      successCount: 0,
-      failureCount: 0,
-      avgExecutionTime: 0,
-      minExecutionTime: 0,
-      maxExecutionTime: 0,
-      totalExecutionTime: 0,
-    };
+    if (!job.metrics)
+      job.metrics = {
+        executionCount: 0,
+        successCount: 0,
+        failureCount: 0,
+        avgExecutionTime: 0,
+        minExecutionTime: 0,
+        maxExecutionTime: 0,
+        totalExecutionTime: 0,
+      };
 
     job.metrics.executionCount++;
     if (result.success) {
@@ -447,12 +500,16 @@ export class SettlementJob {
     }
 
     job.metrics.totalExecutionTime += result.executionTime;
-    job.metrics.avgExecutionTime = job.metrics.totalExecutionTime / job.metrics.executionCount;
-    
-    if (job.metrics.minExecutionTime === 0 || result.executionTime < job.metrics.minExecutionTime) {
+    job.metrics.avgExecutionTime =
+      job.metrics.totalExecutionTime / job.metrics.executionCount;
+
+    if (
+      job.metrics.minExecutionTime === 0 ||
+      result.executionTime < job.metrics.minExecutionTime
+    ) {
       job.metrics.minExecutionTime = result.executionTime;
     }
-    
+
     if (result.executionTime > job.metrics.maxExecutionTime) {
       job.metrics.maxExecutionTime = result.executionTime;
     }
@@ -465,7 +522,11 @@ export class SettlementJob {
     await this.scheduledJobRepository.save(job);
   }
 
-  private async handleJobFailure(job: ScheduledJob, error: any, executionTime: number): Promise<void> {
+  private async handleJobFailure(
+    job: ScheduledJob,
+    error: any,
+    executionTime: number,
+  ): Promise<void> {
     job.retryCount++;
     job.status = JobStatus.FAILED;
     job.completedAt = new Date();
@@ -502,7 +563,9 @@ export class SettlementJob {
     ];
 
     const errorMessage = error?.message?.toUpperCase() || '';
-    return retryableErrors.some(retryableError => errorMessage.includes(retryableError));
+    return retryableErrors.some((retryableError) =>
+      errorMessage.includes(retryableError),
+    );
   }
 
   private calculateNextRetryTime(job: ScheduledJob): Date {
@@ -535,7 +598,7 @@ export class SettlementJob {
   private calculateNextRunTime(job: ScheduledJob): Date {
     const now = new Date();
     const nextRun = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Next day by default
-    
+
     if (job.scheduling?.endDate && nextRun > job.scheduling.endDate) {
       job.scheduling.isActive = false;
     }
@@ -545,28 +608,31 @@ export class SettlementJob {
 
   private isWithinMarketHours(timeZone: string = 'UTC'): boolean {
     const now = new Date();
-    
+
     try {
       const options: Intl.DateTimeFormatOptions = {
         timeZone,
         hour: '2-digit',
         hour12: false,
       };
-      
+
       const timeString = now.toLocaleTimeString('en-US', options);
       const currentHour = parseInt(timeString);
-      
+
       const dayOptions: Intl.DateTimeFormatOptions = {
         timeZone,
         weekday: 'long',
       };
-      
+
       const dayString = now.toLocaleDateString('en-US', dayOptions);
       const isWeekday = !['Saturday', 'Sunday'].includes(dayString);
-      
+
       return isWeekday && currentHour >= 9 && currentHour < 17;
     } catch (error) {
-      this.logger.warn(`Error checking market hours for timezone ${timeZone}`, error);
+      this.logger.warn(
+        `Error checking market hours for timezone ${timeZone}`,
+        error,
+      );
       return true; // Default to allowing execution
     }
   }
@@ -575,34 +641,41 @@ export class SettlementJob {
     const nextMarketOpen = this.getNextMarketOpen(job.timeZone);
     job.scheduledAt = nextMarketOpen;
     job.status = JobStatus.PENDING;
-    
+
     await this.scheduledJobRepository.save(job);
-    
-    this.logger.log(`Settlement job ${job.id} rescheduled for market open at ${nextMarketOpen.toISOString()}`);
+
+    this.logger.log(
+      `Settlement job ${job.id} rescheduled for market open at ${nextMarketOpen.toISOString()}`,
+    );
   }
 
   private getNextMarketOpen(timeZone: string = 'UTC'): Date {
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    
+
     try {
       const marketOpen = new Date(tomorrow);
       marketOpen.setUTCHours(14, 0, 0, 0); // 9:00 AM EST (2:00 PM UTC)
-      
+
       const options: Intl.DateTimeFormatOptions = {
         timeZone,
         weekday: 'long',
       };
-      
+
       const dayString = marketOpen.toLocaleDateString('en-US', options);
-      
+
       if (['Saturday', 'Sunday'].includes(dayString)) {
-        marketOpen.setDate(marketOpen.getDate() + (dayString === 'Saturday' ? 2 : 1));
+        marketOpen.setDate(
+          marketOpen.getDate() + (dayString === 'Saturday' ? 2 : 1),
+        );
       }
-      
+
       return marketOpen;
     } catch (error) {
-      this.logger.warn(`Error calculating next market open for timezone ${timeZone}`, error);
+      this.logger.warn(
+        `Error calculating next market open for timezone ${timeZone}`,
+        error,
+      );
       return new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now as fallback
     }
   }
@@ -610,7 +683,12 @@ export class SettlementJob {
   private createResult(
     success: boolean,
     settledTrades: string[],
-    failedSettlements: Array<{ tradeId: string; error: string; retryable: boolean; amount?: number }>,
+    failedSettlements: Array<{
+      tradeId: string;
+      error: string;
+      retryable: boolean;
+      amount?: number;
+    }>,
     totalAmount: number,
     executionTime: number,
     details: any,
@@ -646,13 +724,19 @@ export class SettlementJob {
     });
 
     const totalSettled = recentTrades.length;
-    const totalAmount = recentTrades.reduce((sum, trade) => sum + (trade.finalAmount || 0), 0);
-    const avgSettlementTime = recentTrades.reduce((sum, trade) => {
-      if (trade.completedAt && trade.createdAt) {
-        return sum + (trade.completedAt.getTime() - trade.createdAt.getTime());
-      }
-      return sum;
-    }, 0) / totalSettled;
+    const totalAmount = recentTrades.reduce(
+      (sum, trade) => sum + (trade.finalAmount || 0),
+      0,
+    );
+    const avgSettlementTime =
+      recentTrades.reduce((sum, trade) => {
+        if (trade.completedAt && trade.createdAt) {
+          return (
+            sum + (trade.completedAt.getTime() - trade.createdAt.getTime())
+          );
+        }
+        return sum;
+      }, 0) / totalSettled;
 
     return {
       jobId: job.id,

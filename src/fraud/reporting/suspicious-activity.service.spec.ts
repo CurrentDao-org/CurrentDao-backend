@@ -24,7 +24,14 @@ describe('SuspiciousActivityService', () => {
     mlScore: 0.82,
     patternMatched: 'Self-Trade Detection',
     patternsTriggered: ['WT-001', 'WT-002'],
-    evidence: [{ type: 'self_trade', description: 'Self-trade detected', value: 1, timestamp: new Date() }],
+    evidence: [
+      {
+        type: 'self_trade',
+        description: 'Self-trade detected',
+        value: 1,
+        timestamp: new Date(),
+      },
+    ],
     tradeData: { market: 'EU-ETS', quantity: 1000 },
     mlFeatures: {},
     regulatoryReported: false,
@@ -50,7 +57,9 @@ describe('SuspiciousActivityService', () => {
     update: jest.fn().mockResolvedValue({ affected: 1 }),
     count: jest.fn().mockResolvedValue(5),
     create: jest.fn().mockImplementation((d) => d),
-    save: jest.fn().mockImplementation((d) => Promise.resolve({ ...d, id: 'new-id' })),
+    save: jest
+      .fn()
+      .mockImplementation((d) => Promise.resolve({ ...d, id: 'new-id' })),
   };
 
   beforeEach(async () => {
@@ -115,7 +124,10 @@ describe('SuspiciousActivityService', () => {
     });
 
     it('should mandate CRITICAL reporting obligation for critical cases', async () => {
-      const criticalCase = { ...mockFraudCase, severity: FraudSeverity.CRITICAL };
+      const criticalCase = {
+        ...mockFraudCase,
+        severity: FraudSeverity.CRITICAL,
+      };
       const sar = await service.generateSAR(criticalCase);
       expect(sar.reportingObligation).toContain('MANDATORY');
     });
@@ -158,7 +170,10 @@ describe('SuspiciousActivityService', () => {
 
     it('should apply minMlScore filter', async () => {
       mockRepository.findAndCount.mockResolvedValueOnce([
-        [{ ...mockFraudCase, mlScore: 0.9 }, { ...mockFraudCase, mlScore: 0.3 }],
+        [
+          { ...mockFraudCase, mlScore: 0.9 },
+          { ...mockFraudCase, mlScore: 0.3 },
+        ],
         2,
       ]);
 
@@ -230,12 +245,12 @@ describe('SuspiciousActivityService', () => {
     it('should return metrics with all required fields', async () => {
       mockRepository.count
         .mockResolvedValueOnce(100) // total
-        .mockResolvedValueOnce(30)  // open
-        .mockResolvedValueOnce(60)  // resolved
-        .mockResolvedValueOnce(5)   // false positives
+        .mockResolvedValueOnce(30) // open
+        .mockResolvedValueOnce(60) // resolved
+        .mockResolvedValueOnce(5) // false positives
         .mockResolvedValueOnce(10); // critical
 
-      const metrics = await service.getMetrics() as any;
+      const metrics = (await service.getMetrics()) as any;
 
       expect(metrics.totalCases).toBeDefined();
       expect(metrics.openCases).toBeDefined();
@@ -253,14 +268,17 @@ describe('SuspiciousActivityService', () => {
         .mockResolvedValueOnce(100) // total
         .mockResolvedValueOnce(30)
         .mockResolvedValueOnce(60)
-        .mockResolvedValueOnce(5)  // false positives = 5/100 = 0.05
+        .mockResolvedValueOnce(5) // false positives = 5/100 = 0.05
         .mockResolvedValueOnce(10);
 
       mockRepository.find.mockResolvedValueOnce(
-        Array.from({ length: 100 }, () => ({ ...mockFraudCase, mlScore: 0.75 })),
+        Array.from({ length: 100 }, () => ({
+          ...mockFraudCase,
+          mlScore: 0.75,
+        })),
       );
 
-      const metrics = await service.getMetrics() as any;
+      const metrics = (await service.getMetrics()) as any;
       expect(metrics.falsePositiveRate).toBeLessThanOrEqual(0.05); // <5% requirement
     });
   });

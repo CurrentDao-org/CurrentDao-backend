@@ -1,8 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Order } from '../../modules/energy/entities/order.entity';
 import { Match, MatchStatus, MatchType } from '../entities/match.entity';
-import { MatchingRule, RuleType, RulePriority } from '../entities/matching-rule.entity';
-import { MatchingPreferencesDto, MatchingStrategy } from '../dto/matching-preferences.dto';
+import {
+  MatchingRule,
+  RuleType,
+  RulePriority,
+} from '../entities/matching-rule.entity';
+import {
+  MatchingPreferencesDto,
+  MatchingStrategy,
+} from '../dto/matching-preferences.dto';
 
 export interface PriorityMatchResult {
   matches: Match[];
@@ -34,11 +41,21 @@ export class PriorityMatchingAlgorithm {
     preferences: MatchingPreferencesDto,
   ): Promise<PriorityMatchResult> {
     const startTime = Date.now();
-    
-    this.logger.log(`Starting priority matching with ${buyOrders.length} buy orders and ${sellOrders.length} sell orders`);
 
-    const prioritizedBuyOrders = this.calculateOrderPriorities(buyOrders, rules, 'buyer');
-    const prioritizedSellOrders = this.calculateOrderPriorities(sellOrders, rules, 'seller');
+    this.logger.log(
+      `Starting priority matching with ${buyOrders.length} buy orders and ${sellOrders.length} sell orders`,
+    );
+
+    const prioritizedBuyOrders = this.calculateOrderPriorities(
+      buyOrders,
+      rules,
+      'buyer',
+    );
+    const prioritizedSellOrders = this.calculateOrderPriorities(
+      sellOrders,
+      rules,
+      'seller',
+    );
 
     const matches: Match[] = [];
     const rejectedOrders: string[] = [];
@@ -53,28 +70,45 @@ export class PriorityMatchingAlgorithm {
       for (const sellOrder of availableSellOrders) {
         if (usedSellOrderIds.has(sellOrder.id)) continue;
 
-        const compatibilityScore = this.calculateCompatibilityScore(buyOrder, sellOrder, rules, preferences);
-        
-        if (compatibilityScore > bestScore && this.isPriceCompatible(buyOrder, sellOrder, preferences)) {
+        const compatibilityScore = this.calculateCompatibilityScore(
+          buyOrder,
+          sellOrder,
+          rules,
+          preferences,
+        );
+
+        if (
+          compatibilityScore > bestScore &&
+          this.isPriceCompatible(buyOrder, sellOrder, preferences)
+        ) {
           bestScore = compatibilityScore;
           bestMatch = sellOrder;
         }
       }
 
       if (bestMatch && bestScore > 0.5) {
-        const match = this.createMatch(buyOrder, bestMatch, bestScore, preferences);
+        const match = this.createMatch(
+          buyOrder,
+          bestMatch,
+          bestScore,
+          preferences,
+        );
         matches.push(match);
         usedSellOrderIds.add(bestMatch.id);
-        
-        this.logger.log(`Created match: Buy ${buyOrder.id} -> Sell ${bestMatch.id} (Score: ${bestScore.toFixed(3)})`);
+
+        this.logger.log(
+          `Created match: Buy ${buyOrder.id} -> Sell ${bestMatch.id} (Score: ${bestScore.toFixed(3)})`,
+        );
       } else {
         rejectedOrders.push(buyOrder.id);
       }
     }
 
     const processingTime = Date.now() - startTime;
-    
-    this.logger.log(`Priority matching completed in ${processingTime}ms. Matches: ${matches.length}, Rejected: ${rejectedOrders.length}`);
+
+    this.logger.log(
+      `Priority matching completed in ${processingTime}ms. Matches: ${matches.length}, Rejected: ${rejectedOrders.length}`,
+    );
 
     return {
       matches,
@@ -90,12 +124,12 @@ export class PriorityMatchingAlgorithm {
     orderType: 'buyer' | 'seller',
   ): Order[] {
     return orders
-      .map(order => ({
+      .map((order) => ({
         order,
         priority: this.calculateOrderPriority(order, rules, orderType),
       }))
       .sort((a, b) => b.priority - a.priority)
-      .map(item => item.order);
+      .map((item) => item.order);
   }
 
   private calculateOrderPriority(
@@ -105,7 +139,7 @@ export class PriorityMatchingAlgorithm {
   ): number {
     let priority = 0;
 
-    const applicableRules = rules.filter(rule => {
+    const applicableRules = rules.filter((rule) => {
       if (orderType === 'buyer' && !rule.appliesToBuyer) return false;
       if (orderType === 'seller' && !rule.appliesToSeller) return false;
       if (rule.status !== 'active') return false;
@@ -123,7 +157,8 @@ export class PriorityMatchingAlgorithm {
           break;
 
         case RuleType.TIME_PRIORITY:
-          const hoursSinceCreation = (Date.now() - order.createdAt.getTime()) / (1000 * 60 * 60);
+          const hoursSinceCreation =
+            (Date.now() - order.createdAt.getTime()) / (1000 * 60 * 60);
           priority += rule.weight * Math.min(hoursSinceCreation / 24, 1);
           break;
 
@@ -158,10 +193,21 @@ export class PriorityMatchingAlgorithm {
     let score = 0;
     let totalWeight = 0;
 
-    const priceScore = this.calculatePriceScore(buyOrder, sellOrder, preferences);
-    const quantityScore = this.calculateQuantityScore(buyOrder, sellOrder, preferences);
+    const priceScore = this.calculatePriceScore(
+      buyOrder,
+      sellOrder,
+      preferences,
+    );
+    const quantityScore = this.calculateQuantityScore(
+      buyOrder,
+      sellOrder,
+      preferences,
+    );
     const timeScore = this.calculateTimeScore(buyOrder, sellOrder);
-    const reliabilityScore = this.calculateReliabilityScore(buyOrder, sellOrder);
+    const reliabilityScore = this.calculateReliabilityScore(
+      buyOrder,
+      sellOrder,
+    );
 
     const weights = this.getRuleWeights(rules);
 
@@ -178,13 +224,21 @@ export class PriorityMatchingAlgorithm {
     totalWeight += weights.reliability;
 
     if (preferences.geographic) {
-      const geographicScore = this.calculateGeographicScore(buyOrder, sellOrder, preferences);
+      const geographicScore = this.calculateGeographicScore(
+        buyOrder,
+        sellOrder,
+        preferences,
+      );
       score += geographicScore * weights.geographic;
       totalWeight += weights.geographic;
     }
 
     if (preferences.renewable?.preferRenewable) {
-      const renewableScore = this.calculateRenewableScore(buyOrder, sellOrder, preferences);
+      const renewableScore = this.calculateRenewableScore(
+        buyOrder,
+        sellOrder,
+        preferences,
+      );
       score += renewableScore * weights.renewable;
       totalWeight += weights.renewable;
     }
@@ -205,7 +259,7 @@ export class PriorityMatchingAlgorithm {
     const priceDifference = buyPrice - sellPrice;
     const tolerance = preferences.price?.priceTolerance || 10;
 
-    return Math.max(0, 1 - (priceDifference / tolerance));
+    return Math.max(0, 1 - priceDifference / tolerance);
   }
 
   private calculateQuantityScore(
@@ -230,10 +284,12 @@ export class PriorityMatchingAlgorithm {
   }
 
   private calculateTimeScore(buyOrder: Order, sellOrder: Order): number {
-    const timeDiff = Math.abs(buyOrder.createdAt.getTime() - sellOrder.createdAt.getTime());
+    const timeDiff = Math.abs(
+      buyOrder.createdAt.getTime() - sellOrder.createdAt.getTime(),
+    );
     const maxTimeDiff = 24 * 60 * 60 * 1000; // 24 hours
 
-    return Math.max(0, 1 - (timeDiff / maxTimeDiff));
+    return Math.max(0, 1 - timeDiff / maxTimeDiff);
   }
 
   private calculateReliabilityScore(buyOrder: Order, sellOrder: Order): number {
@@ -250,10 +306,13 @@ export class PriorityMatchingAlgorithm {
   ): number {
     if (!buyOrder.location || !sellOrder.location) return 0.5;
 
-    const distance = this.calculateDistance(buyOrder.location, sellOrder.location);
+    const distance = this.calculateDistance(
+      buyOrder.location,
+      sellOrder.location,
+    );
     const maxDistance = preferences.geographic?.maxDistance || 1000;
 
-    return Math.max(0, 1 - (distance / maxDistance));
+    return Math.max(0, 1 - distance / maxDistance);
   }
 
   private calculateRenewableScore(
@@ -290,7 +349,7 @@ export class PriorityMatchingAlgorithm {
 
     const customWeights = { ...defaultWeights };
 
-    for (const rule of rules.filter(r => r.status === 'active')) {
+    for (const rule of rules.filter((r) => r.status === 'active')) {
       switch (rule.type) {
         case RuleType.PRICE_PRIORITY:
           customWeights.price += rule.weight || 0;
@@ -313,10 +372,13 @@ export class PriorityMatchingAlgorithm {
       }
     }
 
-    const total = Object.values(customWeights).reduce((sum, weight) => sum + weight, 0);
-    
+    const total = Object.values(customWeights).reduce(
+      (sum, weight) => sum + weight,
+      0,
+    );
+
     return Object.fromEntries(
-      Object.entries(customWeights).map(([key, value]) => [key, value / total])
+      Object.entries(customWeights).map(([key, value]) => [key, value / total]),
     ) as typeof customWeights;
   }
 
@@ -330,8 +392,10 @@ export class PriorityMatchingAlgorithm {
 
     if (buyPrice < sellPrice) return false;
 
-    if (preferences.price?.maxPrice && sellPrice > preferences.price.maxPrice) return false;
-    if (preferences.price?.minPrice && sellPrice < preferences.price.minPrice) return false;
+    if (preferences.price?.maxPrice && sellPrice > preferences.price.maxPrice)
+      return false;
+    if (preferences.price?.minPrice && sellPrice < preferences.price.minPrice)
+      return false;
 
     const priceDifference = buyPrice - sellPrice;
     const tolerance = preferences.price?.priceTolerance || 10;
@@ -355,18 +419,27 @@ export class PriorityMatchingAlgorithm {
     match.matchedPrice = matchedPrice;
     match.matchingScore = score;
     match.status = MatchStatus.PENDING;
-    match.type = matchedQuantity < buyOrder.quantity ? MatchType.PARTIAL : MatchType.FULL;
-    match.remainingQuantity = matchedQuantity < buyOrder.quantity ? buyOrder.quantity - matchedQuantity : null;
-    match.distance = this.calculateDistance(buyOrder.location, sellOrder.location);
+    match.type =
+      matchedQuantity < buyOrder.quantity ? MatchType.PARTIAL : MatchType.FULL;
+    match.remainingQuantity =
+      matchedQuantity < buyOrder.quantity
+        ? buyOrder.quantity - matchedQuantity
+        : null;
+    match.distance = this.calculateDistance(
+      buyOrder.location,
+      sellOrder.location,
+    );
     match.metadata = {
       algorithm: 'priority',
       priority: score,
       renewablePreference: preferences.renewable?.preferRenewable,
-      auditTrail: [{
-        timestamp: new Date(),
-        action: 'match_created',
-        reason: `Priority matching with score ${score.toFixed(3)}`,
-      }],
+      auditTrail: [
+        {
+          timestamp: new Date(),
+          action: 'match_created',
+          reason: `Priority matching with score ${score.toFixed(3)}`,
+        },
+      ],
     };
     match.expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
@@ -382,13 +455,15 @@ export class PriorityMatchingAlgorithm {
     const lon2 = location2.longitude || 0;
 
     const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
 }

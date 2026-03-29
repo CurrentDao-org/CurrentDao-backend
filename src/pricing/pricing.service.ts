@@ -3,7 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PriceHistory } from './entities/price-history.entity';
-import { CalculatePriceDto, PriceHistoryQueryDto, PricePredictionDto, EnergyType } from './dto/calculate-price.dto';
+import {
+  CalculatePriceDto,
+  PriceHistoryQueryDto,
+  PricePredictionDto,
+  EnergyType,
+} from './dto/calculate-price.dto';
 import { DynamicPricingAlgorithm } from './algorithms/dynamic-pricing.algorithm';
 import { LocationAdjustmentAlgorithm } from './algorithms/location-adjustment.algorithm';
 import { TimePricingAlgorithm } from './algorithms/time-pricing.algorithm';
@@ -33,22 +38,37 @@ export class PricingService {
     predictedPrice?: number;
     predictionAccuracy?: number;
   }> {
-    const { supply, demand, location, energyType, timestamp = Date.now(), basePrice, includePrediction = false, predictionHorizonHours = 1 } = calculatePriceDto;
-    
+    const {
+      supply,
+      demand,
+      location,
+      energyType,
+      timestamp = Date.now(),
+      basePrice,
+      includePrediction = false,
+      predictionHorizonHours = 1,
+    } = calculatePriceDto;
+
     const supplyDemandRatio = supply / demand;
-    const calculatedBasePrice = this.dynamicPricingAlgorithm.calculateBasePrice(supply, demand, basePrice);
-    
-    const locationMultiplier = this.locationAdjustmentAlgorithm.calculateLocationMultiplier(location);
-    const timeMultiplier = this.timePricingAlgorithm.calculateTimeMultiplier(timestamp);
+    const calculatedBasePrice = this.dynamicPricingAlgorithm.calculateBasePrice(
+      supply,
+      demand,
+      basePrice,
+    );
+
+    const locationMultiplier =
+      this.locationAdjustmentAlgorithm.calculateLocationMultiplier(location);
+    const timeMultiplier =
+      this.timePricingAlgorithm.calculateTimeMultiplier(timestamp);
     const renewablePremium = this.calculateRenewablePremium(energyType);
     const isPeakHour = this.timePricingAlgorithm.isPeakHour(timestamp);
-    
+
     let finalPrice = calculatedBasePrice * locationMultiplier * timeMultiplier;
-    
+
     if (this.isRenewableEnergy(energyType)) {
-      finalPrice *= (1 + renewablePremium);
+      finalPrice *= 1 + renewablePremium;
     }
-    
+
     finalPrice = this.dynamicPricingAlgorithm.applyPriceBounds(finalPrice);
 
     const result: any = {
@@ -62,9 +82,18 @@ export class PricingService {
     };
 
     if (includePrediction) {
-      const historicalData = await this.getHistoricalData(location, energyType, 168);
-      const prediction = this.predictionAlgorithm.predictPrice(historicalData, predictionHorizonHours, supply, demand);
-      
+      const historicalData = await this.getHistoricalData(
+        location,
+        energyType,
+        168,
+      );
+      const prediction = this.predictionAlgorithm.predictPrice(
+        historicalData,
+        predictionHorizonHours,
+        supply,
+        demand,
+      );
+
       result.predictedPrice = Math.round(prediction.predictedPrice * 100) / 100;
       result.predictionAccuracy = Math.round(prediction.confidence * 100);
     }
@@ -104,7 +133,12 @@ export class PricingService {
   }
 
   private isRenewableEnergy(energyType: EnergyType): boolean {
-    return [EnergyType.SOLAR, EnergyType.WIND, EnergyType.HYDRO, EnergyType.GEOTHERMAL].includes(energyType);
+    return [
+      EnergyType.SOLAR,
+      EnergyType.WIND,
+      EnergyType.HYDRO,
+      EnergyType.GEOTHERMAL,
+    ].includes(energyType);
   }
 
   async predictPrice(predictionDto: PricePredictionDto): Promise<{
@@ -112,15 +146,20 @@ export class PricingService {
     confidence: number;
     factors: any;
   }> {
-    const { location, energyType, hoursAhead, expectedSupply, expectedDemand } = predictionDto;
-    
-    const historicalData = await this.getHistoricalData(location, energyType, 168);
-    
+    const { location, energyType, hoursAhead, expectedSupply, expectedDemand } =
+      predictionDto;
+
+    const historicalData = await this.getHistoricalData(
+      location,
+      energyType,
+      168,
+    );
+
     const prediction = this.predictionAlgorithm.predictPrice(
       historicalData,
       hoursAhead,
       expectedSupply,
-      expectedDemand
+      expectedDemand,
     );
 
     return {
@@ -137,10 +176,17 @@ export class PricingService {
     minPrice: number;
     maxPrice: number;
   }> {
-    const { location, energyType, startDate, endDate, page = 1, limit = 10 } = query;
-    
+    const {
+      location,
+      energyType,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 10,
+    } = query;
+
     const whereClause: any = {};
-    
+
     if (location) whereClause.location = location;
     if (energyType) whereClause.energyType = energyType;
     if (startDate) whereClause.timestamp = { $gte: new Date(startDate) };
@@ -153,8 +199,11 @@ export class PricingService {
       take: limit,
     });
 
-    const prices = history.map(h => h.finalPrice);
-    const averagePrice = prices.length > 0 ? prices.reduce((sum, price) => sum + price, 0) / prices.length : 0;
+    const prices = history.map((h) => h.finalPrice);
+    const averagePrice =
+      prices.length > 0
+        ? prices.reduce((sum, price) => sum + price, 0) / prices.length
+        : 0;
     const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
     const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
 
@@ -167,9 +216,13 @@ export class PricingService {
     };
   }
 
-  private async getHistoricalData(location: string, energyType: string, hours: number): Promise<PriceHistory[]> {
+  private async getHistoricalData(
+    location: string,
+    energyType: string,
+    hours: number,
+  ): Promise<PriceHistory[]> {
     const startDate = new Date(Date.now() - hours * 60 * 60 * 1000);
-    
+
     return this.priceHistoryRepository.find({
       where: {
         location,
@@ -181,12 +234,17 @@ export class PricingService {
     });
   }
 
-  private async savePriceHistory(priceData: Partial<PriceHistory>): Promise<void> {
+  private async savePriceHistory(
+    priceData: Partial<PriceHistory>,
+  ): Promise<void> {
     const priceHistory = this.priceHistoryRepository.create(priceData);
     await this.priceHistoryRepository.save(priceHistory);
   }
 
-  async getPricingAnalytics(location?: string, energyType?: string): Promise<{
+  async getPricingAnalytics(
+    location?: string,
+    energyType?: string,
+  ): Promise<{
     totalTransactions: number;
     averagePrice: number;
     priceVolatility: number;
@@ -217,40 +275,70 @@ export class PricingService {
       };
     }
 
-    const prices = history.map(h => h.finalPrice);
-    const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-    
-    const variance = prices.reduce((sum, price) => sum + Math.pow(price - averagePrice, 2), 0) / prices.length;
+    const prices = history.map((h) => h.finalPrice);
+    const averagePrice =
+      prices.reduce((sum, price) => sum + price, 0) / prices.length;
+
+    const variance =
+      prices.reduce(
+        (sum, price) => sum + Math.pow(price - averagePrice, 2),
+        0,
+      ) / prices.length;
     const priceVolatility = Math.sqrt(variance);
 
-    const peakHourPrices = history.filter(h => h.isPeakHour).map(h => h.finalPrice);
-    const offPeakHourPrices = history.filter(h => !h.isPeakHour).map(h => h.finalPrice);
-    
-    const peakHourAverage = peakHourPrices.length > 0 
-      ? peakHourPrices.reduce((sum, price) => sum + price, 0) / peakHourPrices.length 
-      : 0;
-    
-    const offPeakHourAverage = offPeakHourPrices.length > 0 
-      ? offPeakHourPrices.reduce((sum, price) => sum + price, 0) / offPeakHourPrices.length 
-      : 0;
+    const peakHourPrices = history
+      .filter((h) => h.isPeakHour)
+      .map((h) => h.finalPrice);
+    const offPeakHourPrices = history
+      .filter((h) => !h.isPeakHour)
+      .map((h) => h.finalPrice);
 
-    const renewablePrices = history.filter(h => h.isRenewable).map(h => h.finalPrice);
-    const nonRenewablePrices = history.filter(h => !h.isRenewable).map(h => h.finalPrice);
-    
-    const renewableAverage = renewablePrices.length > 0 
-      ? renewablePrices.reduce((sum, price) => sum + price, 0) / renewablePrices.length 
-      : 0;
-    
-    const nonRenewableAverage = nonRenewablePrices.length > 0 
-      ? nonRenewablePrices.reduce((sum, price) => sum + price, 0) / nonRenewablePrices.length 
-      : 0;
-    
-    const renewablePremium = nonRenewableAverage > 0 ? (renewableAverage - nonRenewableAverage) / nonRenewableAverage : 0;
+    const peakHourAverage =
+      peakHourPrices.length > 0
+        ? peakHourPrices.reduce((sum, price) => sum + price, 0) /
+          peakHourPrices.length
+        : 0;
 
-    const predictionsWithAccuracy = history.filter(h => h.predictionAccuracy !== null);
-    const predictionAccuracy = predictionsWithAccuracy.length > 0
-      ? predictionsWithAccuracy.reduce((sum, h) => sum + h.predictionAccuracy, 0) / predictionsWithAccuracy.length
-      : 0;
+    const offPeakHourAverage =
+      offPeakHourPrices.length > 0
+        ? offPeakHourPrices.reduce((sum, price) => sum + price, 0) /
+          offPeakHourPrices.length
+        : 0;
+
+    const renewablePrices = history
+      .filter((h) => h.isRenewable)
+      .map((h) => h.finalPrice);
+    const nonRenewablePrices = history
+      .filter((h) => !h.isRenewable)
+      .map((h) => h.finalPrice);
+
+    const renewableAverage =
+      renewablePrices.length > 0
+        ? renewablePrices.reduce((sum, price) => sum + price, 0) /
+          renewablePrices.length
+        : 0;
+
+    const nonRenewableAverage =
+      nonRenewablePrices.length > 0
+        ? nonRenewablePrices.reduce((sum, price) => sum + price, 0) /
+          nonRenewablePrices.length
+        : 0;
+
+    const renewablePremium =
+      nonRenewableAverage > 0
+        ? (renewableAverage - nonRenewableAverage) / nonRenewableAverage
+        : 0;
+
+    const predictionsWithAccuracy = history.filter(
+      (h) => h.predictionAccuracy !== null,
+    );
+    const predictionAccuracy =
+      predictionsWithAccuracy.length > 0
+        ? predictionsWithAccuracy.reduce(
+            (sum, h) => sum + h.predictionAccuracy,
+            0,
+          ) / predictionsWithAccuracy.length
+        : 0;
 
     return {
       totalTransactions: history.length,
@@ -266,7 +354,7 @@ export class PricingService {
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupOldData(): Promise<void> {
     const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    
+
     const result = await this.priceHistoryRepository.delete({
       timestamp: LessThan(cutoffDate),
     });

@@ -6,7 +6,7 @@ export class NewsAggregatorService {
 
   async aggregateNews(sources: string[]): Promise<any[]> {
     this.logger.log('Aggregating news from sources');
-    
+
     // In production, integrate with news APIs (Reuters, Bloomberg, etc.)
     const articles = await this.fetchFromSources(sources);
     return articles;
@@ -20,7 +20,8 @@ export class NewsAggregatorService {
         source: 'Energy Today',
         url: 'https://example.com/article1',
         publishedAt: new Date(),
-        content: 'The renewable energy sector is experiencing unprecedented growth...',
+        content:
+          'The renewable energy sector is experiencing unprecedented growth...',
       },
     ];
   }

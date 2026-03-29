@@ -14,7 +14,11 @@ import {
   MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { FraudType, FraudSeverity, FraudCaseStatus } from '../entities/fraud-case.entity';
+import {
+  FraudType,
+  FraudSeverity,
+  FraudCaseStatus,
+} from '../entities/fraud-case.entity';
 
 // ─── Re-export enums for convenience ────────────────────────────────────────
 export { FraudType, FraudSeverity, FraudCaseStatus };
@@ -38,7 +42,9 @@ export class AnalyzeTradeDto {
   @IsString()
   market: string;
 
-  @ApiProperty({ description: 'Asset type (e.g., electricity, gas, carbon_credit)' })
+  @ApiProperty({
+    description: 'Asset type (e.g., electricity, gas, carbon_credit)',
+  })
   @IsString()
   assetType: string;
 
@@ -83,7 +89,10 @@ export class AnalyzeTradeDto {
 
 // ─── Batch Trade Analysis ────────────────────────────────────────────────────
 export class AnalyzeTradesBatchDto {
-  @ApiProperty({ type: [AnalyzeTradeDto], description: 'Array of trades to analyze' })
+  @ApiProperty({
+    type: [AnalyzeTradeDto],
+    description: 'Array of trades to analyze',
+  })
   @IsArray()
   trades: AnalyzeTradeDto[];
 }

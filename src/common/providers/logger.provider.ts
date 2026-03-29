@@ -1,6 +1,6 @@
 /**
  * Logger Provider
- * 
+ *
  * Custom provider for structured logging with context support,
  * different log levels, and performance tracking.
  */
@@ -13,13 +13,7 @@ import {
   Optional,
   Inject,
 } from '@nestjs/common';
-import {
-  createLogger,
-  Logger,
-  LogLevel,
-  format,
-  transports,
-} from 'winston';
+import { createLogger, Logger, LogLevel, format, transports } from 'winston';
 
 /**
  * Logger provider options
@@ -149,7 +143,7 @@ export class LoggerProvider implements LoggerService {
    * Log error
    */
   error(message: string, trace?: string, context?: string): void {
-    this.logger.error(message, { 
+    this.logger.error(message, {
       context: context || this.context,
       trace,
     });
@@ -199,7 +193,7 @@ export class LoggerProvider implements LoggerService {
     meta?: Record<string, any>,
     context?: string,
   ): void {
-    this.logger.log(level, message, { 
+    this.logger.log(level, message, {
       context: context || this.context,
       ...meta,
     });
@@ -208,11 +202,7 @@ export class LoggerProvider implements LoggerService {
   /**
    * Log performance timing
    */
-  logPerformance(
-    operation: string,
-    duration: number,
-    context?: string,
-  ): void {
+  logPerformance(operation: string, duration: number, context?: string): void {
     this.logger.info(`Performance: ${operation} took ${duration}ms`, {
       context: context || this.context,
       duration,
@@ -240,7 +230,7 @@ export const createLoggerProvider = (
 export const InjectLoggerProvider = (context?: string) => {
   return {
     provide: LOGGER_PROVIDER,
-    useFactory: (options?: LoggerProviderOptions) => 
+    useFactory: (options?: LoggerProviderOptions) =>
       new LoggerProvider(options, context),
   };
 };
@@ -275,7 +265,7 @@ export const withPerformanceTracking = (
   context?: string,
 ) => {
   const startTime = Date.now();
-  
+
   return {
     complete: () => {
       const duration = Date.now() - startTime;

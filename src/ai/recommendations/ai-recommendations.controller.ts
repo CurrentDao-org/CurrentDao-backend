@@ -17,7 +17,10 @@ export class AiRecommendationsController {
 
   @Get()
   @ApiOperation({ summary: 'Get personalized recommendations for user' })
-  @ApiResponse({ status: 200, description: 'Returns AI-powered recommendations' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns AI-powered recommendations',
+  })
   async getRecommendations(
     @Query('userId') userId: string,
     @Query('asset') asset?: string,
@@ -35,7 +38,9 @@ export class AiRecommendationsController {
   @Post(':recommendationId/accept')
   @ApiOperation({ summary: 'Accept a recommendation' })
   @ApiResponse({ status: 200, description: 'Recommendation accepted' })
-  async acceptRecommendation(@Param('recommendationId') recommendationId: string): Promise<void> {
+  async acceptRecommendation(
+    @Param('recommendationId') recommendationId: string,
+  ): Promise<void> {
     // Track recommendation acceptance
   }
 
@@ -55,7 +60,10 @@ export class AiRecommendationsController {
 
   @Get('model/performance')
   @ApiOperation({ summary: 'Get ML model performance metrics' })
-  @ApiResponse({ status: 200, description: 'Returns model accuracy and metrics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns model accuracy and metrics',
+  })
   async getModelPerformance(): Promise<any> {
     return this.mlModelService.getModelPerformance();
   }

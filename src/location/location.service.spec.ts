@@ -41,8 +41,12 @@ describe('LocationService', () => {
     }).compile();
 
     service = module.get<LocationService>(LocationService);
-    locationRepository = module.get<Repository<Location>>(getRepositoryToken(Location));
-    gridZoneRepository = module.get<Repository<GridZone>>(getRepositoryToken(GridZone));
+    locationRepository = module.get<Repository<Location>>(
+      getRepositoryToken(Location),
+    );
+    gridZoneRepository = module.get<Repository<GridZone>>(
+      getRepositoryToken(GridZone),
+    );
   });
 
   it('should be defined', () => {
@@ -53,7 +57,7 @@ describe('LocationService', () => {
     it('should create a location with valid data', async () => {
       const locationData = {
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         address: '123 Test St',
         city: 'New York',
         state: 'NY',
@@ -70,17 +74,21 @@ describe('LocationService', () => {
 
       expect(result).toEqual(expectedLocation);
       expect(mockLocationRepository.create).toHaveBeenCalledWith(locationData);
-      expect(mockLocationRepository.save).toHaveBeenCalledWith(expectedLocation);
+      expect(mockLocationRepository.save).toHaveBeenCalledWith(
+        expectedLocation,
+      );
     });
 
     it('should throw error for invalid latitude', async () => {
       const locationData = {
         latitude: 91, // Invalid latitude
-        longitude: -74.0060,
+        longitude: -74.006,
         address: '123 Test St',
       };
 
-      await expect(service.createLocation(locationData)).rejects.toThrow('Latitude must be between -90 and 90');
+      await expect(service.createLocation(locationData)).rejects.toThrow(
+        'Latitude must be between -90 and 90',
+      );
     });
 
     it('should throw error for invalid longitude', async () => {
@@ -90,7 +98,9 @@ describe('LocationService', () => {
         address: '123 Test St',
       };
 
-      await expect(service.createLocation(locationData)).rejects.toThrow('Longitude must be between -180 and 180');
+      await expect(service.createLocation(locationData)).rejects.toThrow(
+        'Longitude must be between -180 and 180',
+      );
     });
   });
 
@@ -118,7 +128,9 @@ describe('LocationService', () => {
         getManyAndCount: jest.fn().mockResolvedValue([mockLocations, 2]),
       };
 
-      mockLocationRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockLocationRepository.createQueryBuilder.mockReturnValue(
+        mockQueryBuilder,
+      );
 
       const result = await service.searchLocations(searchDto);
 
@@ -131,7 +143,7 @@ describe('LocationService', () => {
 
   describe('calculateDistance', () => {
     it('should calculate distance between two locations', async () => {
-      const location1 = { id: '1', latitude: 40.7128, longitude: -74.0060 };
+      const location1 = { id: '1', latitude: 40.7128, longitude: -74.006 };
       const location2 = { id: '2', latitude: 34.0522, longitude: -118.2437 };
 
       mockLocationRepository.findOne
@@ -150,7 +162,7 @@ describe('LocationService', () => {
       const location = {
         id: '1',
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         regionalPriceMultiplier: 1.25,
       };
 

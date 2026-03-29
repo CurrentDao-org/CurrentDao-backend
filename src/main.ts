@@ -71,9 +71,6 @@ async function bootstrap() {
 
   logger.log(`Server successfully started on port ${port}`);
 
-
-
-
   logger.log(`Application is running on: http://localhost:${port}`);
   logger.log(`API documentation: http://localhost:${port}/api/docs`);
   logger.log(`API endpoint: http://localhost:${port}/api`);

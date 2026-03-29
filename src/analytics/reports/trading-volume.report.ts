@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { AnalyticsData, AnalyticsType, AggregationPeriod } from '../entities/analytics-data.entity';
+import {
+  AnalyticsData,
+  AnalyticsType,
+  AggregationPeriod,
+} from '../entities/analytics-data.entity';
 import { ReportParamsDto } from '../dto/report-params.dto';
 
 export interface TradingVolumeData {
@@ -50,34 +54,44 @@ export class TradingVolumeReport {
   ) {}
 
   async generateReport(params: ReportParamsDto): Promise<TradingVolumeReport> {
-    const startDate = params.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+    const startDate =
+      params.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
     const endDate = params.endDate || new Date();
     const period = params.period || AggregationPeriod.DAILY;
 
     // Fetch trading volume data
-    const volumeData = await this.fetchTradingVolumeData(startDate, endDate, period, params);
+    const volumeData = await this.fetchTradingVolumeData(
+      startDate,
+      endDate,
+      period,
+      params,
+    );
 
     // Calculate summary statistics
     const summary = this.calculateSummary(volumeData);
 
     // Get geographic breakdown if requested
-    const geographicBreakdown = params.includeComparativeAnalysis 
+    const geographicBreakdown = params.includeComparativeAnalysis
       ? await this.getGeographicBreakdown(startDate, endDate, params)
       : undefined;
 
     // Get renewable energy breakdown
-    const renewableEnergyBreakdown = await this.getRenewableEnergyBreakdown(startDate, endDate, params);
+    const renewableEnergyBreakdown = await this.getRenewableEnergyBreakdown(
+      startDate,
+      endDate,
+      params,
+    );
 
     return {
       period: {
         start: startDate,
         end: endDate,
-        aggregation: period
+        aggregation: period,
       },
       summary,
       data: volumeData,
       geographicBreakdown,
-      renewableEnergyBreakdown
+      renewableEnergyBreakdown,
     };
   }
 
@@ -85,7 +99,7 @@ export class TradingVolumeReport {
     startDate: Date,
     endDate: Date,
     period: AggregationPeriod,
-    params: ReportParamsDto
+    params: ReportParamsDto,
   ): Promise<TradingVolumeData[]> {
     const queryBuilder = this.analyticsRepository
       .createQueryBuilder('analytics')
@@ -93,32 +107,38 @@ export class TradingVolumeReport {
       .andWhere('analytics.period = :period', { period })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       });
 
     if (params.userId) {
-      queryBuilder.andWhere('analytics.userId = :userId', { userId: params.userId });
+      queryBuilder.andWhere('analytics.userId = :userId', {
+        userId: params.userId,
+      });
     }
 
     if (params.gridZoneId) {
-      queryBuilder.andWhere('analytics.gridZoneId = :gridZoneId', { gridZoneId: params.gridZoneId });
+      queryBuilder.andWhere('analytics.gridZoneId = :gridZoneId', {
+        gridZoneId: params.gridZoneId,
+      });
     }
 
     if (params.country) {
-      queryBuilder.andWhere('analytics.country = :country', { country: params.country });
+      queryBuilder.andWhere('analytics.country = :country', {
+        country: params.country,
+      });
     }
 
     queryBuilder.orderBy('analytics.timestamp', 'ASC');
 
     const analyticsData = await queryBuilder.getMany();
 
-    return analyticsData.map(data => ({
+    return analyticsData.map((data) => ({
       timestamp: data.timestamp,
       volume: data.count || 0,
       value: parseFloat(data.totalValue?.toString() || '0'),
       transactions: data.count || 0,
       averageTransactionSize: parseFloat(data.averageValue?.toString() || '0'),
-      period: data.period
+      period: data.period,
     }));
   }
 
@@ -131,23 +151,31 @@ export class TradingVolumeReport {
         averageTransactionSize: 0,
         peakVolume: 0,
         peakVolumeTime: new Date(),
-        growthRate: 0
+        growthRate: 0,
       };
     }
 
     const totalVolume = data.reduce((sum, item) => sum + item.volume, 0);
     const totalValue = data.reduce((sum, item) => sum + item.value, 0);
-    const totalTransactions = data.reduce((sum, item) => sum + item.transactions, 0);
-    const averageTransactionSize = totalTransactions > 0 ? totalValue / totalTransactions : 0;
+    const totalTransactions = data.reduce(
+      (sum, item) => sum + item.transactions,
+      0,
+    );
+    const averageTransactionSize =
+      totalTransactions > 0 ? totalValue / totalTransactions : 0;
 
     // Find peak volume
-    const peakData = data.reduce((max, item) => 
-      item.volume > max.volume ? item : max, data[0]);
+    const peakData = data.reduce(
+      (max, item) => (item.volume > max.volume ? item : max),
+      data[0],
+    );
 
     // Calculate growth rate (comparing first and last periods)
-    const growthRate = data.length > 1 
-      ? ((data[data.length - 1].volume - data[0].volume) / data[0].volume) * 100
-      : 0;
+    const growthRate =
+      data.length > 1
+        ? ((data[data.length - 1].volume - data[0].volume) / data[0].volume) *
+          100
+        : 0;
 
     return {
       totalVolume,
@@ -156,14 +184,14 @@ export class TradingVolumeReport {
       averageTransactionSize,
       peakVolume: peakData.volume,
       peakVolumeTime: peakData.timestamp,
-      growthRate
+      growthRate,
     };
   }
 
   private async getGeographicBreakdown(
     startDate: Date,
     endDate: Date,
-    params: ReportParamsDto
+    params: ReportParamsDto,
   ) {
     const queryBuilder = this.analyticsRepository
       .createQueryBuilder('analytics')
@@ -173,32 +201,40 @@ export class TradingVolumeReport {
       .where('analytics.type = :type', { type: AnalyticsType.TRADING_VOLUME })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       })
       .andWhere('analytics.country IS NOT NULL')
       .groupBy('analytics.country')
       .orderBy('SUM(analytics.count)', 'DESC');
 
     if (params.userId) {
-      queryBuilder.andWhere('analytics.userId = :userId', { userId: params.userId });
+      queryBuilder.andWhere('analytics.userId = :userId', {
+        userId: params.userId,
+      });
     }
 
     const results = await queryBuilder.getRawMany();
 
-    const totalVolume = results.reduce((sum, item) => sum + parseFloat(item.volume || '0'), 0);
+    const totalVolume = results.reduce(
+      (sum, item) => sum + parseFloat(item.volume || '0'),
+      0,
+    );
 
-    return results.map(item => ({
+    return results.map((item) => ({
       country: item.country,
       volume: parseFloat(item.volume || '0'),
       value: parseFloat(item.value || '0'),
-      percentage: totalVolume > 0 ? (parseFloat(item.volume || '0') / totalVolume) * 100 : 0
+      percentage:
+        totalVolume > 0
+          ? (parseFloat(item.volume || '0') / totalVolume) * 100
+          : 0,
     }));
   }
 
   private async getRenewableEnergyBreakdown(
     startDate: Date,
     endDate: Date,
-    params: ReportParamsDto
+    params: ReportParamsDto,
   ) {
     // Get total trading volume
     const totalVolumeQuery = this.analyticsRepository
@@ -207,11 +243,13 @@ export class TradingVolumeReport {
       .where('analytics.type = :type', { type: AnalyticsType.TRADING_VOLUME })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       });
 
     if (params.userId) {
-      totalVolumeQuery.andWhere('analytics.userId = :userId', { userId: params.userId });
+      totalVolumeQuery.andWhere('analytics.userId = :userId', {
+        userId: params.userId,
+      });
     }
 
     const totalVolumeResult = await totalVolumeQuery.getRawOne();
@@ -224,48 +262,60 @@ export class TradingVolumeReport {
       .where('analytics.type = :type', { type: AnalyticsType.RENEWABLE_ENERGY })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       });
 
     if (params.userId) {
-      renewableVolumeQuery.andWhere('analytics.userId = :userId', { userId: params.userId });
+      renewableVolumeQuery.andWhere('analytics.userId = :userId', {
+        userId: params.userId,
+      });
     }
 
     const renewableVolumeResult = await renewableVolumeQuery.getRawOne();
-    const renewableVolume = parseFloat(renewableVolumeResult?.renewableVolume || '0');
+    const renewableVolume = parseFloat(
+      renewableVolumeResult?.renewableVolume || '0',
+    );
 
     return {
       renewableVolume,
       totalVolume,
-      percentage: totalVolume > 0 ? (renewableVolume / totalVolume) * 100 : 0
+      percentage: totalVolume > 0 ? (renewableVolume / totalVolume) * 100 : 0,
     };
   }
 
-  async generateHourlyReport(params: ReportParamsDto): Promise<TradingVolumeReport> {
+  async generateHourlyReport(
+    params: ReportParamsDto,
+  ): Promise<TradingVolumeReport> {
     return this.generateReport({
       ...params,
-      period: AggregationPeriod.HOURLY
+      period: AggregationPeriod.HOURLY,
     });
   }
 
-  async generateDailyReport(params: ReportParamsDto): Promise<TradingVolumeReport> {
+  async generateDailyReport(
+    params: ReportParamsDto,
+  ): Promise<TradingVolumeReport> {
     return this.generateReport({
       ...params,
-      period: AggregationPeriod.DAILY
+      period: AggregationPeriod.DAILY,
     });
   }
 
-  async generateWeeklyReport(params: ReportParamsDto): Promise<TradingVolumeReport> {
+  async generateWeeklyReport(
+    params: ReportParamsDto,
+  ): Promise<TradingVolumeReport> {
     return this.generateReport({
       ...params,
-      period: AggregationPeriod.WEEKLY
+      period: AggregationPeriod.WEEKLY,
     });
   }
 
-  async generateMonthlyReport(params: ReportParamsDto): Promise<TradingVolumeReport> {
+  async generateMonthlyReport(
+    params: ReportParamsDto,
+  ): Promise<TradingVolumeReport> {
     return this.generateReport({
       ...params,
-      period: AggregationPeriod.MONTHLY
+      period: AggregationPeriod.MONTHLY,
     });
   }
 }

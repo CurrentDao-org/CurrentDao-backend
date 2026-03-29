@@ -34,13 +34,19 @@ export class FeePredictionAlgorithm {
   private static readonly MIN_SAMPLES_FOR_PREDICTION = 3;
   private static readonly FALLBACK_BASE_FEE = 100;
 
-  private static readonly PRIORITY_MULTIPLIERS: Record<GasPriorityLevel, number> = {
+  private static readonly PRIORITY_MULTIPLIERS: Record<
+    GasPriorityLevel,
+    number
+  > = {
     [GasPriorityLevel.LOW]: 0.9,
     [GasPriorityLevel.MEDIUM]: 1.1,
     [GasPriorityLevel.HIGH]: 1.3,
   };
 
-  private static readonly CONFIRMATION_LEDGERS: Record<GasPriorityLevel, number> = {
+  private static readonly CONFIRMATION_LEDGERS: Record<
+    GasPriorityLevel,
+    number
+  > = {
     [GasPriorityLevel.LOW]: 10,
     [GasPriorityLevel.MEDIUM]: 5,
     [GasPriorityLevel.HIGH]: 2,
@@ -72,8 +78,7 @@ export class FeePredictionAlgorithm {
 
   private async recentSamples(network: ContractNetwork): Promise<FeeSample[]> {
     const since = new Date(
-      Date.now() -
-        FeePredictionAlgorithm.SAMPLE_WINDOW_HOURS * 60 * 60 * 1000,
+      Date.now() - FeePredictionAlgorithm.SAMPLE_WINDOW_HOURS * 60 * 60 * 1000,
     );
 
     const rows = await this.gasUsageRepository

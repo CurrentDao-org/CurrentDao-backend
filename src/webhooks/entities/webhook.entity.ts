@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { WebhookDelivery } from './webhook-delivery.entity';
 
 @Entity('webhooks')
@@ -39,6 +46,6 @@ export class Webhook {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => WebhookDelivery, delivery => delivery.webhook)
+  @OneToMany(() => WebhookDelivery, (delivery) => delivery.webhook)
   deliveries: WebhookDelivery[];
 }

@@ -1,7 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { AnalyticsData, AnalyticsType, AggregationPeriod } from './entities/analytics-data.entity';
+import {
+  AnalyticsData,
+  AnalyticsType,
+  AggregationPeriod,
+} from './entities/analytics-data.entity';
 import { ReportParamsDto, DashboardMetricsDto } from './dto/report-params.dto';
 import { TradingVolumeReport } from './reports/trading-volume.report';
 import { PriceTrendsReport } from './reports/price-trends.report';
@@ -59,7 +63,7 @@ export class AnalyticsService {
       period: {
         start: startDate,
         end: endDate,
-        timeWindowHours: timeWindow
+        timeWindowHours: timeWindow,
       },
       summary: {
         totalVolume: 0,
@@ -67,8 +71,8 @@ export class AnalyticsService {
         totalTransactions: 0,
         averagePrice: 0,
         renewableEnergyPercentage: 0,
-        marketEfficiencyScore: 0
-      }
+        marketEfficiencyScore: 0,
+      },
     };
 
     // Get trading volume metrics
@@ -80,19 +84,28 @@ export class AnalyticsService {
 
     // Get renewable energy percentage
     if (params.includeRenewableMetrics) {
-      const renewableMetrics = await this.getRenewableEnergyMetrics(startDate, endDate);
+      const renewableMetrics = await this.getRenewableEnergyMetrics(
+        startDate,
+        endDate,
+      );
       metrics.summary.renewableEnergyPercentage = renewableMetrics.percentage;
     }
 
     // Get market efficiency
     if (params.includeMarketEfficiency) {
-      const efficiencyMetrics = await this.getMarketEfficiencyMetrics(startDate, endDate);
+      const efficiencyMetrics = await this.getMarketEfficiencyMetrics(
+        startDate,
+        endDate,
+      );
       metrics.summary.marketEfficiencyScore = efficiencyMetrics.score;
     }
 
     // Get geographic breakdown
     if (params.includeGeographicBreakdown) {
-      metrics.geographicBreakdown = await this.getGeographicBreakdown(startDate, endDate);
+      metrics.geographicBreakdown = await this.getGeographicBreakdown(
+        startDate,
+        endDate,
+      );
     }
 
     // Get top performers
@@ -107,7 +120,9 @@ export class AnalyticsService {
   /**
    * Store analytics data
    */
-  async storeAnalyticsData(data: Partial<AnalyticsData>): Promise<AnalyticsData> {
+  async storeAnalyticsData(
+    data: Partial<AnalyticsData>,
+  ): Promise<AnalyticsData> {
     const analyticsData = this.analyticsRepository.create(data);
     return this.analyticsRepository.save(analyticsData);
   }
@@ -122,7 +137,7 @@ export class AnalyticsService {
     endDate?: Date,
     userId?: string,
     gridZoneId?: string,
-    country?: string
+    country?: string,
   ): Promise<AnalyticsData[]> {
     const queryBuilder = this.analyticsRepository
       .createQueryBuilder('analytics')
@@ -130,10 +145,13 @@ export class AnalyticsService {
       .andWhere('analytics.period = :period', { period });
 
     if (startDate && endDate) {
-      queryBuilder.andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
-        startDate,
-        endDate
-      });
+      queryBuilder.andWhere(
+        'analytics.timestamp BETWEEN :startDate AND :endDate',
+        {
+          startDate,
+          endDate,
+        },
+      );
     }
 
     if (userId) {
@@ -141,7 +159,9 @@ export class AnalyticsService {
     }
 
     if (gridZoneId) {
-      queryBuilder.andWhere('analytics.gridZoneId = :gridZoneId', { gridZoneId });
+      queryBuilder.andWhere('analytics.gridZoneId = :gridZoneId', {
+        gridZoneId,
+      });
     }
 
     if (country) {
@@ -156,17 +176,20 @@ export class AnalyticsService {
   /**
    * Export report to different formats
    */
-  async exportReport(reportData: any, format: 'json' | 'csv' | 'pdf'): Promise<Buffer | string> {
+  async exportReport(
+    reportData: any,
+    format: 'json' | 'csv' | 'pdf',
+  ): Promise<Buffer | string> {
     switch (format) {
       case 'json':
         return JSON.stringify(reportData, null, 2);
-      
+
       case 'csv':
         return this.convertToCSV(reportData);
-      
+
       case 'pdf':
         return this.convertToPDF(reportData);
-      
+
       default:
         throw new BadRequestException(`Unsupported format: ${format}`);
     }
@@ -179,7 +202,7 @@ export class AnalyticsService {
     reportType: AnalyticsType,
     schedule: string, // Cron expression
     recipients: string[],
-    params: ReportParamsDto
+    params: ReportParamsDto,
   ): Promise<void> {
     // This would integrate with a job scheduler like Bull Queue
     // For now, we'll just log the scheduling request
@@ -198,7 +221,7 @@ export class AnalyticsService {
       .where('analytics.type = :type', { type: AnalyticsType.TRADING_VOLUME })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       })
       .getRawOne();
 
@@ -206,7 +229,7 @@ export class AnalyticsService {
       totalVolume: parseInt(result?.totalVolume || '0'),
       totalValue: parseFloat(result?.totalValue || '0'),
       totalTransactions: parseInt(result?.totalTransactions || '0'),
-      averagePrice: parseFloat(result?.averagePrice || '0')
+      averagePrice: parseFloat(result?.averagePrice || '0'),
     };
   }
 
@@ -217,7 +240,7 @@ export class AnalyticsService {
       .where('analytics.type = :type', { type: AnalyticsType.TRADING_VOLUME })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       });
 
     const renewableVolumeQuery = this.analyticsRepository
@@ -226,37 +249,41 @@ export class AnalyticsService {
       .where('analytics.type = :type', { type: AnalyticsType.RENEWABLE_ENERGY })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       });
 
     const [totalVolumeResult, renewableVolumeResult] = await Promise.all([
       totalVolumeQuery.getRawOne(),
-      renewableVolumeQuery.getRawOne()
+      renewableVolumeQuery.getRawOne(),
     ]);
 
     const totalVolume = parseInt(totalVolumeResult?.totalVolume || '0');
-    const renewableVolume = parseInt(renewableVolumeResult?.renewableVolume || '0');
+    const renewableVolume = parseInt(
+      renewableVolumeResult?.renewableVolume || '0',
+    );
 
     return {
       totalVolume,
       renewableVolume,
-      percentage: totalVolume > 0 ? (renewableVolume / totalVolume) * 100 : 0
+      percentage: totalVolume > 0 ? (renewableVolume / totalVolume) * 100 : 0,
     };
   }
 
   private async getMarketEfficiencyMetrics(startDate: Date, endDate: Date) {
     const result = await this.analyticsRepository
       .createQueryBuilder('analytics')
-      .select('AVG(analytics.data->>\'priceEfficiency\')', 'efficiency')
-      .where('analytics.type = :type', { type: AnalyticsType.MARKET_EFFICIENCY })
+      .select("AVG(analytics.data->>'priceEfficiency')", 'efficiency')
+      .where('analytics.type = :type', {
+        type: AnalyticsType.MARKET_EFFICIENCY,
+      })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       })
       .getRawOne();
 
     return {
-      score: parseFloat(result?.efficiency || '0') * 100
+      score: parseFloat(result?.efficiency || '0') * 100,
     };
   }
 
@@ -269,7 +296,7 @@ export class AnalyticsService {
       .where('analytics.type = :type', { type: AnalyticsType.TRADING_VOLUME })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       })
       .andWhere('analytics.country IS NOT NULL')
       .groupBy('analytics.country')
@@ -278,20 +305,24 @@ export class AnalyticsService {
       .getRawMany();
   }
 
-  private async getTopPerformers(startDate: Date, endDate: Date, limit: number) {
+  private async getTopPerformers(
+    startDate: Date,
+    endDate: Date,
+    limit: number,
+  ) {
     return this.analyticsRepository
       .createQueryBuilder('analytics')
       .select('analytics.userId', 'userId')
-      .addSelect('SUM(analytics.data->>\'profitLoss\')', 'totalProfitLoss')
+      .addSelect("SUM(analytics.data->>'profitLoss')", 'totalProfitLoss')
       .addSelect('COUNT(analytics.id)', 'tradeCount')
       .where('analytics.type = :type', { type: AnalyticsType.USER_PERFORMANCE })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       })
       .andWhere('analytics.userId IS NOT NULL')
       .groupBy('analytics.userId')
-      .orderBy('SUM(analytics.data->>\'profitLoss\')', 'DESC')
+      .orderBy("SUM(analytics.data->>'profitLoss')", 'DESC')
       .limit(limit)
       .getRawMany();
   }
@@ -300,22 +331,24 @@ export class AnalyticsService {
     const hourlyData = await this.analyticsRepository
       .createQueryBuilder('analytics')
       .select('analytics.timestamp', 'timestamp')
-      .addSelect('analytics.data->>\'price\'', 'price')
+      .addSelect("analytics.data->>'price'", 'price')
       .addSelect('analytics.count', 'volume')
       .where('analytics.type = :type', { type: AnalyticsType.PRICE_TREND })
-      .andWhere('analytics.period = :period', { period: AggregationPeriod.HOURLY })
+      .andWhere('analytics.period = :period', {
+        period: AggregationPeriod.HOURLY,
+      })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       })
       .orderBy('analytics.timestamp', 'ASC')
       .limit(24) // Last 24 hours
       .getRawMany();
 
-    return hourlyData.map(item => ({
+    return hourlyData.map((item) => ({
       timestamp: item.timestamp,
       price: parseFloat(item.price || '0'),
-      volume: parseInt(item.volume || '0')
+      volume: parseInt(item.volume || '0'),
     }));
   }
 

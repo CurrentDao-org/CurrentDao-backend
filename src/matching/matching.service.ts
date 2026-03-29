@@ -4,14 +4,35 @@ import { Repository, DataSource, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Order } from '../modules/energy/entities/order.entity';
 import { Match, MatchStatus, MatchType } from './entities/match.entity';
-import { MatchingRule, RuleStatus, RuleType } from './entities/matching-rule.entity';
-import { MatchingPreferencesDto, MatchingStrategy } from './dto/matching-preferences.dto';
-import { PriorityMatchingAlgorithm, PriorityMatchResult } from './algorithms/priority-matching.algorithm';
-import { GeographicMatchingAlgorithm, GeographicMatchResult } from './algorithms/geographic-matching.algorithm';
-import { PartialFulfillmentAlgorithm, PartialFulfillmentResult } from './algorithms/partial-fulfillment.algorithm';
+import {
+  MatchingRule,
+  RuleStatus,
+  RuleType,
+} from './entities/matching-rule.entity';
+import {
+  MatchingPreferencesDto,
+  MatchingStrategy,
+} from './dto/matching-preferences.dto';
+import {
+  PriorityMatchingAlgorithm,
+  PriorityMatchResult,
+} from './algorithms/priority-matching.algorithm';
+import {
+  GeographicMatchingAlgorithm,
+  GeographicMatchResult,
+} from './algorithms/geographic-matching.algorithm';
+import {
+  PartialFulfillmentAlgorithm,
+  PartialFulfillmentResult,
+} from './algorithms/partial-fulfillment.algorithm';
 
 export interface MatchingEvent {
-  type: 'match_created' | 'match_confirmed' | 'match_rejected' | 'match_expired' | 'conflict_resolved';
+  type:
+    | 'match_created'
+    | 'match_confirmed'
+    | 'match_rejected'
+    | 'match_expired'
+    | 'conflict_resolved';
   data: any;
   timestamp: Date;
 }
@@ -83,18 +104,18 @@ export class MatchingService implements OnModuleInit {
   async initializeMetrics() {
     const totalOrders = await this.orderRepository.count();
     const totalMatches = await this.matchRepository.count();
-    
+
     this.metrics.totalOrders = totalOrders;
     this.metrics.totalMatches = totalMatches;
-    
+
     const matchesByType = await this.matchRepository
       .createQueryBuilder('match')
       .select('match.type', 'type')
       .addSelect('COUNT(*)', 'count')
       .groupBy('match.type')
       .getRawMany();
-    
-    matchesByType.forEach(item => {
+
+    matchesByType.forEach((item) => {
       this.metrics.matchesByType[item.type as MatchType] = parseInt(item.count);
     });
 
@@ -104,9 +125,11 @@ export class MatchingService implements OnModuleInit {
       .addSelect('COUNT(*)', 'count')
       .groupBy('match.status')
       .getRawMany();
-    
-    matchesByStatus.forEach(item => {
-      this.metrics.matchesByStatus[item.status as MatchStatus] = parseInt(item.count);
+
+    matchesByStatus.forEach((item) => {
+      this.metrics.matchesByStatus[item.status as MatchStatus] = parseInt(
+        item.count,
+      );
     });
   }
 
@@ -121,7 +144,7 @@ export class MatchingService implements OnModuleInit {
   async addOrderToQueue(order: Order) {
     this.orderQueue.push(order);
     this.logger.log(`Order ${order.id} added to matching queue`);
-    
+
     if (!this.matchingInProgress) {
       setImmediate(() => this.processOrderQueue());
     }
@@ -139,15 +162,27 @@ export class MatchingService implements OnModuleInit {
       const ordersToProcess = [...this.orderQueue];
       this.orderQueue = [];
 
-      const buyOrders = ordersToProcess.filter(order => order.type === 'buy');
-      const sellOrders = ordersToProcess.filter(order => order.type === 'sell');
+      const buyOrders = ordersToProcess.filter((order) => order.type === 'buy');
+      const sellOrders = ordersToProcess.filter(
+        (order) => order.type === 'sell',
+      );
 
       const pendingOrders = await this.getPendingOrders();
-      const allBuyOrders = [...buyOrders, ...pendingOrders.filter(order => order.type === 'buy')];
-      const allSellOrders = [...sellOrders, ...pendingOrders.filter(order => order.type === 'sell')];
+      const allBuyOrders = [
+        ...buyOrders,
+        ...pendingOrders.filter((order) => order.type === 'buy'),
+      ];
+      const allSellOrders = [
+        ...sellOrders,
+        ...pendingOrders.filter((order) => order.type === 'sell'),
+      ];
 
       const preferences = this.getDefaultPreferences();
-      const results = await this.runMatchingAlgorithms(allBuyOrders, allSellOrders, preferences);
+      const results = await this.runMatchingAlgorithms(
+        allBuyOrders,
+        allSellOrders,
+        preferences,
+      );
 
       const conflicts = await this.detectConflicts(results.matches);
       if (conflicts.length > 0) {
@@ -162,8 +197,9 @@ export class MatchingService implements OnModuleInit {
       const processingTime = Date.now() - startTime;
       await this.updateMetrics(results, processingTime);
 
-      this.logger.log(`Processed ${ordersToProcess.length} orders in ${processingTime}ms. Created ${results.matches.length} matches`);
-
+      this.logger.log(
+        `Processed ${ordersToProcess.length} orders in ${processingTime}ms. Created ${results.matches.length} matches`,
+      );
     } catch (error) {
       this.logger.error('Error during order processing', error);
     } finally {
@@ -187,7 +223,10 @@ export class MatchingService implements OnModuleInit {
     const allRejectedOrders: string[] = [];
     let totalProcessingTime = 0;
 
-    if (preferences.strategy === MatchingStrategy.PRIORITY || preferences.strategy === MatchingStrategy.BALANCED) {
+    if (
+      preferences.strategy === MatchingStrategy.PRIORITY ||
+      preferences.strategy === MatchingStrategy.BALANCED
+    ) {
       const priorityResult = await this.priorityAlgorithm.findMatches(
         buyOrders,
         sellOrders,
@@ -199,7 +238,10 @@ export class MatchingService implements OnModuleInit {
       totalProcessingTime += priorityResult.processingTime;
     }
 
-    if (preferences.strategy === MatchingStrategy.PROXIMITY_FIRST || preferences.strategy === MatchingStrategy.BALANCED) {
+    if (
+      preferences.strategy === MatchingStrategy.PROXIMITY_FIRST ||
+      preferences.strategy === MatchingStrategy.BALANCED
+    ) {
       const geoResult = await this.geographicAlgorithm.findMatches(
         buyOrders,
         sellOrders,
@@ -224,7 +266,10 @@ export class MatchingService implements OnModuleInit {
     }
 
     const deduplicatedMatches = this.deduplicateMatches(allMatches);
-    const finalMatches = this.selectBestMatches(deduplicatedMatches, buyOrders.length + sellOrders.length);
+    const finalMatches = this.selectBestMatches(
+      deduplicatedMatches,
+      buyOrders.length + sellOrders.length,
+    );
 
     return {
       matches: finalMatches,
@@ -250,13 +295,15 @@ export class MatchingService implements OnModuleInit {
 
   selectBestMatches(matches: Match[], totalOrders: number): Match[] {
     const maxMatches = Math.min(matches.length, Math.floor(totalOrders * 0.8));
-    
+
     return matches
       .sort((a, b) => (b.matchingScore || 0) - (a.matchingScore || 0))
       .slice(0, maxMatches);
   }
 
-  async detectConflicts(matches: Match[]): Promise<Array<{ matches: Match[]; conflictType: string }>> {
+  async detectConflicts(
+    matches: Match[],
+  ): Promise<Array<{ matches: Match[]; conflictType: string }>> {
     const conflicts: Array<{ matches: Match[]; conflictType: string }> = [];
     const orderMatches = new Map<string, Match[]>();
 
@@ -264,12 +311,12 @@ export class MatchingService implements OnModuleInit {
       if (!orderMatches.has(match.buyerOrderId)) {
         orderMatches.set(match.buyerOrderId, []);
       }
-      orderMatches.get(match.buyerOrderId)!.push(match);
+      orderMatches.get(match.buyerOrderId).push(match);
 
       if (!orderMatches.has(match.sellerOrderId)) {
         orderMatches.set(match.sellerOrderId, []);
       }
-      orderMatches.get(match.sellerOrderId)!.push(match);
+      orderMatches.get(match.sellerOrderId).push(match);
     }
 
     for (const [orderId, orderMatches] of orderMatches) {
@@ -284,25 +331,34 @@ export class MatchingService implements OnModuleInit {
     return conflicts;
   }
 
-  async resolveConflicts(conflicts: Array<{ matches: Match[]; conflictType: string }>): Promise<Match[]> {
+  async resolveConflicts(
+    conflicts: Array<{ matches: Match[]; conflictType: string }>,
+  ): Promise<Match[]> {
     const resolvedMatches: Match[] = [];
     const rejectedMatchIds = new Set<string>();
 
     for (const conflict of conflicts) {
       const resolution = await this.resolveConflict(conflict);
-      
+
       resolvedMatches.push(...resolution.resolvedMatches);
-      resolution.rejectedMatches.forEach(match => rejectedMatchIds.add(match.id));
+      resolution.rejectedMatches.forEach((match) =>
+        rejectedMatchIds.add(match.id),
+      );
     }
 
-    return resolvedMatches.filter(match => !rejectedMatchIds.has(match.id));
+    return resolvedMatches.filter((match) => !rejectedMatchIds.has(match.id));
   }
 
-  async resolveConflict(conflict: { matches: Match[]; conflictType: string }): Promise<ConflictResolution> {
+  async resolveConflict(conflict: {
+    matches: Match[];
+    conflictType: string;
+  }): Promise<ConflictResolution> {
     const conflictId = `conflict_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const sortedMatches = conflict.matches.sort((a, b) => (b.matchingScore || 0) - (a.matchingScore || 0));
-    
+
+    const sortedMatches = conflict.matches.sort(
+      (a, b) => (b.matchingScore || 0) - (a.matchingScore || 0),
+    );
+
     const bestMatch = sortedMatches[0];
     const resolvedMatches = [bestMatch];
     const rejectedMatches = sortedMatches.slice(1);
@@ -317,17 +373,19 @@ export class MatchingService implements OnModuleInit {
     };
 
     await this.logConflictResolution(resolution);
-    
+
     return resolution;
   }
 
   async logConflictResolution(resolution: ConflictResolution) {
-    this.logger.warn(`Conflict resolved: ${resolution.conflictId} - ${resolution.reason}`);
-    
+    this.logger.warn(
+      `Conflict resolved: ${resolution.conflictId} - ${resolution.reason}`,
+    );
+
     for (const match of resolution.resolvedMatches) {
       if (!match.metadata) match.metadata = {};
       if (!match.metadata.auditTrail) match.metadata.auditTrail = [];
-      
+
       match.metadata.auditTrail.push({
         timestamp: new Date(),
         action: 'conflict_resolved',
@@ -341,7 +399,7 @@ export class MatchingService implements OnModuleInit {
     if (matches.length === 0) return [];
 
     const savedMatches = await this.matchRepository.save(matches);
-    
+
     for (const match of savedMatches) {
       this.emitEvent('match_created', {
         matchId: match.id,
@@ -387,20 +445,23 @@ export class MatchingService implements OnModuleInit {
       data,
       timestamp: new Date(),
     };
-    
+
     this.eventEmitter.emit('matching', event);
   }
 
   async updateMetrics(results: any, processingTime: number) {
     this.metrics.totalOrders += results.rejectedOrders.length;
     this.metrics.totalMatches += results.matches.length;
-    this.metrics.successRate = this.metrics.totalMatches / (this.metrics.totalOrders || 1);
-    this.metrics.averageProcessingTime = 
+    this.metrics.successRate =
+      this.metrics.totalMatches / (this.metrics.totalOrders || 1);
+    this.metrics.averageProcessingTime =
       (this.metrics.averageProcessingTime + processingTime) / 2;
 
     for (const match of results.matches) {
-      this.metrics.matchesByType[match.type] = (this.metrics.matchesByType[match.type] || 0) + 1;
-      this.metrics.matchesByStatus[match.status] = (this.metrics.matchesByStatus[match.status] || 0) + 1;
+      this.metrics.matchesByType[match.type] =
+        (this.metrics.matchesByType[match.type] || 0) + 1;
+      this.metrics.matchesByStatus[match.status] =
+        (this.metrics.matchesByStatus[match.status] || 0) + 1;
     }
   }
 
@@ -436,7 +497,9 @@ export class MatchingService implements OnModuleInit {
   }
 
   async confirmMatch(matchId: string, userId: string): Promise<Match> {
-    const match = await this.matchRepository.findOne({ where: { id: matchId } });
+    const match = await this.matchRepository.findOne({
+      where: { id: matchId },
+    });
     if (!match) {
       throw new Error(`Match ${matchId} not found`);
     }
@@ -446,10 +509,10 @@ export class MatchingService implements OnModuleInit {
     }
 
     match.status = MatchStatus.CONFIRMED;
-    
+
     if (!match.metadata) match.metadata = {};
     if (!match.metadata.auditTrail) match.metadata.auditTrail = [];
-    
+
     match.metadata.auditTrail.push({
       timestamp: new Date(),
       action: 'match_confirmed',
@@ -458,7 +521,7 @@ export class MatchingService implements OnModuleInit {
     });
 
     const savedMatch = await this.matchRepository.save(match);
-    
+
     this.emitEvent('match_confirmed', {
       matchId: savedMatch.id,
       confirmedBy: userId,
@@ -467,17 +530,23 @@ export class MatchingService implements OnModuleInit {
     return savedMatch;
   }
 
-  async rejectMatch(matchId: string, userId: string, reason?: string): Promise<Match> {
-    const match = await this.matchRepository.findOne({ where: { id: matchId } });
+  async rejectMatch(
+    matchId: string,
+    userId: string,
+    reason?: string,
+  ): Promise<Match> {
+    const match = await this.matchRepository.findOne({
+      where: { id: matchId },
+    });
     if (!match) {
       throw new Error(`Match ${matchId} not found`);
     }
 
     match.status = MatchStatus.REJECTED;
-    
+
     if (!match.metadata) match.metadata = {};
     if (!match.metadata.auditTrail) match.metadata.auditTrail = [];
-    
+
     match.metadata.auditTrail.push({
       timestamp: new Date(),
       action: 'match_rejected',
@@ -486,7 +555,7 @@ export class MatchingService implements OnModuleInit {
     });
 
     const savedMatch = await this.matchRepository.save(match);
-    
+
     this.emitEvent('match_rejected', {
       matchId: savedMatch.id,
       rejectedBy: userId,
@@ -505,10 +574,7 @@ export class MatchingService implements OnModuleInit {
 
   async getMatchesByOrder(orderId: string): Promise<Match[]> {
     return this.matchRepository.find({
-      where: [
-        { buyerOrderId: orderId },
-        { sellerOrderId: orderId },
-      ],
+      where: [{ buyerOrderId: orderId }, { sellerOrderId: orderId }],
       order: { createdAt: 'DESC' },
     });
   }
@@ -532,10 +598,10 @@ export class MatchingService implements OnModuleInit {
     if (expiredMatches.length > 0) {
       for (const match of expiredMatches) {
         match.status = MatchStatus.CANCELLED;
-        
+
         if (!match.metadata) match.metadata = {};
         if (!match.metadata.auditTrail) match.metadata.auditTrail = [];
-        
+
         match.metadata.auditTrail.push({
           timestamp: new Date(),
           action: 'match_expired',
@@ -567,11 +633,15 @@ export class MatchingService implements OnModuleInit {
 
     if (allOrders.length === 0) return [];
 
-    const buyOrders = allOrders.filter(order => order.type === 'buy');
-    const sellOrders = allOrders.filter(order => order.type === 'sell');
+    const buyOrders = allOrders.filter((order) => order.type === 'buy');
+    const sellOrders = allOrders.filter((order) => order.type === 'sell');
 
     const matchingPreferences = preferences || this.getDefaultPreferences();
-    const results = await this.runMatchingAlgorithms(buyOrders, sellOrders, matchingPreferences);
+    const results = await this.runMatchingAlgorithms(
+      buyOrders,
+      sellOrders,
+      matchingPreferences,
+    );
 
     const conflicts = await this.detectConflicts(results.matches);
     if (conflicts.length > 0) {

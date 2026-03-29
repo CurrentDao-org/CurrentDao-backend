@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ElasticsearchService, LogEntry } from '../elasticsearch/elasticsearch.service';
+import {
+  ElasticsearchService,
+  LogEntry,
+} from '../elasticsearch/elasticsearch.service';
 
 export interface ParsedLogEntry extends LogEntry {
   parsed_fields: {
@@ -59,22 +62,26 @@ export class LogParserService {
   private readonly patterns = {
     // Application logs: [2024-03-29T10:30:45.123Z] INFO [UserService] [req-123] User login successful
     application: /^\[([^\]]+)\]\s+(\w+)\s+\[([^\]]+)\]\s+\[([^\]]+)\]\s+(.+)$/,
-    
+
     // HTTP access logs: 192.168.1.1 - - [29/Mar/2024:10:30:45 +0000] "GET /api/users HTTP/1.1" 200 1234
-    access: /^(\S+)\s+\S+\s+\S+\s+\[([^\]]+)\]\s+"(\S+)\s+(\S+)\s+[^"]*"\s+(\d+)\s+(\d+)$/,
-    
+    access:
+      /^(\S+)\s+\S+\s+\S+\s+\[([^\]]+)\]\s+"(\S+)\s+(\S+)\s+[^"]*"\s+(\d+)\s+(\d+)$/,
+
     // Database logs: [2024-03-29T10:30:45.123Z] [DB] Query executed in 45ms: SELECT * FROM users WHERE id = ?
     database: /^\[([^\]]+)\]\s+\[DB\]\s+Query executed in (\d+)ms:\s+(.+)$/,
-    
+
     // Error logs: [2024-03-29T10:30:45.123Z] ERROR [UserService] [req-123] [TypeError] Cannot read property 'id' of undefined at UserService.getUser (user.service.ts:45:12)
-    error: /^\[([^\]]+)\]\s+ERROR\s+\[([^\]]+)\]\s+\[([^\]]+)\]\s+\[([^\]]+)\]\s+(.+)$/,
-    
+    error:
+      /^\[([^\]]+)\]\s+ERROR\s+\[([^\]]+)\]\s+\[([^\]]+)\]\s+\[([^\]]+)\]\s+(.+)$/,
+
     // Blockchain logs: [2024-03-29T10:30:45.123Z] [Blockchain] [tx-abc123] Transaction submitted: hash=0x123..., contract=0x456..., gas=21000
-    blockchain: /^\[([^\]]+)\]\s+\[Blockchain\]\s+\[([^\]]+)\]\s+Transaction submitted:\s+hash=([^,]+),\s+contract=([^,]+),\s+gas=(\d+)$/,
-    
+    blockchain:
+      /^\[([^\]]+)\]\s+\[Blockchain\]\s+\[([^\]]+)\]\s+Transaction submitted:\s+hash=([^,]+),\s+contract=([^,]+),\s+gas=(\d+)$/,
+
     // Performance logs: [2024-03-29T10:30:45.123Z] PERF [API] [req-123] Response time: 150ms, Memory: 45MB, CPU: 25%
-    performance: /^\[([^\]]+)\]\s+PERF\s+\[([^\]]+)\]\s+\[([^\]]+)\]\s+Response time:\s+(\d+)ms,\s+Memory:\s+(\d+)MB,\s+CPU:\s+(\d+)%$/,
-    
+    performance:
+      /^\[([^\]]+)\]\s+PERF\s+\[([^\]]+)\]\s+\[([^\]]+)\]\s+Response time:\s+(\d+)ms,\s+Memory:\s+(\d+)MB,\s+CPU:\s+(\d+)%$/,
+
     // Security logs: [2024-03-29T10:30:45.123Z] SECURITY [Auth] [req-123] Failed login attempt for user@example.com from 192.168.1.1
     security: /^\[([^\]]+)\]\s+SECURITY\s+\[([^\]]+)\]\s+\[([^\]]+)\]\s+(.+)$/,
   };
@@ -89,13 +96,13 @@ export class LogParserService {
 
   async parseLogEntry(rawLog: string, context?: any): Promise<ParseResult> {
     const startTime = Date.now();
-    
+
     try {
       this.parsingMetrics.total_parsed++;
-      
+
       // Try to parse with different patterns
       let parsedEntry: ParsedLogEntry | null = null;
-      
+
       // Try JSON parsing first
       if (this.isJsonString(rawLog)) {
         parsedEntry = await this.parseJsonLog(rawLog, context);
@@ -103,22 +110,22 @@ export class LogParserService {
         // Try regex patterns
         parsedEntry = await this.parseWithPatterns(rawLog, context);
       }
-      
+
       if (parsedEntry) {
         // Enhance with extracted information
         parsedEntry = await this.enhanceParsedEntry(parsedEntry, rawLog);
-        
+
         // Calculate severity score
         parsedEntry.severity_score = this.calculateSeverityScore(parsedEntry);
-        
+
         // Categorize the log
         parsedEntry.categorized_as = this.categorizeLog(parsedEntry);
-        
+
         this.parsingMetrics.successful_parses++;
-        
+
         const processingTime = Date.now() - startTime;
         this.updateProcessingTimeMetrics(processingTime);
-        
+
         return {
           success: true,
           parsed_entry: parsedEntry,
@@ -127,12 +134,12 @@ export class LogParserService {
       } else {
         // Fallback parsing
         parsedEntry = this.createFallbackEntry(rawLog, context);
-        
+
         this.parsingMetrics.successful_parses++;
-        
+
         const processingTime = Date.now() - startTime;
         this.updateProcessingTimeMetrics(processingTime);
-        
+
         return {
           success: true,
           parsed_entry: parsedEntry,
@@ -141,12 +148,12 @@ export class LogParserService {
       }
     } catch (error) {
       this.parsingMetrics.failed_parses++;
-      
+
       const processingTime = Date.now() - startTime;
       this.updateProcessingTimeMetrics(processingTime);
-      
+
       this.logger.error('Failed to parse log entry', error);
-      
+
       return {
         success: false,
         error: error.message,
@@ -155,16 +162,21 @@ export class LogParserService {
     }
   }
 
-  private async parseJsonLog(rawLog: string, context?: any): Promise<ParsedLogEntry | null> {
+  private async parseJsonLog(
+    rawLog: string,
+    context?: any,
+  ): Promise<ParsedLogEntry | null> {
     try {
       const jsonData = JSON.parse(rawLog);
-      
+
       const parsedEntry: ParsedLogEntry = {
         timestamp: new Date(jsonData.timestamp || Date.now()),
         level: jsonData.level || 'info',
         message: jsonData.message || rawLog,
-        service_name: jsonData.service_name || context?.service_name || 'unknown',
-        environment: jsonData.environment || context?.environment || 'development',
+        service_name:
+          jsonData.service_name || context?.service_name || 'unknown',
+        environment:
+          jsonData.environment || context?.environment || 'development',
         parsed_fields: {},
         extracted_tags: [],
         severity_score: 0,
@@ -194,10 +206,13 @@ export class LogParserService {
       }
 
       if (jsonData.blockchain) {
-        parsedEntry.parsed_fields.blockchain_tx_hash = jsonData.blockchain.tx_hash;
-        parsedEntry.parsed_fields.contract_address = jsonData.blockchain.contract_address;
+        parsedEntry.parsed_fields.blockchain_tx_hash =
+          jsonData.blockchain.tx_hash;
+        parsedEntry.parsed_fields.contract_address =
+          jsonData.blockchain.contract_address;
         parsedEntry.parsed_fields.gas_used = jsonData.blockchain.gas_used;
-        parsedEntry.parsed_fields.block_number = jsonData.blockchain.block_number;
+        parsedEntry.parsed_fields.block_number =
+          jsonData.blockchain.block_number;
         parsedEntry.tx_hash = jsonData.blockchain.tx_hash;
         parsedEntry.tx_type = jsonData.blockchain.tx_type;
         parsedEntry.tx_status = jsonData.blockchain.tx_status;
@@ -219,7 +234,10 @@ export class LogParserService {
     }
   }
 
-  private async parseWithPatterns(rawLog: string, context?: any): Promise<ParsedLogEntry | null> {
+  private async parseWithPatterns(
+    rawLog: string,
+    context?: any,
+  ): Promise<ParsedLogEntry | null> {
     const patterns = [
       { type: 'error', pattern: this.patterns.error },
       { type: 'blockchain', pattern: this.patterns.blockchain },
@@ -315,7 +333,10 @@ export class LogParserService {
     return baseEntry;
   }
 
-  private async enhanceParsedEntry(entry: ParsedLogEntry, rawLog: string): Promise<ParsedLogEntry> {
+  private async enhanceParsedEntry(
+    entry: ParsedLogEntry,
+    rawLog: string,
+  ): Promise<ParsedLogEntry> {
     // Extract IP addresses
     const ipMatches = rawLog.match(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g);
     if (ipMatches) {
@@ -329,7 +350,9 @@ export class LogParserService {
     }
 
     // Extract session IDs
-    const sessionMatches = rawLog.match(/session[_\s-]?id[:\s=]+([a-zA-Z0-9-]+)/i);
+    const sessionMatches = rawLog.match(
+      /session[_\s-]?id[:\s=]+([a-zA-Z0-9-]+)/i,
+    );
     if (sessionMatches) {
       entry.parsed_fields.session_id = sessionMatches[1];
     }
@@ -419,13 +442,19 @@ export class LogParserService {
 
     // Message-based categorization
     const message = entry.message.toLowerCase();
-    if (message.includes('login') || message.includes('auth')) categories.push('authentication');
-    if (message.includes('transaction') || message.includes('tx')) categories.push('transaction');
+    if (message.includes('login') || message.includes('auth'))
+      categories.push('authentication');
+    if (message.includes('transaction') || message.includes('tx'))
+      categories.push('transaction');
     if (message.includes('contract')) categories.push('smart-contract');
-    if (message.includes('error') || message.includes('exception')) categories.push('error');
-    if (message.includes('security') || message.includes('unauthorized')) categories.push('security');
-    if (message.includes('performance') || message.includes('slow')) categories.push('performance');
-    if (message.includes('database') || message.includes('sql')) categories.push('database');
+    if (message.includes('error') || message.includes('exception'))
+      categories.push('error');
+    if (message.includes('security') || message.includes('unauthorized'))
+      categories.push('security');
+    if (message.includes('performance') || message.includes('slow'))
+      categories.push('performance');
+    if (message.includes('database') || message.includes('sql'))
+      categories.push('database');
 
     // Request-based categorization
     if (entry.parsed_fields.method) {
@@ -502,21 +531,25 @@ export class LogParserService {
 
   private updateProcessingTimeMetrics(processingTime: number): void {
     const currentAvg = this.parsingMetrics.average_processing_time;
-    const totalProcessed = this.parsingMetrics.successful_parses + this.parsingMetrics.failed_parses;
-    
-    this.parsingMetrics.average_processing_time = 
+    const totalProcessed =
+      this.parsingMetrics.successful_parses + this.parsingMetrics.failed_parses;
+
+    this.parsingMetrics.average_processing_time =
       (currentAvg * (totalProcessed - 1) + processingTime) / totalProcessed;
   }
 
   // Public API methods
-  async parseBatchLogs(rawLogs: string[], context?: any): Promise<ParseResult[]> {
+  async parseBatchLogs(
+    rawLogs: string[],
+    context?: any,
+  ): Promise<ParseResult[]> {
     const results: ParseResult[] = [];
-    
+
     for (const rawLog of rawLogs) {
       const result = await this.parseLogEntry(rawLog, context);
       results.push(result);
     }
-    
+
     return results;
   }
 

@@ -9,7 +9,10 @@ const brotliCompress = promisify(zlib.brotliCompress);
 export class CompressionService {
   private readonly logger = new Logger(CompressionService.name);
 
-  async compressAsset(buffer: Buffer, algorithm: 'gzip' | 'brotli' = 'brotli'): Promise<Buffer> {
+  async compressAsset(
+    buffer: Buffer,
+    algorithm: 'gzip' | 'brotli' = 'brotli',
+  ): Promise<Buffer> {
     this.logger.debug(`Compressing asset using ${algorithm}`);
     try {
       if (algorithm === 'brotli') {

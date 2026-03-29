@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SecurityEvent, SecurityEventType, SeverityLevel } from '../entities/security-event.entity';
+import {
+  SecurityEvent,
+  SecurityEventType,
+  SeverityLevel,
+} from '../entities/security-event.entity';
 import { SecurityMonitorService } from '../monitoring/security-monitor.service';
 
 export interface IncidentResponse {
@@ -29,7 +33,9 @@ export class IncidentResponseService {
 
   constructor(private readonly securityMonitor: SecurityMonitorService) {}
 
-  async createIncidentFromEvent(event: SecurityEvent): Promise<IncidentResponse> {
+  async createIncidentFromEvent(
+    event: SecurityEvent,
+  ): Promise<IncidentResponse> {
     this.logger.log(`Creating incident from security event: ${event.id}`);
 
     const response: IncidentResponse = {
@@ -40,7 +46,11 @@ export class IncidentResponseService {
         {
           timestamp: new Date(),
           event: 'INCIDENT_CREATED',
-          details: { eventId: event.id, eventType: event.eventType, severity: event.severity },
+          details: {
+            eventId: event.id,
+            eventType: event.eventType,
+            severity: event.severity,
+          },
         },
       ],
     };
@@ -77,7 +87,7 @@ export class IncidentResponseService {
     }
 
     // Update incident status
-    if (incident.actions.some(a => a.type === 'CONTAINMENT')) {
+    if (incident.actions.some((a) => a.type === 'CONTAINMENT')) {
       incident.status = 'contained';
     }
   }
@@ -144,7 +154,10 @@ export class IncidentResponseService {
     await this.generateComplianceReport(incident, event);
   }
 
-  private async handleFraud(incident: IncidentResponse, event: SecurityEvent): Promise<void> {
+  private async handleFraud(
+    incident: IncidentResponse,
+    event: SecurityEvent,
+  ): Promise<void> {
     this.logger.log('Handling fraud incident');
 
     // Enhanced monitoring on related wallets
@@ -166,7 +179,10 @@ export class IncidentResponseService {
     });
   }
 
-  private async handleAnomaly(incident: IncidentResponse, event: SecurityEvent): Promise<void> {
+  private async handleAnomaly(
+    incident: IncidentResponse,
+    event: SecurityEvent,
+  ): Promise<void> {
     this.logger.log('Handling anomaly incident');
 
     // Baseline analysis
@@ -253,7 +269,9 @@ export class IncidentResponseService {
     return { riskScore: 0.75, factors: ['pattern_match', 'velocity'] };
   }
 
-  private async analyzeDeviationFromBaseline(event: SecurityEvent): Promise<any> {
+  private async analyzeDeviationFromBaseline(
+    event: SecurityEvent,
+  ): Promise<any> {
     // Analyze how much current behavior deviates from baseline
     return { deviationScore: 2.5, baselineMetrics: {} };
   }

@@ -23,24 +23,28 @@ export class MlModelService {
     this.logger.log('Generating ML prediction');
 
     // Feature engineering
-    const features = this.extractFeatures(userBehavior, marketPatterns, assetData);
-    
+    const features = this.extractFeatures(
+      userBehavior,
+      marketPatterns,
+      assetData,
+    );
+
     // Run inference through trained model
     const prediction = await this.runInference(features);
-    
+
     return prediction;
   }
 
   async trainModel(trainingData: any[]): Promise<void> {
     this.logger.log('Training ML model');
-    
+
     // Implement model training pipeline
     // - Data preprocessing
     // - Feature extraction
     // - Model training
     // - Validation
     // - Deployment
-    
+
     // Placeholder for actual training logic
   }
 
@@ -67,35 +71,37 @@ export class MlModelService {
 
   private calculateMarketSentiment(patterns: MarketPattern[]): number {
     if (patterns.length === 0) return 0;
-    
+
     const sentimentMap = { bullish: 1, neutral: 0, bearish: -1 };
     const weightedSum = patterns.reduce((sum, p) => {
-      return sum + (sentimentMap[p.direction] * p.confidence * p.strength);
+      return sum + sentimentMap[p.direction] * p.confidence * p.strength;
     }, 0);
-    
+
     return weightedSum / patterns.length;
   }
 
   private calculateTechnicalScore(patterns: MarketPattern[]): number {
     if (patterns.length === 0) return 0.5;
-    
-    const avgConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
-    const avgStrength = patterns.reduce((sum, p) => sum + p.strength, 0) / patterns.length;
-    
+
+    const avgConfidence =
+      patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
+    const avgStrength =
+      patterns.reduce((sum, p) => sum + p.strength, 0) / patterns.length;
+
     return (avgConfidence + avgStrength) / 2;
   }
 
   private async runInference(features: any): Promise<ModelPrediction> {
     // Placeholder for actual ML inference
     // In production, use trained model to generate predictions
-    
+
     const baseConfidence = 0.75;
     const expectedReturn = (Math.random() - 0.3) * 0.2; // -6% to +14%
-    
+
     let action: 'buy' | 'sell' | 'hold' = 'hold';
     if (expectedReturn > 0.05) action = 'buy';
     else if (expectedReturn < -0.05) action = 'sell';
-    
+
     return {
       action,
       confidence: baseConfidence,
@@ -105,7 +111,11 @@ export class MlModelService {
     };
   }
 
-  getModelPerformance(): { accuracy: number; precision: number; recall: number } {
+  getModelPerformance(): {
+    accuracy: number;
+    precision: number;
+    recall: number;
+  } {
     // Return model performance metrics
     return {
       accuracy: 0.78, // Target: >75%

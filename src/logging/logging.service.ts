@@ -1,7 +1,19 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ElasticsearchService, LogEntry } from './elasticsearch/elasticsearch.service';
-import { LogParserService, ParsedLogEntry, ParseResult } from './parsing/log-parser.service';
+import {
+  ElasticsearchService,
+  LogEntry,
+} from './elasticsearch/elasticsearch.service';
+import {
+  LogParserService,
+  ParsedLogEntry,
+  ParseResult,
+} from './parsing/log-parser.service';
 import { LogAlertService } from './alerts/log-alert.service';
 import { RetentionPolicyService } from './retention/retention-policy.service';
 
@@ -48,27 +60,27 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.logger.log('Initializing logging service');
-    
+
     // Start periodic flush
     this.startPeriodicFlush();
-    
+
     // Set up process error handlers
     this.setupErrorHandlers();
-    
+
     this.logger.log('Logging service initialized');
   }
 
   async onModuleDestroy() {
     this.isShuttingDown = true;
-    
+
     // Clear flush timer
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
     }
-    
+
     // Flush remaining logs
     await this.flushLogs();
-    
+
     this.logger.log('Logging service shutdown complete');
   }
 
@@ -106,36 +118,65 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async debug(message: string, metadata?: any, options?: LogOptions): Promise<void> {
+  async debug(
+    message: string,
+    metadata?: any,
+    options?: LogOptions,
+  ): Promise<void> {
     await this.log('debug', message, metadata, options);
   }
 
-  async info(message: string, metadata?: any, options?: LogOptions): Promise<void> {
+  async info(
+    message: string,
+    metadata?: any,
+    options?: LogOptions,
+  ): Promise<void> {
     await this.log('info', message, metadata, options);
   }
 
-  async warn(message: string, metadata?: any, options?: LogOptions): Promise<void> {
+  async warn(
+    message: string,
+    metadata?: any,
+    options?: LogOptions,
+  ): Promise<void> {
     await this.log('warn', message, metadata, options);
   }
 
-  async error(message: string, error?: any, options?: LogOptions): Promise<void> {
-    const errorMetadata = error ? {
-      error_name: error.name || 'UnknownError',
-      error_message: error.message || message,
-      error_stack: error.stack,
-      ...error,
-    } : {};
+  async error(
+    message: string,
+    error?: any,
+    options?: LogOptions,
+  ): Promise<void> {
+    const errorMetadata = error
+      ? {
+          error_name: error.name || 'UnknownError',
+          error_message: error.message || message,
+          error_stack: error.stack,
+          ...error,
+        }
+      : {};
 
     await this.log('error', message, errorMetadata, options);
   }
 
-  private async log(level: string, message: string, metadata?: any, options?: LogOptions): Promise<void> {
+  private async log(
+    level: string,
+    message: string,
+    metadata?: any,
+    options?: LogOptions,
+  ): Promise<void> {
     const logEntry: LogEntry = {
       timestamp: new Date(),
       level: options?.level || level,
       message,
-      service_name: options?.context?.service_name || this.configService.get('SERVICE_NAME') || 'currentdao-backend',
-      environment: options?.context?.environment || this.configService.get('NODE_ENV') || 'development',
+      service_name:
+        options?.context?.service_name ||
+        this.configService.get('SERVICE_NAME') ||
+        'currentdao-backend',
+      environment:
+        options?.context?.environment ||
+        this.configService.get('NODE_ENV') ||
+        'development',
       request_id: options?.context?.request_id,
       response_time: metadata?.response_time,
       memory_usage: metadata?.memory_usage,
@@ -155,7 +196,10 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
     this.logBuffer.push(logEntry);
 
     // Flush immediately if buffer is full or critical error
-    if (this.logBuffer.length >= this.bufferSize || (level === 'error' && options?.alert_immediately)) {
+    if (
+      this.logBuffer.length >= this.bufferSize ||
+      (level === 'error' && options?.alert_immediately)
+    ) {
       await this.flushLogs();
     }
 
@@ -167,7 +211,7 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
 
   private logToConsole(level: string, message: string, metadata?: any): void {
     const logMessage = `[${new Date().toISOString()}] ${level.toUpperCase()}: ${message}`;
-    
+
     switch (level) {
       case 'debug':
         this.logger.debug(logMessage, metadata);
@@ -195,14 +239,14 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
     try {
       // Parse logs if needed
       const parsedLogs: ParsedLogEntry[] = [];
-      
+
       for (const log of logsToFlush) {
         if (log.metadata?.parse_immediately) {
           const result = await this.logParserService.parseLogEntry(
             JSON.stringify(log),
-            log.metadata?.context
+            log.metadata?.context,
           );
-          
+
           if (result.success && result.parsed_entry) {
             parsedLogs.push(result.parsed_entry);
           }
@@ -227,10 +271,9 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
           // Alert checking is handled by the alert service monitoring
         }
       }
-
     } catch (error) {
       this.logger.error('Failed to flush logs to Elasticsearch', error);
-      
+
       // Re-add failed logs to buffer for retry (with limit)
       const retryLogs = logsToFlush.slice(-10); // Keep only last 10 for retry
       this.logBuffer.unshift(...retryLogs);
@@ -297,48 +340,59 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
     statusCode: number,
     responseTime: number,
     context?: Partial<LogContext>,
-    metadata?: any
+    metadata?: any,
   ): Promise<void> {
-    const level = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
-    
-    await this.log(level, `HTTP ${method} ${url} - ${statusCode}`, {
-      request_method: method,
-      request_url: url,
-      status_code: statusCode,
-      response_time: responseTime,
-      ...metadata,
-    }, {
-      context: {
-        service_name: 'currentdao-backend',
-        environment: this.configService.get('NODE_ENV') || 'development',
-        ...context,
+    const level =
+      statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
+
+    await this.log(
+      level,
+      `HTTP ${method} ${url} - ${statusCode}`,
+      {
+        request_method: method,
+        request_url: url,
+        status_code: statusCode,
+        response_time: responseTime,
+        ...metadata,
       },
-      tags: ['http-request', `status-${statusCode}`],
-      parse_immediately: true,
-    });
+      {
+        context: {
+          service_name: 'currentdao-backend',
+          environment: this.configService.get('NODE_ENV') || 'development',
+          ...context,
+        },
+        tags: ['http-request', `status-${statusCode}`],
+        parse_immediately: true,
+      },
+    );
   }
 
   async logDatabaseQuery(
     query: string,
     duration: number,
     error?: any,
-    context?: Partial<LogContext>
+    context?: Partial<LogContext>,
   ): Promise<void> {
     const level = error ? 'error' : duration > 1000 ? 'warn' : 'info';
-    
-    await this.log(level, `Database query executed in ${duration}ms`, {
-      database_query: query,
-      database_duration: duration,
-      ...error,
-    }, {
-      context: {
-        service_name: 'currentdao-backend',
-        environment: this.configService.get('NODE_ENV') || 'development',
-        ...context,
+
+    await this.log(
+      level,
+      `Database query executed in ${duration}ms`,
+      {
+        database_query: query,
+        database_duration: duration,
+        ...error,
       },
-      tags: ['database', 'query'],
-      parse_immediately: true,
-    });
+      {
+        context: {
+          service_name: 'currentdao-backend',
+          environment: this.configService.get('NODE_ENV') || 'development',
+          ...context,
+        },
+        tags: ['database', 'query'],
+        parse_immediately: true,
+      },
+    );
   }
 
   async logBlockchainTransaction(
@@ -347,51 +401,63 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
     status: string,
     gasUsed?: number,
     error?: any,
-    context?: Partial<LogContext>
+    context?: Partial<LogContext>,
   ): Promise<void> {
-    const level = status === 'failed' ? 'error' : status === 'pending' ? 'info' : 'info';
-    
-    await this.log(level, `Blockchain transaction ${txHash} - ${status}`, {
-      tx_hash: txHash,
-      tx_type: txType,
-      tx_status: status,
-      gas_used: gasUsed,
-      ...error,
-    }, {
-      context: {
-        service_name: 'currentdao-backend',
-        environment: this.configService.get('NODE_ENV') || 'development',
-        blockchain_tx_hash: txHash,
-        ...context,
+    const level =
+      status === 'failed' ? 'error' : status === 'pending' ? 'info' : 'info';
+
+    await this.log(
+      level,
+      `Blockchain transaction ${txHash} - ${status}`,
+      {
+        tx_hash: txHash,
+        tx_type: txType,
+        tx_status: status,
+        gas_used: gasUsed,
+        ...error,
       },
-      tags: ['blockchain', 'transaction', txType, status],
-      parse_immediately: true,
-      alert_immediately: status === 'failed',
-    });
+      {
+        context: {
+          service_name: 'currentdao-backend',
+          environment: this.configService.get('NODE_ENV') || 'development',
+          blockchain_tx_hash: txHash,
+          ...context,
+        },
+        tags: ['blockchain', 'transaction', txType, status],
+        parse_immediately: true,
+        alert_immediately: status === 'failed',
+      },
+    );
   }
 
   async logSecurityEvent(
     event: string,
     severity: 'low' | 'medium' | 'high' | 'critical',
     details?: any,
-    context?: Partial<LogContext>
+    context?: Partial<LogContext>,
   ): Promise<void> {
-    const level = severity === 'critical' ? 'error' : severity === 'high' ? 'warn' : 'info';
-    
-    await this.log(level, `Security event: ${event}`, {
-      security_event: event,
-      security_severity: severity,
-      ...details,
-    }, {
-      context: {
-        service_name: 'currentdao-backend',
-        environment: this.configService.get('NODE_ENV') || 'development',
-        ...context,
+    const level =
+      severity === 'critical' ? 'error' : severity === 'high' ? 'warn' : 'info';
+
+    await this.log(
+      level,
+      `Security event: ${event}`,
+      {
+        security_event: event,
+        security_severity: severity,
+        ...details,
       },
-      tags: ['security', event, severity],
-      parse_immediately: true,
-      alert_immediately: ['high', 'critical'].includes(severity),
-    });
+      {
+        context: {
+          service_name: 'currentdao-backend',
+          environment: this.configService.get('NODE_ENV') || 'development',
+          ...context,
+        },
+        tags: ['security', event, severity],
+        parse_immediately: true,
+        alert_immediately: ['high', 'critical'].includes(severity),
+      },
+    );
   }
 
   async logPerformanceMetrics(
@@ -402,7 +468,7 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
       throughput?: number;
       error_rate?: number;
     },
-    context?: Partial<LogContext>
+    context?: Partial<LogContext>,
   ): Promise<void> {
     await this.info('Performance metrics collected', metrics, {
       context: {
@@ -441,9 +507,13 @@ export class LoggingService implements OnModuleInit, OnModuleDestroy {
   }
 
   async testLogging(): Promise<void> {
-    await this.info('Test log message', { test: true }, {
-      tags: ['test'],
-      parse_immediately: true,
-    });
+    await this.info(
+      'Test log message',
+      { test: true },
+      {
+        tags: ['test'],
+        parse_immediately: true,
+      },
+    );
   }
 }

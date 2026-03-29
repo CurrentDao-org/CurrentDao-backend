@@ -1,7 +1,23 @@
-import { IsString, IsNumber, IsEnum, IsOptional, IsBoolean, IsArray, IsObject, Min, Max, ValidateNested, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsObject,
+  Min,
+  Max,
+  ValidateNested,
+  IsDateString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ListingType, EnergyType, DeliveryType } from '../entities/energy-listing.entity';
+import {
+  ListingType,
+  EnergyType,
+  DeliveryType,
+} from '../entities/energy-listing.entity';
 
 export class LocationDto {
   @ApiProperty({ example: 40.7128 })
@@ -10,7 +26,7 @@ export class LocationDto {
   @Max(90)
   latitude: number;
 
-  @ApiProperty({ example: -74.0060 })
+  @ApiProperty({ example: -74.006 })
   @IsNumber()
   @Min(-180)
   @Max(180)
@@ -118,7 +134,9 @@ export class ContractTermsDto {
   @Min(0)
   terminationNotice?: number;
 
-  @ApiPropertyOptional({ example: ['late_delivery_penalty', 'quality_penalty'] })
+  @ApiPropertyOptional({
+    example: ['late_delivery_penalty', 'quality_penalty'],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -197,7 +215,9 @@ export class MetadataDto {
   @Max(100)
   efficiency?: number;
 
-  @ApiPropertyOptional({ example: ['monthly_maintenance', 'quarterly_inspection'] })
+  @ApiPropertyOptional({
+    example: ['monthly_maintenance', 'quarterly_inspection'],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -221,7 +241,10 @@ export class CreateListingDto {
   @IsString()
   title: string;
 
-  @ApiPropertyOptional({ example: 'High-quality solar energy from certified solar farm with excellent reliability record' })
+  @ApiPropertyOptional({
+    example:
+      'High-quality solar energy from certified solar farm with excellent reliability record',
+  })
   @IsOptional()
   @IsString()
   description?: string;
@@ -239,18 +262,18 @@ export class CreateListingDto {
   @Min(0.01)
   quantity: number;
 
-  @ApiProperty({ example: 0.0850 })
+  @ApiProperty({ example: 0.085 })
   @IsNumber()
   @Min(0)
   price: number;
 
-  @ApiPropertyOptional({ example: 0.0800 })
+  @ApiPropertyOptional({ example: 0.08 })
   @IsOptional()
   @IsNumber()
   @Min(0)
   minPrice?: number;
 
-  @ApiPropertyOptional({ example: 0.0900 })
+  @ApiPropertyOptional({ example: 0.09 })
   @IsOptional()
   @IsNumber()
   @Min(0)

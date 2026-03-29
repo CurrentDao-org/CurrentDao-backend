@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID, IsOptional, IsNumber, IsString, IsEnum } from 'class-validator';
+import {
+  IsUUID,
+  IsOptional,
+  IsNumber,
+  IsString,
+  IsEnum,
+} from 'class-validator';
 import { RecommendationType } from '../entities/recommendation.entity';
 
 export class CreateRecommendationDto {

@@ -10,7 +10,10 @@ interface PatternDefinition {
   name: string;
   category: string;
   description: string;
-  detector: (trade: AnalyzeTradeDto, context: PatternContext) => PatternMatchResult;
+  detector: (
+    trade: AnalyzeTradeDto,
+    context: PatternContext,
+  ) => PatternMatchResult;
 }
 
 interface PatternContext {
@@ -25,7 +28,9 @@ export class PatternRecognitionService {
 
   constructor() {
     this.patterns = this.registerPatterns();
-    this.logger.log(`Pattern recognition engine initialized with ${this.patterns.length} patterns`);
+    this.logger.log(
+      `Pattern recognition engine initialized with ${this.patterns.length} patterns`,
+    );
   }
 
   /**
@@ -140,7 +145,8 @@ export class PatternRecognitionService {
         id: 'WT-004',
         name: 'Prearranged Trade',
         category: 'wash_trading',
-        description: 'Trades executed at non-competitive prices, suggesting pre-arrangement',
+        description:
+          'Trades executed at non-competitive prices, suggesting pre-arrangement',
         detector: (t) => {
           // Flag extreme price outliers (>20% from expected)
           const priceAnomaly = t.price > 10000 || t.price < 0.01;
@@ -158,18 +164,22 @@ export class PatternRecognitionService {
         id: 'WT-005',
         name: 'Accommodation Trade',
         category: 'wash_trading',
-        description: 'Round-lot trades at regular intervals between same parties',
+        description:
+          'Round-lot trades at regular intervals between same parties',
         detector: (t, ctx) => {
-          const sameCounterpartyTrades = ctx.recentTrades?.filter(
-            (rt) => rt.counterpartyId === t.counterpartyId,
-          ).length ?? 0;
+          const sameCounterpartyTrades =
+            ctx.recentTrades?.filter(
+              (rt) => rt.counterpartyId === t.counterpartyId,
+            ).length ?? 0;
           const matched = sameCounterpartyTrades >= 3;
           return {
             patternId: 'WT-005',
             patternName: 'Accommodation Trade',
             category: 'wash_trading',
             matched,
-            confidence: matched ? Math.min(0.9, sameCounterpartyTrades * 0.2) : 0,
+            confidence: matched
+              ? Math.min(0.9, sameCounterpartyTrades * 0.2)
+              : 0,
             evidence: `${sameCounterpartyTrades} trades with same counterparty in window`,
           };
         },
@@ -180,7 +190,8 @@ export class PatternRecognitionService {
         id: 'SP-001',
         name: 'Classic Spoofing',
         category: 'spoofing',
-        description: 'Large order placed then quickly cancelled to mislead market',
+        description:
+          'Large order placed then quickly cancelled to mislead market',
         detector: (t) => {
           const isLargeOrder = t.quantity > 10000;
           const isIoc = t.timeInForce === 'IOC';
@@ -199,7 +210,8 @@ export class PatternRecognitionService {
         id: 'SP-002',
         name: 'Iceberg Spoofing',
         category: 'spoofing',
-        description: 'Hidden large orders used to manipulate visible order book',
+        description:
+          'Hidden large orders used to manipulate visible order book',
         detector: (t) => {
           const ratio = t.tradeValue / Math.max(t.quantity * t.price, 1);
           const anomalousRatio = ratio > 1.5 || ratio < 0.5;
@@ -219,9 +231,10 @@ export class PatternRecognitionService {
         category: 'spoofing',
         description: 'Multiple cancel-replace cycles on the same order',
         detector: (t, ctx) => {
-          const cancelCount = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId && rt.timeInForce === 'IOC',
-          ).length ?? 0;
+          const cancelCount =
+            ctx.recentTrades?.filter(
+              (rt) => rt.traderId === t.traderId && rt.timeInForce === 'IOC',
+            ).length ?? 0;
           const matched = cancelCount >= 5;
           return {
             patternId: 'SP-003',
@@ -237,11 +250,12 @@ export class PatternRecognitionService {
         id: 'SP-004',
         name: 'Quote Stuffing',
         category: 'spoofing',
-        description: 'Rapid order placement and cancellation to slow competing systems',
+        description:
+          'Rapid order placement and cancellation to slow competing systems',
         detector: (t, ctx) => {
-          const tradeRate = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId,
-          ).length ?? 0;
+          const tradeRate =
+            ctx.recentTrades?.filter((rt) => rt.traderId === t.traderId)
+              .length ?? 0;
           const matched = tradeRate > 50;
           return {
             patternId: 'SP-004',
@@ -259,7 +273,8 @@ export class PatternRecognitionService {
         category: 'spoofing',
         description: 'Creating false momentum with large directional orders',
         detector: (t) => {
-          const isBigDirectional = t.quantity > 5000 && t.orderType === 'market';
+          const isBigDirectional =
+            t.quantity > 5000 && t.orderType === 'market';
           return {
             patternId: 'SP-005',
             patternName: 'Momentum Spoofing',
@@ -276,18 +291,25 @@ export class PatternRecognitionService {
         id: 'LY-001',
         name: 'Multi-Level Order Stacking',
         category: 'layering',
-        description: 'Multiple limit orders stacked at different prices to create false depth',
+        description:
+          'Multiple limit orders stacked at different prices to create false depth',
         detector: (t, ctx) => {
-          const sameDirectionOrders = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId && rt.side === t.side && rt.orderType === 'limit',
-          ).length ?? 0;
+          const sameDirectionOrders =
+            ctx.recentTrades?.filter(
+              (rt) =>
+                rt.traderId === t.traderId &&
+                rt.side === t.side &&
+                rt.orderType === 'limit',
+            ).length ?? 0;
           const matched = sameDirectionOrders >= 4;
           return {
             patternId: 'LY-001',
             patternName: 'Multi-Level Order Stacking',
             category: 'layering',
             matched,
-            confidence: matched ? Math.min(0.82, sameDirectionOrders * 0.15) : 0,
+            confidence: matched
+              ? Math.min(0.82, sameDirectionOrders * 0.15)
+              : 0,
             evidence: `${sameDirectionOrders} stacked limit orders in same direction`,
           };
         },
@@ -296,11 +318,13 @@ export class PatternRecognitionService {
         id: 'LY-002',
         name: 'Momentum Ignition',
         category: 'layering',
-        description: 'Triggering momentum in one direction then reversing position',
+        description:
+          'Triggering momentum in one direction then reversing position',
         detector: (t, ctx) => {
-          const oppositeRecentTrades = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId && rt.side !== t.side,
-          ).length ?? 0;
+          const oppositeRecentTrades =
+            ctx.recentTrades?.filter(
+              (rt) => rt.traderId === t.traderId && rt.side !== t.side,
+            ).length ?? 0;
           const matched = oppositeRecentTrades >= 2 && t.tradeValue > 100_000;
           return {
             patternId: 'LY-002',
@@ -316,9 +340,11 @@ export class PatternRecognitionService {
         id: 'LY-003',
         name: 'Order Book Painting',
         category: 'layering',
-        description: 'Creating artificial order book depth to attract other traders',
+        description:
+          'Creating artificial order book depth to attract other traders',
         detector: (t) => {
-          const isLimitWithHighRatio = t.orderType === 'limit' && t.quantity > 8000;
+          const isLimitWithHighRatio =
+            t.orderType === 'limit' && t.quantity > 8000;
           return {
             patternId: 'LY-003',
             patternName: 'Order Book Painting',
@@ -335,11 +361,12 @@ export class PatternRecognitionService {
         id: 'MM-001',
         name: 'Painting the Tape',
         category: 'market_manipulation',
-        description: 'Series of transactions creating artificial market activity',
+        description:
+          'Series of transactions creating artificial market activity',
         detector: (t, ctx) => {
-          const traderActivity = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId,
-          ).length ?? 0;
+          const traderActivity =
+            ctx.recentTrades?.filter((rt) => rt.traderId === t.traderId)
+              .length ?? 0;
           const matched = traderActivity > 20 && t.tradeValue < 1000;
           return {
             patternId: 'MM-001',
@@ -360,7 +387,8 @@ export class PatternRecognitionService {
           const isCloseTime = t.tradeTimestamp
             ? new Date(t.tradeTimestamp).getUTCHours() >= 15
             : false;
-          const isLargeMarket = t.orderType === 'market' && t.tradeValue > 500_000;
+          const isLargeMarket =
+            t.orderType === 'market' && t.tradeValue > 500_000;
           const matched = isCloseTime && isLargeMarket;
           return {
             patternId: 'MM-002',
@@ -378,9 +406,10 @@ export class PatternRecognitionService {
         category: 'market_manipulation',
         description: 'Artificially inflating asset price then selling',
         detector: (t, ctx) => {
-          const buyOrders = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId && rt.side === 'buy',
-          ).length ?? 0;
+          const buyOrders =
+            ctx.recentTrades?.filter(
+              (rt) => rt.traderId === t.traderId && rt.side === 'buy',
+            ).length ?? 0;
           const isSelling = t.side === 'sell' && t.tradeValue > 200_000;
           const matched = buyOrders >= 5 && isSelling;
           return {
@@ -399,9 +428,10 @@ export class PatternRecognitionService {
         category: 'market_manipulation',
         description: 'Coordinated selling to drive down prices then covering',
         detector: (t, ctx) => {
-          const sellOrders = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId && rt.side === 'sell',
-          ).length ?? 0;
+          const sellOrders =
+            ctx.recentTrades?.filter(
+              (rt) => rt.traderId === t.traderId && rt.side === 'sell',
+            ).length ?? 0;
           const isBuying = t.side === 'buy' && sellOrders >= 5;
           return {
             patternId: 'MM-004',
@@ -417,7 +447,8 @@ export class PatternRecognitionService {
         id: 'MM-005',
         name: 'Banging the Open',
         category: 'market_manipulation',
-        description: 'Aggressive trading at market open to set the day\'s direction',
+        description:
+          "Aggressive trading at market open to set the day's direction",
         detector: (t) => {
           const isOpenTime = t.tradeTimestamp
             ? new Date(t.tradeTimestamp).getUTCHours() <= 9
@@ -442,9 +473,10 @@ export class PatternRecognitionService {
         category: 'front_running',
         description: 'Trading ahead of a known large order',
         detector: (t, ctx) => {
-          const followedByLarge = ctx.recentTrades?.some(
-            (rt) => rt.side === t.side && rt.tradeValue > t.tradeValue * 5,
-          ) ?? false;
+          const followedByLarge =
+            ctx.recentTrades?.some(
+              (rt) => rt.side === t.side && rt.tradeValue > t.tradeValue * 5,
+            ) ?? false;
           return {
             patternId: 'FR-001',
             patternName: 'Classic Front Running',
@@ -459,7 +491,8 @@ export class PatternRecognitionService {
         id: 'FR-002',
         name: 'Latency Arbitrage',
         category: 'front_running',
-        description: 'Exploiting speed advantage to trade ahead of slower participants',
+        description:
+          'Exploiting speed advantage to trade ahead of slower participants',
         detector: (t) => {
           const isIOC = t.timeInForce === 'IOC';
           const isMarket = t.orderType === 'market';
@@ -470,7 +503,8 @@ export class PatternRecognitionService {
             category: 'front_running',
             matched,
             confidence: matched ? 0.5 : 0,
-            evidence: 'IOC market order with large quantity suggests latency exploitation',
+            evidence:
+              'IOC market order with large quantity suggests latency exploitation',
           };
         },
       },
@@ -480,7 +514,8 @@ export class PatternRecognitionService {
         id: 'CM-001',
         name: 'Cross-Market Spoofing',
         category: 'cross_market',
-        description: 'Spoofing in one market to benefit position in correlated market',
+        description:
+          'Spoofing in one market to benefit position in correlated market',
         detector: (t) => {
           const isLarge = t.tradeValue > 2_000_000;
           const isMixed = t.market && t.market.includes('-');
@@ -501,7 +536,9 @@ export class PatternRecognitionService {
         category: 'cross_market',
         description: 'Multiple accounts acting in concert to manipulate prices',
         detector: (t, ctx) => {
-          const uniqueTraders = new Set(ctx.recentTrades?.map((rt) => rt.traderId)).size;
+          const uniqueTraders = new Set(
+            ctx.recentTrades?.map((rt) => rt.traderId),
+          ).size;
           const matched = uniqueTraders >= 3 && t.tradeValue > 500_000;
           return {
             patternId: 'CM-002',
@@ -517,7 +554,8 @@ export class PatternRecognitionService {
         id: 'CM-003',
         name: 'Arbitrage Abuse',
         category: 'cross_market',
-        description: 'Exploiting artificial price differences created through manipulation',
+        description:
+          'Exploiting artificial price differences created through manipulation',
         detector: (t) => {
           const suspiciouslyProfitable = t.price < 0.5 || t.price > 5000;
           return {
@@ -536,11 +574,12 @@ export class PatternRecognitionService {
         id: 'VA-001',
         name: 'Order Burst',
         category: 'velocity',
-        description: 'Sudden burst of orders far exceeding trader\'s normal pattern',
+        description:
+          "Sudden burst of orders far exceeding trader's normal pattern",
         detector: (t, ctx) => {
-          const recentCount = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId,
-          ).length ?? 0;
+          const recentCount =
+            ctx.recentTrades?.filter((rt) => rt.traderId === t.traderId)
+              .length ?? 0;
           const matched = recentCount > 30;
           return {
             patternId: 'VA-001',
@@ -556,11 +595,13 @@ export class PatternRecognitionService {
         id: 'VA-002',
         name: 'Cancel-Replace Storm',
         category: 'velocity',
-        description: 'Rapid sequence of order modifications overwhelming the matching engine',
+        description:
+          'Rapid sequence of order modifications overwhelming the matching engine',
         detector: (t, ctx) => {
-          const iocCount = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId && rt.timeInForce === 'IOC',
-          ).length ?? 0;
+          const iocCount =
+            ctx.recentTrades?.filter(
+              (rt) => rt.traderId === t.traderId && rt.timeInForce === 'IOC',
+            ).length ?? 0;
           const matched = iocCount > 15;
           return {
             patternId: 'VA-002',
@@ -578,12 +619,13 @@ export class PatternRecognitionService {
         category: 'velocity',
         description: 'Rapid sell-off causing flash crash conditions',
         detector: (t, ctx) => {
-          const largeSellCount = ctx.recentTrades?.filter(
-            (rt) =>
-              rt.traderId === t.traderId &&
-              rt.side === 'sell' &&
-              rt.tradeValue > 100_000,
-          ).length ?? 0;
+          const largeSellCount =
+            ctx.recentTrades?.filter(
+              (rt) =>
+                rt.traderId === t.traderId &&
+                rt.side === 'sell' &&
+                rt.tradeValue > 100_000,
+            ).length ?? 0;
           const matched = largeSellCount >= 3 && t.side === 'sell';
           return {
             patternId: 'VA-003',
@@ -601,7 +643,8 @@ export class PatternRecognitionService {
         id: 'IT-001',
         name: 'Pre-Announcement Trading',
         category: 'insider_trading',
-        description: 'Unusual trading activity immediately before major announcements',
+        description:
+          'Unusual trading activity immediately before major announcements',
         detector: (t) => {
           // Flag unusually large directional trades
           const isLargeDirectional =
@@ -620,19 +663,23 @@ export class PatternRecognitionService {
         id: 'IT-002',
         name: 'Information Advantage Exploitation',
         category: 'insider_trading',
-        description: 'Consistent profitability pattern suggesting non-public information',
+        description:
+          'Consistent profitability pattern suggesting non-public information',
         detector: (t, ctx) => {
-          const consistentDirection = ctx.recentTrades?.every(
-            (rt) => rt.traderId === t.traderId && rt.side === t.side,
-          ) ?? false;
-          const matched = consistentDirection && (ctx.recentTrades?.length ?? 0) >= 5;
+          const consistentDirection =
+            ctx.recentTrades?.every(
+              (rt) => rt.traderId === t.traderId && rt.side === t.side,
+            ) ?? false;
+          const matched =
+            consistentDirection && (ctx.recentTrades?.length ?? 0) >= 5;
           return {
             patternId: 'IT-002',
             patternName: 'Information Advantage Exploitation',
             category: 'insider_trading',
             matched,
             confidence: matched ? 0.5 : 0,
-            evidence: 'Consistent same-direction trading across all recent trades',
+            evidence:
+              'Consistent same-direction trading across all recent trades',
           };
         },
       },
@@ -642,9 +689,12 @@ export class PatternRecognitionService {
         id: 'EN-001',
         name: 'Capacity Hoarding',
         category: 'energy_specific',
-        description: 'Acquiring transmission capacity with no intention to use it',
+        description:
+          'Acquiring transmission capacity with no intention to use it',
         detector: (t) => {
-          const isCapacity = t.assetType?.includes('capacity') || t.assetType?.includes('transmission');
+          const isCapacity =
+            t.assetType?.includes('capacity') ||
+            t.assetType?.includes('transmission');
           const isLarge = t.quantity > 50000;
           const matched = !!isCapacity && isLarge;
           return {
@@ -683,7 +733,8 @@ export class PatternRecognitionService {
         description: 'Double counting or fabrication of carbon credits',
         detector: (t) => {
           const isCarbonCredit = t.assetType?.toLowerCase().includes('carbon');
-          const isSuspiciousVolume = t.quantity % 1000 === 0 && t.quantity > 10_000;
+          const isSuspiciousVolume =
+            t.quantity % 1000 === 0 && t.quantity > 10_000;
           const matched = !!isCarbonCredit && isSuspiciousVolume;
           return {
             patternId: 'EN-003',
@@ -701,7 +752,8 @@ export class PatternRecognitionService {
         category: 'energy_specific',
         description: 'Deliberately creating transmission congestion for profit',
         detector: (t) => {
-          const isCrossRegion = t.market?.includes('/') || t.market?.includes('-');
+          const isCrossRegion =
+            t.market?.includes('/') || t.market?.includes('-');
           const isLarge = t.tradeValue > 1_000_000;
           const matched = !!isCrossRegion && isLarge;
           return {
@@ -718,19 +770,23 @@ export class PatternRecognitionService {
         id: 'EN-005',
         name: 'Withholding Capacity',
         category: 'energy_specific',
-        description: 'Artificially withholding energy supply to drive up prices',
+        description:
+          'Artificially withholding energy supply to drive up prices',
         detector: (t, ctx) => {
-          const priorSells = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId && rt.side === 'sell',
-          ).length ?? 0;
-          const isWithholding = priorSells === 0 && t.side === 'buy' && t.tradeValue > 500_000;
+          const priorSells =
+            ctx.recentTrades?.filter(
+              (rt) => rt.traderId === t.traderId && rt.side === 'sell',
+            ).length ?? 0;
+          const isWithholding =
+            priorSells === 0 && t.side === 'buy' && t.tradeValue > 500_000;
           return {
             patternId: 'EN-005',
             patternName: 'Withholding Capacity',
             category: 'energy_specific',
             matched: isWithholding,
             confidence: isWithholding ? 0.45 : 0,
-            evidence: 'Large buy with no recent sell activity suggests capacity withholding',
+            evidence:
+              'Large buy with no recent sell activity suggests capacity withholding',
           };
         },
       },
@@ -740,10 +796,13 @@ export class PatternRecognitionService {
         id: 'RF-001',
         name: 'Threshold Avoidance',
         category: 'regulatory',
-        description: 'Structuring trades just below reporting thresholds (structuring)',
+        description:
+          'Structuring trades just below reporting thresholds (structuring)',
         detector: (t) => {
           const REPORTING_THRESHOLD = 10_000;
-          const isJustBelow = t.tradeValue > REPORTING_THRESHOLD * 0.85 && t.tradeValue < REPORTING_THRESHOLD;
+          const isJustBelow =
+            t.tradeValue > REPORTING_THRESHOLD * 0.85 &&
+            t.tradeValue < REPORTING_THRESHOLD;
           return {
             patternId: 'RF-001',
             patternName: 'Threshold Avoidance',
@@ -758,11 +817,13 @@ export class PatternRecognitionService {
         id: 'RF-002',
         name: 'Smurfing',
         category: 'regulatory',
-        description: 'Breaking large transactions into small ones to avoid reporting',
+        description:
+          'Breaking large transactions into small ones to avoid reporting',
         detector: (t, ctx) => {
-          const smallTrades = ctx.recentTrades?.filter(
-            (rt) => rt.traderId === t.traderId && rt.tradeValue < 5000,
-          ).length ?? 0;
+          const smallTrades =
+            ctx.recentTrades?.filter(
+              (rt) => rt.traderId === t.traderId && rt.tradeValue < 5000,
+            ).length ?? 0;
           const matched = smallTrades >= 10;
           return {
             patternId: 'RF-002',
@@ -799,7 +860,8 @@ export class PatternRecognitionService {
         id: 'AL-001',
         name: 'Pinging',
         category: 'algorithmic',
-        description: 'Small orders to detect hidden large orders (order detection)',
+        description:
+          'Small orders to detect hidden large orders (order detection)',
         detector: (t) => {
           const isTinyIoc = t.quantity < 10 && t.timeInForce === 'IOC';
           return {
@@ -816,10 +878,14 @@ export class PatternRecognitionService {
         id: 'AL-002',
         name: 'Algorithmic Collusion',
         category: 'algorithmic',
-        description: 'Multiple algorithmic traders coordinating to manipulate prices',
+        description:
+          'Multiple algorithmic traders coordinating to manipulate prices',
         detector: (t, ctx) => {
-          const uniqueAlgos = new Set(ctx.recentTrades?.map((rt) => rt.traderId)).size;
-          const allSmall = ctx.recentTrades?.every((rt) => rt.quantity < 100) ?? false;
+          const uniqueAlgos = new Set(
+            ctx.recentTrades?.map((rt) => rt.traderId),
+          ).size;
+          const allSmall =
+            ctx.recentTrades?.every((rt) => rt.quantity < 100) ?? false;
           const matched = uniqueAlgos >= 5 && allSmall;
           return {
             patternId: 'AL-002',
@@ -837,16 +903,21 @@ export class PatternRecognitionService {
         category: 'algorithmic',
         description: 'Manual spoof triggering algorithmic responses for profit',
         detector: (t, ctx) => {
-          const hasReversal = ctx.recentTrades?.some(
-            (rt) => rt.traderId === t.traderId && rt.side !== t.side && rt.quantity > t.quantity * 2,
-          ) ?? false;
+          const hasReversal =
+            ctx.recentTrades?.some(
+              (rt) =>
+                rt.traderId === t.traderId &&
+                rt.side !== t.side &&
+                rt.quantity > t.quantity * 2,
+            ) ?? false;
           return {
             patternId: 'AL-003',
             patternName: 'Spoofing-Triggered Algo',
             category: 'algorithmic',
             matched: hasReversal,
             confidence: hasReversal ? 0.6 : 0,
-            evidence: 'Large order reversal pattern consistent with spoofing-triggered algo',
+            evidence:
+              'Large order reversal pattern consistent with spoofing-triggered algo',
           };
         },
       },

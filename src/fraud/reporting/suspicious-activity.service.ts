@@ -8,7 +8,10 @@ import {
   FraudSeverity,
   FraudType,
 } from '../entities/fraud-case.entity';
-import { FraudReportQueryDto, InvestigationUpdateDto } from '../dto/fraud-alert.dto';
+import {
+  FraudReportQueryDto,
+  InvestigationUpdateDto,
+} from '../dto/fraud-alert.dto';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface SarReport {
@@ -62,27 +65,37 @@ export class SuspiciousActivityService {
       tradeData: fraudCase.tradeData ?? {},
       mlScore: Number(fraudCase.mlScore),
       patternsMatched: fraudCase.patternsTriggered ?? [],
-      reportingObligation: this.determineReportingObligation(fraudCase.severity),
-      regulatoryBodies: this.getApplicableRegulators(fraudCase.market ?? '', fraudCase.fraudType),
+      reportingObligation: this.determineReportingObligation(
+        fraudCase.severity,
+      ),
+      regulatoryBodies: this.getApplicableRegulators(
+        fraudCase.market ?? '',
+        fraudCase.fraudType,
+      ),
     };
 
     // Persist SAR reference back to the case
     await this.fraudCaseRepository.update(fraudCase.id, {
       sarReference,
       regulatoryReported: fraudCase.severity === FraudSeverity.CRITICAL,
-      status: fraudCase.severity === FraudSeverity.CRITICAL
-        ? FraudCaseStatus.REGULATORY_REPORTED
-        : fraudCase.status,
+      status:
+        fraudCase.severity === FraudSeverity.CRITICAL
+          ? FraudCaseStatus.REGULATORY_REPORTED
+          : fraudCase.status,
     });
 
-    this.logger.log(`SAR generated: ${sarReference} for case ${fraudCase.caseId}`);
+    this.logger.log(
+      `SAR generated: ${sarReference} for case ${fraudCase.caseId}`,
+    );
 
     return sar;
   }
 
   /** Generate SAR by case ID */
   async generateSARById(caseId: string): Promise<SarReport | null> {
-    const fraudCase = await this.fraudCaseRepository.findOne({ where: { caseId } });
+    const fraudCase = await this.fraudCaseRepository.findOne({
+      where: { caseId },
+    });
     if (!fraudCase) return null;
     return this.generateSAR(fraudCase);
   }
@@ -110,7 +123,8 @@ export class SuspiciousActivityService {
     if (severity) where['severity'] = severity;
     if (status) where['status'] = status;
     if (traderId) where['traderId'] = traderId;
-    if (regulatoryReported !== undefined) where['regulatoryReported'] = regulatoryReported;
+    if (regulatoryReported !== undefined)
+      where['regulatoryReported'] = regulatoryReported;
 
     if (startDate && endDate) {
       where['createdAt'] = Between(new Date(startDate), new Date(endDate));
@@ -156,9 +170,11 @@ export class SuspiciousActivityService {
       status: update.status,
     };
 
-    if (update.investigationNotes) updates.investigationNotes = update.investigationNotes;
+    if (update.investigationNotes)
+      updates.investigationNotes = update.investigationNotes;
     if (update.assignedTo) updates.assignedTo = update.assignedTo;
-    if (update.falsePositiveReason) updates.falsePositiveReason = update.falsePositiveReason;
+    if (update.falsePositiveReason)
+      updates.falsePositiveReason = update.falsePositiveReason;
     if (update.resolvedBy) updates.resolvedBy = update.resolvedBy;
 
     if (
@@ -176,7 +192,11 @@ export class SuspiciousActivityService {
   }
 
   /** Get all cases for a specific trader */
-  async getCasesByTrader(traderId: string, page = 1, limit = 20): Promise<PaginatedCases> {
+  async getCasesByTrader(
+    traderId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedCases> {
     const [data, total] = await this.fraudCaseRepository.findAndCount({
       where: { traderId },
       order: { createdAt: 'DESC' },
@@ -190,14 +210,27 @@ export class SuspiciousActivityService {
   // ─── Metrics & Dashboard ─────────────────────────────────────────────────
 
   async getMetrics(): Promise<object> {
-    const [totalCases, openCases, resolvedCases, falsePositives, criticalCases] =
-      await Promise.all([
-        this.fraudCaseRepository.count(),
-        this.fraudCaseRepository.count({ where: { status: FraudCaseStatus.OPEN } }),
-        this.fraudCaseRepository.count({ where: { status: FraudCaseStatus.RESOLVED } }),
-        this.fraudCaseRepository.count({ where: { status: FraudCaseStatus.FALSE_POSITIVE } }),
-        this.fraudCaseRepository.count({ where: { severity: FraudSeverity.CRITICAL } }),
-      ]);
+    const [
+      totalCases,
+      openCases,
+      resolvedCases,
+      falsePositives,
+      criticalCases,
+    ] = await Promise.all([
+      this.fraudCaseRepository.count(),
+      this.fraudCaseRepository.count({
+        where: { status: FraudCaseStatus.OPEN },
+      }),
+      this.fraudCaseRepository.count({
+        where: { status: FraudCaseStatus.RESOLVED },
+      }),
+      this.fraudCaseRepository.count({
+        where: { status: FraudCaseStatus.FALSE_POSITIVE },
+      }),
+      this.fraudCaseRepository.count({
+        where: { severity: FraudSeverity.CRITICAL },
+      }),
+    ]);
 
     const allCases = await this.fraudCaseRepository.find({ take: 1000 });
     const avgMlScore =
@@ -222,12 +255,14 @@ export class SuspiciousActivityService {
     }
 
     // Average resolution time
-    const resolvedWithTime = allCases.filter((c) => c.resolvedAt && c.createdAt);
+    const resolvedWithTime = allCases.filter(
+      (c) => c.resolvedAt && c.createdAt,
+    );
     const avgResolutionHours =
       resolvedWithTime.length > 0
         ? resolvedWithTime.reduce(
             (s, c) =>
-              s + (c.resolvedAt!.getTime() - c.createdAt.getTime()) / 3_600_000,
+              s + (c.resolvedAt.getTime() - c.createdAt.getTime()) / 3_600_000,
             0,
           ) / resolvedWithTime.length
         : 0;
@@ -266,7 +301,9 @@ export class SuspiciousActivityService {
       await this.generateSAR(fraudCase);
     }
 
-    this.logger.log(`Daily SAR sweep complete: processed ${unreported.length} cases`);
+    this.logger.log(
+      `Daily SAR sweep complete: processed ${unreported.length} cases`,
+    );
   }
 
   /** Weekly compliance report */
@@ -305,15 +342,22 @@ export class SuspiciousActivityService {
     }
   }
 
-  private getApplicableRegulators(market: string, fraudType: FraudType): string[] {
+  private getApplicableRegulators(
+    market: string,
+    fraudType: FraudType,
+  ): string[] {
     const regulators: string[] = ['FinCEN', 'CFTC'];
 
-    if (market.includes('EU') || market.includes('ETS')) regulators.push('ACER', 'ESMA');
-    if (market.includes('PJM') || market.includes('ERCOT')) regulators.push('FERC', 'NERC');
-    if (market.includes('GB') || market.includes('UK')) regulators.push('Ofgem', 'FCA');
+    if (market.includes('EU') || market.includes('ETS'))
+      regulators.push('ACER', 'ESMA');
+    if (market.includes('PJM') || market.includes('ERCOT'))
+      regulators.push('FERC', 'NERC');
+    if (market.includes('GB') || market.includes('UK'))
+      regulators.push('Ofgem', 'FCA');
 
     if (fraudType === FraudType.INSIDER_TRADING) regulators.push('SEC');
-    if (fraudType === FraudType.MARKET_MANIPULATION) regulators.push('CFTC', 'FCA');
+    if (fraudType === FraudType.MARKET_MANIPULATION)
+      regulators.push('CFTC', 'FCA');
 
     return [...new Set(regulators)];
   }

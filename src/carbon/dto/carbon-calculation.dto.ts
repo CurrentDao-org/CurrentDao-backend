@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, IsEnum, IsUUID } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsUUID,
+} from 'class-validator';
 import { EmissionSource, UnitType } from '../entities/carbon-data.entity';
 
 export class CarbonCalculationDto {
@@ -11,7 +17,10 @@ export class CarbonCalculationDto {
   @IsNumber()
   activityData: number;
 
-  @ApiProperty({ description: 'Emission factor (kg CO2e per unit)', required: false })
+  @ApiProperty({
+    description: 'Emission factor (kg CO2e per unit)',
+    required: false,
+  })
   @IsOptional()
   @IsNumber()
   emissionFactor?: number;

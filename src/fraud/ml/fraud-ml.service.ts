@@ -103,12 +103,22 @@ export class FraudMlService {
       this.logger.warn(`ML analysis exceeded 100ms: ${processingTimeMs}ms`);
     }
 
-    return { score, severity, features, topContributors, evidence, processingTimeMs };
+    return {
+      score,
+      severity,
+      features,
+      topContributors,
+      evidence,
+      processingTimeMs,
+    };
   }
 
   // ─── Feature Extraction ──────────────────────────────────────────────────
 
-  private extractFeatures(tradeDto: AnalyzeTradeDto, baseline: TraderBaseline): MlFeatures {
+  private extractFeatures(
+    tradeDto: AnalyzeTradeDto,
+    baseline: TraderBaseline,
+  ): MlFeatures {
     return {
       volumeAnomaly: this.computeVolumeAnomaly(tradeDto.quantity, baseline),
       frequencyAnomaly: this.computeFrequencyAnomaly(baseline),
@@ -116,21 +126,29 @@ export class FraudMlService {
       orderToTradeRatio: this.computeOrderToTradeRatio(baseline),
       roundTripScore: this.computeRoundTripScore(tradeDto),
       velocityScore: this.computeVelocityScore(baseline),
-      counterpartyConcentration: this.computeCounterpartyConcentration(tradeDto),
+      counterpartyConcentration:
+        this.computeCounterpartyConcentration(tradeDto),
       timePatternAnomaly: this.computeTimePatternAnomaly(tradeDto),
       marketImpactScore: this.computeMarketImpact(tradeDto, baseline),
-      cancellationRate: baseline.avgOrderToTradeRatio > 0
-        ? Math.min(1, baseline.avgOrderToTradeRatio)
-        : 0,
+      cancellationRate:
+        baseline.avgOrderToTradeRatio > 0
+          ? Math.min(1, baseline.avgOrderToTradeRatio)
+          : 0,
     };
   }
 
-  private computeVolumeAnomaly(quantity: number, baseline: TraderBaseline): number {
+  private computeVolumeAnomaly(
+    quantity: number,
+    baseline: TraderBaseline,
+  ): number {
     if (baseline.tradeCount < this.MIN_TRADES_FOR_BASELINE) return 0.1;
     if (baseline.avgVolume === 0) return 0.1;
     const ratio = quantity / baseline.avgVolume;
     // Normalise: ratio of 1 → 0, ratio of MULTIPLIER → 1.0
-    return Math.min(1, Math.max(0, (ratio - 1) / (this.VOLUME_ANOMALY_MULTIPLIER - 1)));
+    return Math.min(
+      1,
+      Math.max(0, (ratio - 1) / (this.VOLUME_ANOMALY_MULTIPLIER - 1)),
+    );
   }
 
   private computeFrequencyAnomaly(baseline: TraderBaseline): number {
@@ -161,7 +179,10 @@ export class FraudMlService {
   private computeRoundTripScore(tradeDto: AnalyzeTradeDto): number {
     // Simplified: look for back-and-forth trades with same counterparty
     // In production, this would query recent trades from DB
-    if (tradeDto.counterpartyId && tradeDto.counterpartyId === tradeDto.traderId) {
+    if (
+      tradeDto.counterpartyId &&
+      tradeDto.counterpartyId === tradeDto.traderId
+    ) {
       return 1.0; // Self-trade
     }
     // Placeholder — real impl queries recent opposite trades
@@ -171,7 +192,10 @@ export class FraudMlService {
   private computeVelocityScore(baseline: TraderBaseline): number {
     const recentFrequency = baseline.avgFrequency;
     // Burst trading: normalized 0-1
-    return Math.min(1, recentFrequency / this.FREQUENCY_ANOMALY_MULTIPLIER / 10);
+    return Math.min(
+      1,
+      recentFrequency / this.FREQUENCY_ANOMALY_MULTIPLIER / 10,
+    );
   }
 
   private computeCounterpartyConcentration(tradeDto: AnalyzeTradeDto): number {
@@ -189,7 +213,10 @@ export class FraudMlService {
     return 0.05;
   }
 
-  private computeMarketImpact(tradeDto: AnalyzeTradeDto, baseline: TraderBaseline): number {
+  private computeMarketImpact(
+    tradeDto: AnalyzeTradeDto,
+    baseline: TraderBaseline,
+  ): number {
     // Estimate if this trade could move the market
     const relativeSize = tradeDto.quantity / Math.max(baseline.avgVolume, 1);
     return Math.min(1, relativeSize / 10);
@@ -203,9 +230,9 @@ export class FraudMlService {
    */
   private computeAnomalyScore(features: MlFeatures): number {
     const weights: Record<keyof MlFeatures, number> = {
-      roundTripScore: 0.20,          // Wash trading — highest weight
+      roundTripScore: 0.2, // Wash trading — highest weight
       volumeAnomaly: 0.18,
-      cancellationRate: 0.15,        // Spoofing / layering
+      cancellationRate: 0.15, // Spoofing / layering
       frequencyAnomaly: 0.13,
       orderToTradeRatio: 0.12,
       priceImpactScore: 0.08,
@@ -229,7 +256,7 @@ export class FraudMlService {
   private scoreToSeverity(score: number): FraudSeverity {
     if (score >= 0.85) return FraudSeverity.CRITICAL;
     if (score >= 0.65) return FraudSeverity.HIGH;
-    if (score >= 0.40) return FraudSeverity.MEDIUM;
+    if (score >= 0.4) return FraudSeverity.MEDIUM;
     return FraudSeverity.LOW;
   }
 
@@ -253,7 +280,8 @@ export class FraudMlService {
     if (features.roundTripScore > 0.5) {
       items.push({
         type: 'round_trip_detection',
-        description: 'Potential round-trip / wash trade detected with same counterparty',
+        description:
+          'Potential round-trip / wash trade detected with same counterparty',
         value: features.roundTripScore,
         timestamp: now,
       });
@@ -263,7 +291,10 @@ export class FraudMlService {
       items.push({
         type: 'volume_anomaly',
         description: `Trade volume ${tradeDto.quantity} is ${(tradeDto.quantity / Math.max(baseline.avgVolume, 1)).toFixed(1)}x above trader baseline`,
-        value: { tradeVolume: tradeDto.quantity, baselineAvg: baseline.avgVolume },
+        value: {
+          tradeVolume: tradeDto.quantity,
+          baselineAvg: baseline.avgVolume,
+        },
         timestamp: now,
       });
     }
@@ -271,7 +302,8 @@ export class FraudMlService {
     if (features.cancellationRate > 0.5) {
       items.push({
         type: 'high_cancellation_rate',
-        description: 'Trader exhibits high order cancellation rate consistent with spoofing',
+        description:
+          'Trader exhibits high order cancellation rate consistent with spoofing',
         value: features.cancellationRate,
         timestamp: now,
       });
@@ -302,7 +334,7 @@ export class FraudMlService {
 
   private async getOrCreateBaseline(traderId: string): Promise<TraderBaseline> {
     if (this.traderBaselines.has(traderId)) {
-      return this.traderBaselines.get(traderId)!;
+      return this.traderBaselines.get(traderId);
     }
 
     // Attempt to seed from historical data
@@ -333,9 +365,14 @@ export class FraudMlService {
     features: MlFeatures,
   ): void {
     const alpha = 0.1; // EMA decay factor
-    baseline.avgVolume = (1 - alpha) * baseline.avgVolume + alpha * tradeDto.quantity;
-    baseline.avgFrequency = (1 - alpha) * baseline.avgFrequency + alpha * (baseline.avgFrequency + 0.1);
-    baseline.avgPriceDeviation = (1 - alpha) * baseline.avgPriceDeviation + alpha * features.priceImpactScore;
+    baseline.avgVolume =
+      (1 - alpha) * baseline.avgVolume + alpha * tradeDto.quantity;
+    baseline.avgFrequency =
+      (1 - alpha) * baseline.avgFrequency +
+      alpha * (baseline.avgFrequency + 0.1);
+    baseline.avgPriceDeviation =
+      (1 - alpha) * baseline.avgPriceDeviation +
+      alpha * features.priceImpactScore;
     baseline.tradeCount += 1;
     baseline.lastUpdated = new Date();
   }

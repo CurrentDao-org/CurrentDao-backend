@@ -43,7 +43,8 @@ export class EventFilterService {
       if (key === '$in' && !value.includes(eventValue)) return false;
       if (key === '$nin' && !Array.isArray(value)) return false;
       if (key === '$nin' && value.includes(eventValue)) return false;
-      if (key === '$exists' && (value ? !eventValue : !!eventValue)) return false;
+      if (key === '$exists' && (value ? !eventValue : !!eventValue))
+        return false;
       if (key === '$regex' && typeof eventValue === 'string') {
         const regex = new RegExp(value);
         if (!regex.test(eventValue)) return false;
@@ -54,16 +55,27 @@ export class EventFilterService {
   }
 
   filterByEventType(events: string[], eventTypes: string[]): boolean {
-    return eventTypes.length === 0 || events.some(event => eventTypes.includes(event));
+    return (
+      eventTypes.length === 0 ||
+      events.some((event) => eventTypes.includes(event))
+    );
   }
 
-  filterByTimeRange(timestamp: number, startTime?: number, endTime?: number): boolean {
+  filterByTimeRange(
+    timestamp: number,
+    startTime?: number,
+    endTime?: number,
+  ): boolean {
     if (startTime && timestamp < startTime) return false;
     if (endTime && timestamp > endTime) return false;
     return true;
   }
 
-  filterByAmount(amount: number, minAmount?: number, maxAmount?: number): boolean {
+  filterByAmount(
+    amount: number,
+    minAmount?: number,
+    maxAmount?: number,
+  ): boolean {
     if (minAmount !== undefined && amount < minAmount) return false;
     if (maxAmount !== undefined && amount > maxAmount) return false;
     return true;

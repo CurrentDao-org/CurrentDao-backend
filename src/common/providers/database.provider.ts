@@ -1,6 +1,6 @@
 /**
  * Database Provider
- * 
+ *
  * Custom provider for database connections with connection pooling,
  * health checks, and proper lifecycle management.
  */
@@ -79,14 +79,14 @@ export class DatabaseProvider implements OnModuleInit, OnModuleDestroy {
    */
   async onModuleInit(): Promise<void> {
     this.logger.log('Initializing database provider...');
-    
+
     // Verify connection
     const isConnected = await this.isConnected();
     if (!isConnected) {
       this.logger.error('Database connection not established');
       throw new Error('Database connection failed');
     }
-    
+
     this.logger.log('Database provider initialized successfully');
   }
 
@@ -130,7 +130,7 @@ export class DatabaseProvider implements OnModuleInit, OnModuleDestroy {
    */
   async getHealth(): Promise<DatabaseHealth> {
     const isConnected = await this.isConnected();
-    
+
     return {
       connected: isConnected,
       type: this.dataSource.options.type as string,

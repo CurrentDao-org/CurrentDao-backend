@@ -10,7 +10,10 @@ import {
 } from './dto/gas-estimate.dto';
 import { GasOptimizerService } from './optimizer/gas-optimizer.service';
 import { SorobanClientService } from '../contracts/soroban-client.service';
-import { ContractNetwork, ContractType } from '../contracts/entities/contract.entity';
+import {
+  ContractNetwork,
+  ContractType,
+} from '../contracts/entities/contract.entity';
 
 @Injectable()
 export class GasEstimatorService {
@@ -63,13 +66,16 @@ export class GasEstimatorService {
       }
     }
 
-    const { optimizedFee, estimatedConfirmationLedgers, batchingRecommendation } =
-      await this.optimizer.optimiseFee(
-        request.network,
-        minResourceFee,
-        priority,
-        request.includeBatchingRecommendation ?? false,
-      );
+    const {
+      optimizedFee,
+      estimatedConfirmationLedgers,
+      batchingRecommendation,
+    } = await this.optimizer.optimiseFee(
+      request.network,
+      minResourceFee,
+      priority,
+      request.includeBatchingRecommendation ?? false,
+    );
 
     const estimationDurationMs = Date.now() - start;
 
@@ -97,9 +103,7 @@ export class GasEstimatorService {
     windowHours: number = 24,
   ): Promise<GasAnalyticsResponseDto> {
     const periodEnd = new Date();
-    const periodStart = new Date(
-      Date.now() - windowHours * 60 * 60 * 1000,
-    );
+    const periodStart = new Date(Date.now() - windowHours * 60 * 60 * 1000);
 
     const rows = await this.gasUsageRepository
       .createQueryBuilder('gu')
@@ -122,9 +126,7 @@ export class GasEstimatorService {
         ? fees.reduce((s, f) => s + f, 0) / totalTransactions
         : 0;
     const medianFeeStroops =
-      totalTransactions > 0
-        ? sorted[Math.floor(totalTransactions / 2)]
-        : 0;
+      totalTransactions > 0 ? sorted[Math.floor(totalTransactions / 2)] : 0;
     const averageCpuInstructions =
       totalTransactions > 0
         ? rows.reduce((s, r) => s + Number(r.cpu), 0) / totalTransactions

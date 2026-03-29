@@ -5,9 +5,7 @@ import { Location } from './entities/location.entity';
 import { GridZone } from './entities/grid-zone.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Location, GridZone])
-  ],
+  imports: [TypeOrmModule.forFeature([Location, GridZone])],
   providers: [LocationService],
   exports: [LocationService],
 })

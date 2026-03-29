@@ -75,7 +75,9 @@ export class FraudDetectionController {
   // ─── Case Management ─────────────────────────────────────────────────────
 
   @Get('cases')
-  @ApiOperation({ summary: 'Get fraud cases with optional filters (paginated)' })
+  @ApiOperation({
+    summary: 'Get fraud cases with optional filters (paginated)',
+  })
   @ApiResponse({ status: 200, description: 'Paginated fraud cases' })
   async getCases(@Query() queryDto: FraudReportQueryDto) {
     return this.reportingService.queryCases(queryDto);
@@ -83,7 +85,10 @@ export class FraudDetectionController {
 
   @Get('cases/ref/:caseId')
   @ApiOperation({ summary: 'Get a fraud case by human-readable case ID' })
-  @ApiParam({ name: 'caseId', description: 'Case ID (e.g. FRAUD-20250328-ABCD1234)' })
+  @ApiParam({
+    name: 'caseId',
+    description: 'Case ID (e.g. FRAUD-20250328-ABCD1234)',
+  })
   async getCaseByCaseId(@Param('caseId') caseId: string) {
     return this.reportingService.getCaseByCaseId(caseId);
   }
@@ -98,7 +103,11 @@ export class FraudDetectionController {
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.reportingService.getCasesByTrader(traderId, Number(page), Number(limit));
+    return this.reportingService.getCasesByTrader(
+      traderId,
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Get('cases/:id')
@@ -125,7 +134,10 @@ export class FraudDetectionController {
   @Post('reports/sar/:caseId/generate')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Manually generate SAR for a specific case' })
-  @ApiParam({ name: 'caseId', description: 'Case ID (FRAUD-XXXXXXXX-XXXXXXXX)' })
+  @ApiParam({
+    name: 'caseId',
+    description: 'Case ID (FRAUD-XXXXXXXX-XXXXXXXX)',
+  })
   @ApiResponse({ status: 200, description: 'SAR generated successfully' })
   async generateSar(@Param('caseId') caseId: string) {
     return this.reportingService.generateSARById(caseId);
@@ -150,7 +162,9 @@ export class FraudDetectionController {
   }
 
   @Get('monitoring/status')
-  @ApiOperation({ summary: 'Get current monitoring status and active sessions' })
+  @ApiOperation({
+    summary: 'Get current monitoring status and active sessions',
+  })
   async getMonitoringStatus() {
     return this.monitorService.getMonitoringStatus();
   }
@@ -179,7 +193,10 @@ export class FraudDetectionController {
   @ApiOperation({ summary: 'Unblock a trader' })
   async unblockTrader(@Body('traderId') traderId: string) {
     const removed = this.preventionService.unblockTrader(traderId);
-    return { message: removed ? 'Trader unblocked' : 'Trader not found in blocklist', traderId };
+    return {
+      message: removed ? 'Trader unblocked' : 'Trader not found in blocklist',
+      traderId,
+    };
   }
 
   @Get('prevention/blocked')
@@ -228,7 +245,9 @@ export class FraudDetectionController {
   // ─── Pattern Catalogue ────────────────────────────────────────────────────
 
   @Get('patterns')
-  @ApiOperation({ summary: 'Get catalogue of all 50+ registered fraud patterns' })
+  @ApiOperation({
+    summary: 'Get catalogue of all 50+ registered fraud patterns',
+  })
   @ApiResponse({ status: 200, description: 'Pattern definitions' })
   async getPatterns() {
     return {

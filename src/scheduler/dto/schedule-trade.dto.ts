@@ -1,7 +1,23 @@
-import { IsString, IsNumber, IsEnum, IsOptional, IsBoolean, IsArray, IsObject, ValidateNested, IsDateString, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsObject,
+  ValidateNested,
+  IsDateString,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { JobType, JobPriority, RetryStrategy } from '../entities/scheduled-job.entity';
+import {
+  JobType,
+  JobPriority,
+  RetryStrategy,
+} from '../entities/scheduled-job.entity';
 
 export class ExecutionContextDto {
   @ApiPropertyOptional({ example: 'America/New_York' })
@@ -130,7 +146,10 @@ export class SchedulingDto {
   @IsBoolean()
   skipIfRunning?: boolean;
 
-  @ApiPropertyOptional({ enum: ['allow', 'forbid', 'replace'], example: 'forbid' })
+  @ApiPropertyOptional({
+    enum: ['allow', 'forbid', 'replace'],
+    example: 'forbid',
+  })
   @IsOptional()
   @IsEnum(['allow', 'forbid', 'replace'])
   concurrency?: 'allow' | 'forbid' | 'replace';
@@ -175,7 +194,10 @@ export class ScheduleTradeDto {
     customData?: Record<string, any>;
   };
 
-  @ApiPropertyOptional({ enum: RetryStrategy, example: RetryStrategy.EXPONENTIAL_BACKOFF })
+  @ApiPropertyOptional({
+    enum: RetryStrategy,
+    example: RetryStrategy.EXPONENTIAL_BACKOFF,
+  })
   @IsOptional()
   @IsEnum(RetryStrategy)
   retryStrategy?: RetryStrategy;
@@ -333,18 +355,25 @@ export class EmergencyStopDto {
   @IsString()
   reason: string;
 
-  @ApiPropertyOptional({ enum: ['all', 'type', 'priority', 'specific'], example: 'all' })
+  @ApiPropertyOptional({
+    enum: ['all', 'type', 'priority', 'specific'],
+    example: 'all',
+  })
   @IsOptional()
   @IsEnum(['all', 'type', 'priority', 'specific'])
   scope?: 'all' | 'type' | 'priority' | 'specific';
 
-  @ApiPropertyOptional({ example: [JobType.TRADE_EXECUTION, JobType.SETTLEMENT] })
+  @ApiPropertyOptional({
+    example: [JobType.TRADE_EXECUTION, JobType.SETTLEMENT],
+  })
   @IsOptional()
   @IsArray()
   @IsEnum(JobType, { each: true })
   jobTypes?: JobType[];
 
-  @ApiPropertyOptional({ example: [JobPriority.CRITICAL, JobPriority.EMERGENCY] })
+  @ApiPropertyOptional({
+    example: [JobPriority.CRITICAL, JobPriority.EMERGENCY],
+  })
   @IsOptional()
   @IsArray()
   @IsEnum(JobPriority, { each: true })
@@ -373,9 +402,25 @@ export class JobQueryDto {
   @IsEnum(JobType)
   type?: JobType;
 
-  @ApiPropertyOptional({ enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'retrying'] })
+  @ApiPropertyOptional({
+    enum: [
+      'pending',
+      'running',
+      'completed',
+      'failed',
+      'cancelled',
+      'retrying',
+    ],
+  })
   @IsOptional()
-  @IsEnum(['pending', 'running', 'completed', 'failed', 'cancelled', 'retrying'])
+  @IsEnum([
+    'pending',
+    'running',
+    'completed',
+    'failed',
+    'cancelled',
+    'retrying',
+  ])
   status?: string;
 
   @ApiPropertyOptional({ enum: JobPriority })
@@ -432,7 +477,10 @@ export class JobQueryDto {
   @Max(100)
   limit?: number;
 
-  @ApiPropertyOptional({ enum: ['createdAt', 'scheduledAt', 'priority', 'status'], example: 'scheduledAt' })
+  @ApiPropertyOptional({
+    enum: ['createdAt', 'scheduledAt', 'priority', 'status'],
+    example: 'scheduledAt',
+  })
   @IsOptional()
   @IsEnum(['createdAt', 'scheduledAt', 'priority', 'status'])
   sortBy?: string;

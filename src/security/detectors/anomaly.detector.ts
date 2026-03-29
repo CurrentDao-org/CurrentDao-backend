@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SecurityEvent, SeverityLevel } from '../entities/security-event.entity';
+import {
+  SecurityEvent,
+  SeverityLevel,
+} from '../entities/security-event.entity';
 
 export interface AnomalyResult {
   type: string;
@@ -51,9 +54,11 @@ export class AnomalyDetectorService {
     return anomalies;
   }
 
-  private async detectVolumeSpike(transactionData: any): Promise<AnomalyResult | null> {
+  private async detectVolumeSpike(
+    transactionData: any,
+  ): Promise<AnomalyResult | null> {
     const { amount, walletAddress } = transactionData;
-    
+
     // Get historical average volume for this wallet
     const avgVolume = await this.getHistoricalAverageVolume(walletAddress);
     const ratio = amount / avgVolume;
@@ -61,7 +66,10 @@ export class AnomalyDetectorService {
     if (ratio > this.thresholds.volumeSpike) {
       return {
         type: 'VOLUME_SPIKE',
-        severity: ratio > this.thresholds.volumeSpike * 2 ? SeverityLevel.HIGH : SeverityLevel.MEDIUM,
+        severity:
+          ratio > this.thresholds.volumeSpike * 2
+            ? SeverityLevel.HIGH
+            : SeverityLevel.MEDIUM,
         confidence: Math.min(ratio / this.thresholds.volumeSpike, 1),
         description: `Transaction volume ${ratio.toFixed(2)}x higher than average`,
         metrics: { currentAmount: amount, averageVolume: avgVolume, ratio },
@@ -71,9 +79,11 @@ export class AnomalyDetectorService {
     return null;
   }
 
-  private async detectPriceDeviation(transactionData: any): Promise<AnomalyResult | null> {
+  private async detectPriceDeviation(
+    transactionData: any,
+  ): Promise<AnomalyResult | null> {
     const { price, marketPrice } = transactionData;
-    
+
     if (!price || !marketPrice) return null;
 
     const deviation = Math.abs(price - marketPrice) / marketPrice;
@@ -81,7 +91,10 @@ export class AnomalyDetectorService {
     if (deviation > this.thresholds.priceDeviation) {
       return {
         type: 'PRICE_DEVIATION',
-        severity: deviation > this.thresholds.priceDeviation * 2 ? SeverityLevel.HIGH : SeverityLevel.MEDIUM,
+        severity:
+          deviation > this.thresholds.priceDeviation * 2
+            ? SeverityLevel.HIGH
+            : SeverityLevel.MEDIUM,
         confidence: Math.min(deviation / this.thresholds.priceDeviation, 1),
         description: `Transaction price deviates ${deviation.toFixed(2)}% from market price`,
         metrics: { transactionPrice: price, marketPrice, deviation },
@@ -91,18 +104,26 @@ export class AnomalyDetectorService {
     return null;
   }
 
-  private async detectFrequencySpike(transactionData: any): Promise<AnomalyResult | null> {
+  private async detectFrequencySpike(
+    transactionData: any,
+  ): Promise<AnomalyResult | null> {
     const { walletAddress, timestamp } = transactionData;
-    
+
     // Count transactions in last hour
-    const recentCount = await this.getRecentTransactionCount(walletAddress, timestamp);
+    const recentCount = await this.getRecentTransactionCount(
+      walletAddress,
+      timestamp,
+    );
     const avgHourly = await this.getAverageHourlyTransactions(walletAddress);
     const ratio = recentCount / avgHourly;
 
     if (ratio > this.thresholds.frequencySpike) {
       return {
         type: 'FREQUENCY_SPIKE',
-        severity: ratio > this.thresholds.frequencySpike * 2 ? SeverityLevel.CRITICAL : SeverityLevel.HIGH,
+        severity:
+          ratio > this.thresholds.frequencySpike * 2
+            ? SeverityLevel.CRITICAL
+            : SeverityLevel.HIGH,
         confidence: Math.min(ratio / this.thresholds.frequencySpike, 1),
         description: `Transaction frequency ${ratio.toFixed(2)}x higher than normal`,
         metrics: { recentCount, averageHourly: avgHourly, ratio },
@@ -112,16 +133,21 @@ export class AnomalyDetectorService {
     return null;
   }
 
-  private async detectSizeOutlier(transactionData: any): Promise<AnomalyResult | null> {
+  private async detectSizeOutlier(
+    transactionData: any,
+  ): Promise<AnomalyResult | null> {
     const { amount, walletAddress } = transactionData;
-    
+
     const stats = await this.getTransactionSizeStats(walletAddress);
     const zScore = Math.abs(amount - stats.mean) / stats.stdDev;
 
     if (zScore > this.thresholds.sizeOutlier) {
       return {
         type: 'SIZE_OUTLIER',
-        severity: zScore > this.thresholds.sizeOutlier * 2 ? SeverityLevel.HIGH : SeverityLevel.MEDIUM,
+        severity:
+          zScore > this.thresholds.sizeOutlier * 2
+            ? SeverityLevel.HIGH
+            : SeverityLevel.MEDIUM,
         confidence: Math.min(zScore / this.thresholds.sizeOutlier, 1),
         description: `Transaction size is ${zScore.toFixed(2)} standard deviations from mean`,
         metrics: { amount, mean: stats.mean, stdDev: stats.stdDev, zScore },
@@ -132,22 +158,31 @@ export class AnomalyDetectorService {
   }
 
   // Mock methods - in production these would query the database
-  private async getHistoricalAverageVolume(walletAddress: string): Promise<number> {
+  private async getHistoricalAverageVolume(
+    walletAddress: string,
+  ): Promise<number> {
     // Placeholder - implement actual DB query
     return 1000;
   }
 
-  private async getRecentTransactionCount(walletAddress: string, timestamp: Date): Promise<number> {
+  private async getRecentTransactionCount(
+    walletAddress: string,
+    timestamp: Date,
+  ): Promise<number> {
     // Placeholder - implement actual DB query
     return 10;
   }
 
-  private async getAverageHourlyTransactions(walletAddress: string): Promise<number> {
+  private async getAverageHourlyTransactions(
+    walletAddress: string,
+  ): Promise<number> {
     // Placeholder - implement actual DB query
     return 2;
   }
 
-  private async getTransactionSizeStats(walletAddress: string): Promise<{ mean: number; stdDev: number }> {
+  private async getTransactionSizeStats(
+    walletAddress: string,
+  ): Promise<{ mean: number; stdDev: number }> {
     // Placeholder - implement actual DB query
     return { mean: 1000, stdDev: 200 };
   }

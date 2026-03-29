@@ -2,8 +2,20 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan, MoreThan } from 'typeorm';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
-import { ScheduledJob, JobStatus, JobType, JobPriority, RetryStrategy } from './entities/scheduled-job.entity';
-import { ScheduleTradeDto, UpdateScheduleDto, BulkScheduleDto, EmergencyStopDto, JobQueryDto } from './dto/schedule-trade.dto';
+import {
+  ScheduledJob,
+  JobStatus,
+  JobType,
+  JobPriority,
+  RetryStrategy,
+} from './entities/scheduled-job.entity';
+import {
+  ScheduleTradeDto,
+  UpdateScheduleDto,
+  BulkScheduleDto,
+  EmergencyStopDto,
+  JobQueryDto,
+} from './dto/schedule-trade.dto';
 import { TradeExecutionJob } from './jobs/trade-execution.job';
 import { SettlementJob } from './jobs/settlement.job';
 import { MaintenanceJob } from './jobs/maintenance.job';
@@ -50,18 +62,21 @@ export class SchedulerService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log('Initializing scheduler service...');
-    
+
     this.jobExecutors.set(JobType.TRADE_EXECUTION, this.tradeExecutionJob);
     this.jobExecutors.set(JobType.SETTLEMENT, this.settlementJob);
     this.jobExecutors.set(JobType.MAINTENANCE, this.maintenanceJob);
 
     await this.initializeSystemJobs();
     await this.recoverPendingJobs();
-    
+
     this.logger.log('Scheduler service initialized successfully');
   }
 
-  async scheduleTrade(scheduleTradeDto: ScheduleTradeDto, userId?: string): Promise<ScheduledJob> {
+  async scheduleTrade(
+    scheduleTradeDto: ScheduleTradeDto,
+    userId?: string,
+  ): Promise<ScheduledJob> {
     this.logger.log(`Scheduling trade execution: ${scheduleTradeDto.name}`);
 
     const job = this.scheduledJobRepository.create({
@@ -92,14 +107,18 @@ export class SchedulerService implements OnModuleInit {
     }
 
     const savedJob = await this.scheduledJobRepository.save(job);
-    
+
     this.logger.log(`Trade execution scheduled: ${savedJob.id}`);
     return savedJob;
   }
 
-  async updateSchedule(jobId: string, updateScheduleDto: UpdateScheduleDto, userId?: string): Promise<ScheduledJob> {
+  async updateSchedule(
+    jobId: string,
+    updateScheduleDto: UpdateScheduleDto,
+    userId?: string,
+  ): Promise<ScheduledJob> {
     const job = await this.getJobById(jobId);
-    
+
     if (job.status === JobStatus.RUNNING) {
       throw new Error('Cannot update a job that is currently running');
     }
@@ -116,22 +135,25 @@ export class SchedulerService implements OnModuleInit {
     }
 
     const updatedJob = await this.scheduledJobRepository.save(job);
-    
+
     this.logger.log(`Schedule updated: ${jobId}`);
     return updatedJob;
   }
 
-  async bulkSchedule(bulkScheduleDto: BulkScheduleDto, userId?: string): Promise<ScheduledJob[]> {
+  async bulkSchedule(
+    bulkScheduleDto: BulkScheduleDto,
+    userId?: string,
+  ): Promise<ScheduledJob[]> {
     this.logger.log(`Bulk scheduling ${bulkScheduleDto.jobs.length} jobs`);
 
     const jobs: ScheduledJob[] = [];
 
     for (let i = 0; i < bulkScheduleDto.jobs.length; i++) {
       const jobDto = bulkScheduleDto.jobs[i];
-      
+
       if (bulkScheduleDto.executeSequentially && i > 0) {
         const delay = bulkScheduleDto.delayBetweenJobs || 30;
-        const scheduledAt = new Date(Date.now() + (i * delay * 1000));
+        const scheduledAt = new Date(Date.now() + i * delay * 1000);
         jobDto.scheduledAt = scheduledAt.toISOString();
       }
 
@@ -174,7 +196,7 @@ export class SchedulerService implements OnModuleInit {
 
     try {
       const executionResult = await executor.executeTradeJob(job);
-      
+
       result = {
         success: executionResult.success,
         jobId,
@@ -184,7 +206,6 @@ export class SchedulerService implements OnModuleInit {
       };
 
       this.logger.log(`Job ${jobId} execution completed successfully`);
-
     } catch (error) {
       result = {
         success: false,
@@ -199,7 +220,11 @@ export class SchedulerService implements OnModuleInit {
     return result;
   }
 
-  async cancelJob(jobId: string, userId?: string, reason?: string): Promise<ScheduledJob> {
+  async cancelJob(
+    jobId: string,
+    userId?: string,
+    reason?: string,
+  ): Promise<ScheduledJob> {
     const job = await this.getJobById(jobId);
 
     if (job.status === JobStatus.RUNNING) {
@@ -222,31 +247,45 @@ export class SchedulerService implements OnModuleInit {
     });
 
     const cancelledJob = await this.scheduledJobRepository.save(job);
-    
+
     this.logger.log(`Job cancelled: ${jobId}${reason ? ` - ${reason}` : ''}`);
     return cancelledJob;
   }
 
-  async emergencyStop(emergencyStopDto: EmergencyStopDto, userId?: string): Promise<{ stoppedJobs: number; affectedJobs: string[] }> {
+  async emergencyStop(
+    emergencyStopDto: EmergencyStopDto,
+    userId?: string,
+  ): Promise<{ stoppedJobs: number; affectedJobs: string[] }> {
     this.logger.warn(`Emergency stop initiated: ${emergencyStopDto.reason}`);
 
     this.isEmergencyMode = true;
     this.emergencyReason = emergencyStopDto.reason;
 
-    let queryBuilder = this.scheduledJobRepository.createQueryBuilder('job')
-      .where('job.status IN (:...statuses)', { statuses: [JobStatus.PENDING, JobStatus.RETRYING] })
-      .andWhere('job.isEmergencyStop = :isEmergencyStop', { isEmergencyStop: false });
+    const queryBuilder = this.scheduledJobRepository
+      .createQueryBuilder('job')
+      .where('job.status IN (:...statuses)', {
+        statuses: [JobStatus.PENDING, JobStatus.RETRYING],
+      })
+      .andWhere('job.isEmergencyStop = :isEmergencyStop', {
+        isEmergencyStop: false,
+      });
 
     if (emergencyStopDto.scope === 'type' && emergencyStopDto.jobTypes) {
-      queryBuilder.andWhere('job.type IN (:...jobTypes)', { jobTypes: emergencyStopDto.jobTypes });
+      queryBuilder.andWhere('job.type IN (:...jobTypes)', {
+        jobTypes: emergencyStopDto.jobTypes,
+      });
     }
 
     if (emergencyStopDto.scope === 'priority' && emergencyStopDto.priorities) {
-      queryBuilder.andWhere('job.priority IN (:...priorities)', { priorities: emergencyStopDto.priorities });
+      queryBuilder.andWhere('job.priority IN (:...priorities)', {
+        priorities: emergencyStopDto.priorities,
+      });
     }
 
     if (emergencyStopDto.scope === 'specific' && emergencyStopDto.jobIds) {
-      queryBuilder.andWhere('job.id IN (:...jobIds)', { jobIds: emergencyStopDto.jobIds });
+      queryBuilder.andWhere('job.id IN (:...jobIds)', {
+        jobIds: emergencyStopDto.jobIds,
+      });
     }
 
     const jobsToStop = await queryBuilder.getMany();
@@ -272,7 +311,9 @@ export class SchedulerService implements OnModuleInit {
       affectedJobs.push(updatedJob.id);
     }
 
-    this.logger.warn(`Emergency stop completed: ${stoppedJobs.length} jobs stopped`);
+    this.logger.warn(
+      `Emergency stop completed: ${stoppedJobs.length} jobs stopped`,
+    );
 
     return {
       stoppedJobs: stoppedJobs.length,
@@ -280,7 +321,9 @@ export class SchedulerService implements OnModuleInit {
     };
   }
 
-  async resumeEmergencyStops(userId?: string): Promise<{ resumedJobs: number; affectedJobs: string[] }> {
+  async resumeEmergencyStops(
+    userId?: string,
+  ): Promise<{ resumedJobs: number; affectedJobs: string[] }> {
     if (!this.isEmergencyMode) {
       throw new Error('No emergency mode is currently active');
     }
@@ -322,7 +365,9 @@ export class SchedulerService implements OnModuleInit {
     this.isEmergencyMode = false;
     this.emergencyReason = '';
 
-    this.logger.log(`Emergency stop resumed: ${resumedJobs.length} jobs resumed`);
+    this.logger.log(
+      `Emergency stop resumed: ${resumedJobs.length} jobs resumed`,
+    );
 
     return {
       resumedJobs: resumedJobs.length,
@@ -330,7 +375,12 @@ export class SchedulerService implements OnModuleInit {
     };
   }
 
-  async getJobs(query: JobQueryDto = {}): Promise<{ jobs: ScheduledJob[]; total: number; page: number; limit: number }> {
+  async getJobs(query: JobQueryDto = {}): Promise<{
+    jobs: ScheduledJob[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const queryBuilder = this.scheduledJobRepository.createQueryBuilder('job');
 
     if (query.type) {
@@ -342,15 +392,21 @@ export class SchedulerService implements OnModuleInit {
     }
 
     if (query.priority) {
-      queryBuilder.andWhere('job.priority = :priority', { priority: query.priority });
+      queryBuilder.andWhere('job.priority = :priority', {
+        priority: query.priority,
+      });
     }
 
     if (query.name) {
-      queryBuilder.andWhere('job.name ILIKE :name', { name: `%${query.name}%` });
+      queryBuilder.andWhere('job.name ILIKE :name', {
+        name: `%${query.name}%`,
+      });
     }
 
     if (query.createdBy) {
-      queryBuilder.andWhere('job.createdBy = :createdBy', { createdBy: query.createdBy });
+      queryBuilder.andWhere('job.createdBy = :createdBy', {
+        createdBy: query.createdBy,
+      });
     }
 
     if (query.tags && query.tags.length > 0) {
@@ -358,19 +414,27 @@ export class SchedulerService implements OnModuleInit {
     }
 
     if (query.scheduledAfter) {
-      queryBuilder.andWhere('job.scheduledAt >= :scheduledAfter', { scheduledAfter: new Date(query.scheduledAfter) });
+      queryBuilder.andWhere('job.scheduledAt >= :scheduledAfter', {
+        scheduledAfter: new Date(query.scheduledAfter),
+      });
     }
 
     if (query.scheduledBefore) {
-      queryBuilder.andWhere('job.scheduledAt <= :scheduledBefore', { scheduledBefore: new Date(query.scheduledBefore) });
+      queryBuilder.andWhere('job.scheduledAt <= :scheduledBefore', {
+        scheduledBefore: new Date(query.scheduledBefore),
+      });
     }
 
     if (query.isActive !== undefined) {
-      queryBuilder.andWhere('job.isActive = :isActive', { isActive: query.isActive });
+      queryBuilder.andWhere('job.isActive = :isActive', {
+        isActive: query.isActive,
+      });
     }
 
     if (query.isEmergencyStop !== undefined) {
-      queryBuilder.andWhere('job.isEmergencyStop = :isEmergencyStop', { isEmergencyStop: query.isEmergencyStop });
+      queryBuilder.andWhere('job.isEmergencyStop = :isEmergencyStop', {
+        isEmergencyStop: query.isEmergencyStop,
+      });
     }
 
     const sortBy = query.sortBy || 'createdAt';
@@ -439,10 +503,18 @@ export class SchedulerService implements OnModuleInit {
     ] = await Promise.all([
       this.scheduledJobRepository.count(),
       this.scheduledJobRepository.count({ where: { isActive: true } }),
-      this.scheduledJobRepository.count({ where: { status: JobStatus.PENDING } }),
-      this.scheduledJobRepository.count({ where: { status: JobStatus.RUNNING } }),
-      this.scheduledJobRepository.count({ where: { status: JobStatus.COMPLETED } }),
-      this.scheduledJobRepository.count({ where: { status: JobStatus.FAILED } }),
+      this.scheduledJobRepository.count({
+        where: { status: JobStatus.PENDING },
+      }),
+      this.scheduledJobRepository.count({
+        where: { status: JobStatus.RUNNING },
+      }),
+      this.scheduledJobRepository.count({
+        where: { status: JobStatus.COMPLETED },
+      }),
+      this.scheduledJobRepository.count({
+        where: { status: JobStatus.FAILED },
+      }),
       this.scheduledJobRepository.count({ where: { isEmergencyStop: true } }),
     ]);
 
@@ -607,7 +679,9 @@ export class SchedulerService implements OnModuleInit {
         };
 
         await this.scheduledJobRepository.save(job);
-        this.logger.warn(`Job ${job.id} marked as failed due to timeout during recovery`);
+        this.logger.warn(
+          `Job ${job.id} marked as failed due to timeout during recovery`,
+        );
       }
     }
   }
@@ -632,7 +706,7 @@ export class SchedulerService implements OnModuleInit {
 
   private async getJobsByType(): Promise<Record<JobType, number>> {
     const result = {} as Record<JobType, number>;
-    
+
     for (const jobType of Object.values(JobType)) {
       result[jobType] = await this.scheduledJobRepository.count({
         where: { type: jobType },
@@ -644,7 +718,7 @@ export class SchedulerService implements OnModuleInit {
 
   private async getJobsByPriority(): Promise<Record<JobPriority, number>> {
     const result = {} as Record<JobPriority, number>;
-    
+
     for (const priority of Object.values(JobPriority)) {
       result[priority] = await this.scheduledJobRepository.count({
         where: { priority },
@@ -662,7 +736,10 @@ export class SchedulerService implements OnModuleInit {
 
     if (jobs.length === 0) return 0;
 
-    const totalTime = jobs.reduce((sum, job) => sum + (job.metrics?.avgExecutionTime || 0), 0);
+    const totalTime = jobs.reduce(
+      (sum, job) => sum + (job.metrics?.avgExecutionTime || 0),
+      0,
+    );
     return totalTime / jobs.length;
   }
 
@@ -674,7 +751,7 @@ export class SchedulerService implements OnModuleInit {
 
   async isMarketOpen(timeZone: string = 'UTC'): Promise<boolean> {
     const now = new Date();
-    
+
     try {
       const options: Intl.DateTimeFormatOptions = {
         timeZone,
@@ -682,15 +759,18 @@ export class SchedulerService implements OnModuleInit {
         hour12: false,
         weekday: 'long',
       };
-      
+
       const dateTimeString = now.toLocaleString('en-US', options);
       const [timeString, dayString] = dateTimeString.split(', ');
       const currentHour = parseInt(timeString.split(':')[0]);
       const isWeekday = !['Saturday', 'Sunday'].includes(dayString.trim());
-      
+
       return isWeekday && currentHour >= 9 && currentHour < 17;
     } catch (error) {
-      this.logger.warn(`Error checking market hours for timezone ${timeZone}`, error);
+      this.logger.warn(
+        `Error checking market hours for timezone ${timeZone}`,
+        error,
+      );
       return true;
     }
   }
@@ -703,25 +783,25 @@ export class SchedulerService implements OnModuleInit {
   }> {
     const now = new Date();
     const isOpen = await this.isMarketOpen(timeZone);
-    
+
     let nextOpen: Date;
     let nextClose: Date;
-    
+
     if (isOpen) {
       nextClose = new Date(now);
       nextClose.setUTCHours(17, 0, 0, 0); // 5 PM UTC
-      
+
       nextOpen = new Date(now);
       nextOpen.setDate(nextOpen.getDate() + 1);
       nextOpen.setUTCHours(14, 0, 0, 0); // 9 AM EST next day
     } else {
       nextOpen = new Date(now);
       nextOpen.setUTCHours(14, 0, 0, 0); // 9 AM EST today
-      
+
       if (nextOpen <= now) {
         nextOpen.setDate(nextOpen.getDate() + 1);
       }
-      
+
       nextClose = new Date(nextOpen);
       nextClose.setUTCHours(17, 0, 0, 0);
     }

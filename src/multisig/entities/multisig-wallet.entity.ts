@@ -1,11 +1,19 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+  Index,
+} from 'typeorm';
 import { Signature } from './signature.entity';
 
 export enum WalletStatus {
   ACTIVE = 'active',
   LOCKED = 'locked',
   RECOVERY = 'recovery',
-  TERMINATED = 'terminated'
+  TERMINATED = 'terminated',
 }
 
 @Entity('multisig_wallets')
@@ -36,7 +44,7 @@ export class MultisigWallet {
   @Column({
     type: 'enum',
     enum: WalletStatus,
-    default: WalletStatus.ACTIVE
+    default: WalletStatus.ACTIVE,
   })
   status: WalletStatus;
 
@@ -61,7 +69,7 @@ export class MultisigWallet {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => Signature, signature => signature.wallet)
+  @OneToMany(() => Signature, (signature) => signature.wallet)
   signatures: Signature[];
 
   @Column({ type: 'timestamp', nullable: true })
@@ -75,8 +83,8 @@ export class MultisigWallet {
   }
 
   get requiredSignatures(): number {
-    return this.isRecoveryMode && this.recoveryThreshold 
-      ? this.recoveryThreshold 
+    return this.isRecoveryMode && this.recoveryThreshold
+      ? this.recoveryThreshold
       : this.threshold;
   }
 

@@ -1,6 +1,6 @@
 /**
  * Pagination Utility
- * 
+ *
  * Provides pagination helpers for API responses.
  */
 
@@ -19,7 +19,7 @@ export const MAX_LIMIT = 100;
 
 /**
  * Generate pagination metadata
- * 
+ *
  * @param page - Current page number
  * @param limit - Items per page
  * @param total - Total number of items
@@ -31,7 +31,7 @@ export const getPaginationMeta = (
   total: number,
 ): PaginationMeta => {
   const totalPages = Math.ceil(total / limit);
-  
+
   return {
     page,
     limit,
@@ -44,7 +44,7 @@ export const getPaginationMeta = (
 
 /**
  * Generate pagination links
- * 
+ *
  * @param baseUrl - Base URL for the endpoint
  * @param page - Current page number
  * @param limit - Items per page
@@ -58,7 +58,7 @@ export const getPaginationLinks = (
   total: number,
 ): PaginationLinks => {
   const totalPages = Math.ceil(total / limit);
-  
+
   // Build query string
   const buildUrl = (p: number): string => {
     const url = new URL(baseUrl);
@@ -78,11 +78,13 @@ export const getPaginationLinks = (
 
 /**
  * Parse pagination query parameters
- * 
+ *
  * @param query - Pagination query parameters
  * @returns Normalized pagination parameters
  */
-export const parsePaginationQuery = (query: Partial<PaginationQuery>): {
+export const parsePaginationQuery = (
+  query: Partial<PaginationQuery>,
+): {
   page: number;
   limit: number;
 } => {
@@ -97,7 +99,7 @@ export const parsePaginationQuery = (query: Partial<PaginationQuery>): {
 
 /**
  * Calculate pagination skip value for database queries
- * 
+ *
  * @param page - Current page number
  * @param limit - Items per page
  * @returns Skip value for database query
@@ -108,7 +110,7 @@ export const getSkipValue = (page: number, limit: number): number => {
 
 /**
  * Paginate array of items
- * 
+ *
  * @param items - Array of items to paginate
  * @param page - Current page number
  * @param limit - Items per page
@@ -125,7 +127,7 @@ export const paginateArray = <T>(
   const total = items.length;
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
-  
+
   const data = items.slice(startIndex, endIndex);
   const pagination = getPaginationMeta(page, limit, total);
 
@@ -134,27 +136,33 @@ export const paginateArray = <T>(
 
 /**
  * Get pagination query string
- * 
+ *
  * @param page - Page number
  * @param limit - Items per page
  * @returns Query string
  */
-export const getPaginationQueryString = (page: number, limit: number): string => {
+export const getPaginationQueryString = (
+  page: number,
+  limit: number,
+): string => {
   return `page=${page}&limit=${limit}`;
 };
 
 /**
  * Calculate offset and limit for cursor-based pagination
- * 
+ *
  * @param cursor - Cursor string (usually base64 encoded)
  * @param limit - Items per page
  * @returns Offset value
  */
-export const getCursorOffset = (cursor: string | undefined, limit: number): number => {
+export const getCursorOffset = (
+  cursor: string | undefined,
+  limit: number,
+): number => {
   if (!cursor) {
     return 0;
   }
-  
+
   try {
     const decoded = atob(cursor);
     const parsed = JSON.parse(decoded);
@@ -166,7 +174,7 @@ export const getCursorOffset = (cursor: string | undefined, limit: number): numb
 
 /**
  * Generate cursor for next page
- * 
+ *
  * @param offset - Current offset
  * @param limit - Items per page
  * @returns Base64 encoded cursor
@@ -178,7 +186,7 @@ export const generateCursor = (offset: number, limit: number): string => {
 
 /**
  * Sort array of objects
- * 
+ *
  * @param items - Array of items to sort
  * @param sortField - Field to sort by
  * @param order - Sort order (ASC or DESC)
@@ -192,9 +200,9 @@ export const sortItems = <T>(
   return [...items].sort((a, b) => {
     const aVal = a[sortField];
     const bVal = b[sortField];
-    
+
     if (aVal === bVal) return 0;
-    
+
     const comparison = aVal < bVal ? -1 : 1;
     return order === 'ASC' ? comparison : -comparison;
   });
@@ -202,7 +210,7 @@ export const sortItems = <T>(
 
 /**
  * Filter items based on search query
- * 
+ *
  * @param items - Array of items to filter
  * @param search - Search query
  * @param fields - Fields to search in
@@ -214,10 +222,10 @@ export const filterItems = <T>(
   fields: (keyof T)[],
 ): T[] => {
   if (!search) return items;
-  
+
   const lowerSearch = search.toLowerCase();
-  return items.filter(item =>
-    fields.some(field => {
+  return items.filter((item) =>
+    fields.some((field) => {
       const value = item[field];
       if (typeof value === 'string') {
         return value.toLowerCase().includes(lowerSearch);

@@ -5,7 +5,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { Repository } from 'typeorm';
 import { WebhookService } from './webhook.service';
 import { Webhook } from './entities/webhook.entity';
-import { WebhookDelivery, DeliveryStatus } from './entities/webhook-delivery.entity';
+import {
+  WebhookDelivery,
+  DeliveryStatus,
+} from './entities/webhook-delivery.entity';
 import { HmacAuthService } from './auth/hmac.auth';
 import { EventFilterService } from './filters/event.filter';
 import { CreateWebhookDto, TriggerWebhookDto } from './dto/webhook.dto';
@@ -77,8 +80,12 @@ describe('WebhookService', () => {
       .compile();
 
     service = module.get<WebhookService>(WebhookService);
-    webhookRepository = module.get<Repository<Webhook>>(getRepositoryToken(Webhook));
-    deliveryRepository = module.get<Repository<WebhookDelivery>>(getRepositoryToken(WebhookDelivery));
+    webhookRepository = module.get<Repository<Webhook>>(
+      getRepositoryToken(Webhook),
+    );
+    deliveryRepository = module.get<Repository<WebhookDelivery>>(
+      getRepositoryToken(WebhookDelivery),
+    );
     hmacAuthService = module.get<HmacAuthService>(HmacAuthService);
     eventFilterService = module.get<EventFilterService>(EventFilterService);
   });
@@ -105,7 +112,9 @@ describe('WebhookService', () => {
 
       const result = await service.create(createWebhookDto);
 
-      expect(mockWebhookRepository.create).toHaveBeenCalledWith(createWebhookDto);
+      expect(mockWebhookRepository.create).toHaveBeenCalledWith(
+        createWebhookDto,
+      );
       expect(mockWebhookRepository.save).toHaveBeenCalledWith(expectedWebhook);
       expect(result).toEqual(expectedWebhook);
     });
@@ -143,7 +152,9 @@ describe('WebhookService', () => {
 
       await service.triggerWebhook(triggerDto);
 
-      expect(mockWebhookRepository.find).toHaveBeenCalledWith({ where: { active: true } });
+      expect(mockWebhookRepository.find).toHaveBeenCalledWith({
+        where: { active: true },
+      });
       expect(mockEventFilterService.matchesFilters).toHaveBeenCalledTimes(1);
       expect(mockDeliveryRepository.create).toHaveBeenCalledTimes(1);
       expect(mockDeliveryRepository.save).toHaveBeenCalledTimes(1);

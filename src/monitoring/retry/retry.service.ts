@@ -1,7 +1,11 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TransactionStatusEntity, TransactionStatus, TransactionPriority } from '../entities/transaction-status.entity';
+import {
+  TransactionStatusEntity,
+  TransactionStatus,
+  TransactionPriority,
+} from '../entities/transaction-status.entity';
 import { RetryTransactionDto } from '../dto/transaction-status.dto';
 
 const StellarSdk = require('stellar-sdk');
@@ -33,9 +37,9 @@ export class ExponentialBackoffStrategy implements RetryStrategy {
     ];
 
     const errorMessage = error?.message?.toLowerCase() || '';
-    
-    return !nonRetryableErrors.some(nonRetryableError => 
-      errorMessage.includes(nonRetryableError)
+
+    return !nonRetryableErrors.some((nonRetryableError) =>
+      errorMessage.includes(nonRetryableError),
     );
   }
 
@@ -75,8 +79,8 @@ export class LinearBackoffStrategy implements RetryStrategy {
     ];
 
     const errorMessage = error?.message?.toLowerCase() || '';
-    return transientErrors.some(transientError => 
-      errorMessage.includes(transientError)
+    return transientErrors.some((transientError) =>
+      errorMessage.includes(transientError),
     );
   }
 
@@ -112,26 +116,36 @@ export class RetryService {
     this.strategies.set('default', new ExponentialBackoffStrategy());
   }
 
-  async scheduleRetry(transaction: TransactionStatusEntity, strategy: string = 'exponential'): Promise<void> {
+  async scheduleRetry(
+    transaction: TransactionStatusEntity,
+    strategy: string = 'exponential',
+  ): Promise<void> {
     if (this.activeRetries.has(transaction.transactionHash)) {
-      this.logger.warn(`Retry already in progress for transaction ${transaction.transactionHash}`);
+      this.logger.warn(
+        `Retry already in progress for transaction ${transaction.transactionHash}`,
+      );
       return;
     }
 
-    const retryStrategy = this.strategies.get(strategy) || this.strategies.get('default')!;
-    
-    if (!retryStrategy.shouldRetry(
-      { message: transaction.errorMessage },
-      transaction.retryCount,
-      transaction.maxRetries
-    )) {
-      this.logger.log(`Transaction ${transaction.transactionHash} should not be retried`);
+    const retryStrategy =
+      this.strategies.get(strategy) || this.strategies.get('default');
+
+    if (
+      !retryStrategy.shouldRetry(
+        { message: transaction.errorMessage },
+        transaction.retryCount,
+        transaction.maxRetries,
+      )
+    ) {
+      this.logger.log(
+        `Transaction ${transaction.transactionHash} should not be retried`,
+      );
       return;
     }
 
     const delay = retryStrategy.calculateDelay(
       transaction.retryCount + 1,
-      transaction.priority
+      transaction.priority,
     );
 
     this.activeRetries.add(transaction.transactionHash);
@@ -140,7 +154,10 @@ export class RetryService {
       try {
         await this.executeRetry(transaction);
       } catch (error) {
-        this.logger.error(`Retry failed for transaction ${transaction.transactionHash}:`, error);
+        this.logger.error(
+          `Retry failed for transaction ${transaction.transactionHash}:`,
+          error,
+        );
       } finally {
         this.activeRetries.delete(transaction.transactionHash);
         this.retryQueue.delete(transaction.transactionHash);
@@ -150,23 +167,32 @@ export class RetryService {
     this.retryQueue.set(transaction.transactionHash, retryTimeout);
 
     await this.updateTransactionForRetry(transaction);
-    
+
     this.logger.log(
-      `Scheduled retry for transaction ${transaction.transactionHash} in ${delay}ms (attempt ${transaction.retryCount + 1}/${transaction.maxRetries})`
+      `Scheduled retry for transaction ${transaction.transactionHash} in ${delay}ms (attempt ${transaction.retryCount + 1}/${transaction.maxRetries})`,
     );
   }
 
-  async manualRetry(retryDto: RetryTransactionDto): Promise<TransactionStatusEntity> {
+  async manualRetry(
+    retryDto: RetryTransactionDto,
+  ): Promise<TransactionStatusEntity> {
     const transaction = await this.transactionStatusRepository.findOne({
       where: { id: retryDto.transactionId },
     });
 
     if (!transaction) {
-      throw new Error(`Transaction with ID ${retryDto.transactionId} not found`);
+      throw new Error(
+        `Transaction with ID ${retryDto.transactionId} not found`,
+      );
     }
 
-    if (transaction.status !== TransactionStatus.FAILED && transaction.status !== TransactionStatus.TIMEOUT) {
-      throw new Error(`Cannot retry transaction with status ${transaction.status}`);
+    if (
+      transaction.status !== TransactionStatus.FAILED &&
+      transaction.status !== TransactionStatus.TIMEOUT
+    ) {
+      throw new Error(
+        `Cannot retry transaction with status ${transaction.status}`,
+      );
     }
 
     if (retryDto.priority) {
@@ -185,11 +211,15 @@ export class RetryService {
   }
 
   async executeRetry(transaction: TransactionStatusEntity): Promise<void> {
-    this.logger.log(`Executing retry for transaction ${transaction.transactionHash}`);
+    this.logger.log(
+      `Executing retry for transaction ${transaction.transactionHash}`,
+    );
 
     try {
-      const transactionStatus = await this.checkTransactionOnNetwork(transaction.transactionHash);
-      
+      const transactionStatus = await this.checkTransactionOnNetwork(
+        transaction.transactionHash,
+      );
+
       if (transactionStatus.successful) {
         await this.transactionStatusRepository.update(
           { transactionHash: transaction.transactionHash },
@@ -198,20 +228,23 @@ export class RetryService {
             confirmedAt: new Date(),
             ledgerSequence: transactionStatus.ledger,
             errorMessage: undefined,
-          }
+          },
         );
-        
-        this.logger.log(`Transaction ${transaction.transactionHash} was confirmed during retry check`);
+
+        this.logger.log(
+          `Transaction ${transaction.transactionHash} was confirmed during retry check`,
+        );
         return;
       }
 
       if (!transactionStatus.successful) {
-        throw new Error(`Transaction failed on network: ${transactionStatus.result_xdr}`);
+        throw new Error(
+          `Transaction failed on network: ${transactionStatus.result_xdr}`,
+        );
       }
-
     } catch (error: any) {
-      const retryStrategy = this.strategies.get('exponential')!;
-      
+      const retryStrategy = this.strategies.get('exponential');
+
       transaction.retryCount++;
       transaction.errorMessage = error.message;
       transaction.lastRetryAt = new Date();
@@ -219,33 +252,43 @@ export class RetryService {
       if (transaction.retryCount >= transaction.maxRetries) {
         transaction.status = TransactionStatus.FAILED;
         await this.transactionStatusRepository.save(transaction);
-        
+
         this.logger.error(
-          `Transaction ${transaction.transactionHash} failed after ${transaction.maxRetries} retries`
+          `Transaction ${transaction.transactionHash} failed after ${transaction.maxRetries} retries`,
         );
-        
-        throw new Error(`Transaction failed after maximum retries: ${error.message}`);
+
+        throw new Error(
+          `Transaction failed after maximum retries: ${error.message}`,
+        );
       }
 
-      if (retryStrategy.shouldRetry(error, transaction.retryCount, transaction.maxRetries)) {
+      if (
+        retryStrategy.shouldRetry(
+          error,
+          transaction.retryCount,
+          transaction.maxRetries,
+        )
+      ) {
         transaction.status = TransactionStatus.RETRYING;
         await this.transactionStatusRepository.save(transaction);
-        
+
         await this.scheduleRetry(transaction);
       } else {
         transaction.status = TransactionStatus.FAILED;
         await this.transactionStatusRepository.save(transaction);
-        
+
         this.logger.error(
-          `Transaction ${transaction.transactionHash} marked as failed due to non-retryable error: ${error.message}`
+          `Transaction ${transaction.transactionHash} marked as failed due to non-retryable error: ${error.message}`,
         );
-        
+
         throw new Error(`Non-retryable error: ${error.message}`);
       }
     }
   }
 
-  private async checkTransactionOnNetwork(transactionHash: string): Promise<any> {
+  private async checkTransactionOnNetwork(
+    transactionHash: string,
+  ): Promise<any> {
     const StellarSdk = require('stellar-sdk');
     const server = new StellarSdk.Horizon.Server(
       process.env.STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org',
@@ -261,14 +304,16 @@ export class RetryService {
     }
   }
 
-  private async updateTransactionForRetry(transaction: TransactionStatusEntity): Promise<void> {
+  private async updateTransactionForRetry(
+    transaction: TransactionStatusEntity,
+  ): Promise<void> {
     await this.transactionStatusRepository.update(
       { transactionHash: transaction.transactionHash },
       {
         status: TransactionStatus.RETRYING,
         retryCount: transaction.retryCount + 1,
         lastRetryAt: new Date(),
-      }
+      },
     );
   }
 
@@ -278,23 +323,23 @@ export class RetryService {
       clearTimeout(retryTimeout);
       this.retryQueue.delete(transactionHash);
       this.activeRetries.delete(transactionHash);
-      
+
       await this.transactionStatusRepository.update(
         { transactionHash },
-        { status: TransactionStatus.FAILED }
+        { status: TransactionStatus.FAILED },
       );
-      
+
       this.logger.log(`Cancelled retry for transaction ${transactionHash}`);
     }
   }
 
   async cancelAllRetries(): Promise<void> {
     const retryHashes = Array.from(this.retryQueue.keys());
-    
+
     for (const hash of retryHashes) {
       await this.cancelRetry(hash);
     }
-    
+
     this.logger.log(`Cancelled ${retryHashes.length} pending retries`);
   }
 
@@ -336,11 +381,11 @@ export class RetryService {
       error?: string;
       delay: number;
     }> = [];
-    
+
     for (let i = 1; i <= transaction.retryCount; i++) {
-      const strategy = this.strategies.get('exponential')!;
+      const strategy = this.strategies.get('exponential');
       const delay = strategy.calculateDelay(i, transaction.priority);
-      
+
       retryHistory.push({
         attempt: i,
         timestamp: new Date(transaction.createdAt.getTime() + delay * i),
@@ -360,10 +405,7 @@ export class RetryService {
   async prioritizeRetries(): Promise<void> {
     const retryingTransactions = await this.transactionStatusRepository.find({
       where: { status: TransactionStatus.RETRYING },
-      order: [
-        { priority: 'DESC' },
-        { lastRetryAt: 'ASC' },
-      ] as any,
+      order: [{ priority: 'DESC' }, { lastRetryAt: 'ASC' }] as any,
     });
 
     for (const transaction of retryingTransactions) {
@@ -372,7 +414,9 @@ export class RetryService {
       }
     }
 
-    this.logger.log(`Reprioritized ${retryingTransactions.length} retrying transactions`);
+    this.logger.log(
+      `Reprioritized ${retryingTransactions.length} retrying transactions`,
+    );
   }
 
   registerRetryStrategy(name: string, strategy: RetryStrategy): void {

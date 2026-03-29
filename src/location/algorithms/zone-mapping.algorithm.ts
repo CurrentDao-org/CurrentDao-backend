@@ -14,7 +14,7 @@ export class ZoneMappingAlgorithm {
    */
   static findZoneForCoordinate(
     coordinate: Coordinates,
-    gridZones: GridZone[]
+    gridZones: GridZone[],
   ): ZoneMappingResult {
     let exactZone: GridZone | null = null;
     let nearestZone: GridZone | null = null;
@@ -29,8 +29,12 @@ export class ZoneMappingAlgorithm {
 
       // Calculate distance to zone centroid for nearest zone
       const centroid = this.calculateZoneCentroid(zone);
-      const distance = DistanceAlgorithm.calculateDistance(coordinate, centroid, 'km').distance;
-      
+      const distance = DistanceAlgorithm.calculateDistance(
+        coordinate,
+        centroid,
+        'km',
+      ).distance;
+
       if (distance < minDistance) {
         minDistance = distance;
         nearestZone = zone;
@@ -41,7 +45,7 @@ export class ZoneMappingAlgorithm {
       zone: exactZone,
       isExactMatch: exactZone !== null,
       nearestZone: nearestZone || undefined,
-      distanceToNearest: minDistance === Infinity ? undefined : minDistance
+      distanceToNearest: minDistance === Infinity ? undefined : minDistance,
     };
   }
 
@@ -51,14 +55,18 @@ export class ZoneMappingAlgorithm {
   static findZonesWithinRadius(
     coordinate: Coordinates,
     gridZones: GridZone[],
-    radiusKm: number
+    radiusKm: number,
   ): GridZone[] {
     const zonesWithinRadius: GridZone[] = [];
 
     for (const zone of gridZones) {
       const centroid = this.calculateZoneCentroid(zone);
-      const distance = DistanceAlgorithm.calculateDistance(coordinate, centroid, 'km').distance;
-      
+      const distance = DistanceAlgorithm.calculateDistance(
+        coordinate,
+        centroid,
+        'km',
+      ).distance;
+
       if (distance <= radiusKm) {
         zonesWithinRadius.push(zone);
       }
@@ -110,12 +118,18 @@ export class ZoneMappingAlgorithm {
   /**
    * Check if a coordinate is within a zone's boundaries
    */
-  private static isCoordinateInZone(coordinate: Coordinates, zone: GridZone): boolean {
+  private static isCoordinateInZone(
+    coordinate: Coordinates,
+    zone: GridZone,
+  ): boolean {
     const coordinates = zone.boundaries.coordinates;
 
     if (zone.boundaries.type === 'Polygon') {
       const polygonCoordinates = coordinates as number[][][];
-      return DistanceAlgorithm.isPointInPolygon(coordinate, polygonCoordinates[0]);
+      return DistanceAlgorithm.isPointInPolygon(
+        coordinate,
+        polygonCoordinates[0],
+      );
     } else if (zone.boundaries.type === 'MultiPolygon') {
       const multipolygonCoordinates = coordinates as number[][][][];
       // Check if point is in any of the polygons
@@ -144,7 +158,7 @@ export class ZoneMappingAlgorithm {
 
     return {
       latitude: sumLat / numPoints,
-      longitude: sumLon / numPoints
+      longitude: sumLon / numPoints,
     };
   }
 
@@ -176,7 +190,11 @@ export class ZoneMappingAlgorithm {
       if (otherZone.id === zone.id) continue;
 
       const otherCentroid = this.calculateZoneCentroid(otherZone);
-      const distance = DistanceAlgorithm.calculateDistance(zoneCentroid, otherCentroid, 'km').distance;
+      const distance = DistanceAlgorithm.calculateDistance(
+        zoneCentroid,
+        otherCentroid,
+        'km',
+      ).distance;
 
       // Adjacent zones are typically within 50km of each other
       if (distance <= 50) {
@@ -193,12 +211,19 @@ export class ZoneMappingAlgorithm {
   /**
    * Check if two zones share boundaries (simplified implementation)
    */
-  private static doZonesShareBoundary(zone1: GridZone, zone2: GridZone): boolean {
+  private static doZonesShareBoundary(
+    zone1: GridZone,
+    zone2: GridZone,
+  ): boolean {
     // This is a simplified check - in a real implementation,
     // you would perform geometric intersection tests
     const centroid1 = this.calculateZoneCentroid(zone1);
     const centroid2 = this.calculateZoneCentroid(zone2);
-    const distance = DistanceAlgorithm.calculateDistance(centroid1, centroid2, 'km').distance;
+    const distance = DistanceAlgorithm.calculateDistance(
+      centroid1,
+      centroid2,
+      'km',
+    ).distance;
 
     // If centroids are very close, zones likely share boundaries
     return distance < 20; // 20km threshold

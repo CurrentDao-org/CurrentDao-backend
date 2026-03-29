@@ -32,8 +32,15 @@ export class GatewayMonitorService {
    * @param status The response status code.
    * @param duration The duration of the request in milliseconds.
    */
-  logRequest(method: string, path: string, status: number, duration: number): void {
-    this.logger.log(`[${method}] ${path} - Status: ${status} - Duration: ${duration}ms`);
+  logRequest(
+    method: string,
+    path: string,
+    status: number,
+    duration: number,
+  ): void {
+    this.logger.log(
+      `[${method}] ${path} - Status: ${status} - Duration: ${duration}ms`,
+    );
     this.requestCounter.inc({ method, path, status: status.toString() });
     this.responseTimeHistogram.observe({ method, path }, duration);
   }

@@ -31,14 +31,22 @@ export class EmissionCalculatorService {
     };
   }
 
-  calculateTransactionCarbonFootprint(transactionData: any): { emissions: number; intensity: number } {
+  calculateTransactionCarbonFootprint(transactionData: any): {
+    emissions: number;
+    intensity: number;
+  } {
     const { energyAmount, energySource, distance } = transactionData;
 
     // Calculate production emissions
-    const productionEmissions = this.calculateEmissions(energyAmount, energySource).emissions;
+    const productionEmissions = this.calculateEmissions(
+      energyAmount,
+      energySource,
+    ).emissions;
 
     // Calculate transportation emissions if applicable
-    const transportEmissions = distance ? this.calculateEmissions(distance, 'transportation').emissions : 0;
+    const transportEmissions = distance
+      ? this.calculateEmissions(distance, 'transportation').emissions
+      : 0;
 
     const totalEmissions = productionEmissions + transportEmissions;
     const intensity = energyAmount > 0 ? totalEmissions / energyAmount : 0;
@@ -50,7 +58,9 @@ export class EmissionCalculatorService {
   }
 
   private getEmissionFactor(sourceType: string): number {
-    return this.emissionFactors[sourceType] || this.emissionFactors.grid_average;
+    return (
+      this.emissionFactors[sourceType] || this.emissionFactors.grid_average
+    );
   }
 
   validateCalculation(activityData: number, factor: number): boolean {

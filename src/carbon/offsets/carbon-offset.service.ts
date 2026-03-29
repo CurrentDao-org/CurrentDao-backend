@@ -4,8 +4,13 @@ import { Injectable, Logger } from '@nestjs/common';
 export class CarbonOffsetService {
   private readonly logger = new Logger(CarbonOffsetService.name);
 
-  async purchaseOffset(amountTonnes: number, projectType: string): Promise<any> {
-    this.logger.log(`Purchasing ${amountTonnes} tonnes of ${projectType} offsets`);
+  async purchaseOffset(
+    amountTonnes: number,
+    projectType: string,
+  ): Promise<any> {
+    this.logger.log(
+      `Purchasing ${amountTonnes} tonnes of ${projectType} offsets`,
+    );
 
     return {
       offsetId: `OFFSET-${Date.now()}`,
@@ -19,9 +24,24 @@ export class CarbonOffsetService {
 
   async getAvailableProjects(): Promise<any[]> {
     return [
-      { id: 1, name: 'Solar Farm India', type: 'renewable_energy', pricePerTonne: 22 },
-      { id: 2, name: 'Reforestation Brazil', type: 'forestry', pricePerTonne: 18 },
-      { id: 3, name: 'Wind Farm Scotland', type: 'renewable_energy', pricePerTonne: 24 },
+      {
+        id: 1,
+        name: 'Solar Farm India',
+        type: 'renewable_energy',
+        pricePerTonne: 22,
+      },
+      {
+        id: 2,
+        name: 'Reforestation Brazil',
+        type: 'forestry',
+        pricePerTonne: 18,
+      },
+      {
+        id: 3,
+        name: 'Wind Farm Scotland',
+        type: 'renewable_energy',
+        pricePerTonne: 24,
+      },
     ];
   }
 

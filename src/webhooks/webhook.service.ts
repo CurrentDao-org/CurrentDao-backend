@@ -4,10 +4,17 @@ import { Repository, LessThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
 import { Webhook } from './entities/webhook.entity';
-import { WebhookDelivery, DeliveryStatus } from './entities/webhook-delivery.entity';
+import {
+  WebhookDelivery,
+  DeliveryStatus,
+} from './entities/webhook-delivery.entity';
 import { HmacAuthService } from './auth/hmac.auth';
 import { EventFilterService } from './filters/event.filter';
-import { CreateWebhookDto, UpdateWebhookDto, TriggerWebhookDto } from './dto/webhook.dto';
+import {
+  CreateWebhookDto,
+  UpdateWebhookDto,
+  TriggerWebhookDto,
+} from './dto/webhook.dto';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -29,7 +36,10 @@ export class WebhookService {
     return this.webhookRepository.save(webhook);
   }
 
-  async findAll(page = 1, limit = 10): Promise<{ webhooks: Webhook[]; total: number }> {
+  async findAll(
+    page = 1,
+    limit = 10,
+  ): Promise<{ webhooks: Webhook[]; total: number }> {
     const [webhooks, total] = await this.webhookRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
@@ -45,7 +55,10 @@ export class WebhookService {
     });
   }
 
-  async update(id: string, updateWebhookDto: UpdateWebhookDto): Promise<Webhook> {
+  async update(
+    id: string,
+    updateWebhookDto: UpdateWebhookDto,
+  ): Promise<Webhook> {
     await this.webhookRepository.update(id, updateWebhookDto);
     return this.findOne(id);
   }
@@ -66,15 +79,24 @@ export class WebhookService {
     }
   }
 
-  private shouldTriggerWebhook(webhook: Webhook, triggerDto: TriggerWebhookDto): boolean {
+  private shouldTriggerWebhook(
+    webhook: Webhook,
+    triggerDto: TriggerWebhookDto,
+  ): boolean {
     if (!webhook.events.includes(triggerDto.eventType)) {
       return false;
     }
 
-    return this.eventFilterService.matchesFilters(triggerDto.data, webhook.filters || {});
+    return this.eventFilterService.matchesFilters(
+      triggerDto.data,
+      webhook.filters || {},
+    );
   }
 
-  private async queueWebhookDelivery(webhook: Webhook, triggerDto: TriggerWebhookDto): Promise<void> {
+  private async queueWebhookDelivery(
+    webhook: Webhook,
+    triggerDto: TriggerWebhookDto,
+  ): Promise<void> {
     const delivery = this.deliveryRepository.create({
       webhookId: webhook.id,
       webhook,
@@ -85,7 +107,7 @@ export class WebhookService {
     });
 
     await this.deliveryRepository.save(delivery);
-    
+
     setImmediate(() => this.processWebhookDelivery(delivery.id));
   }
 
@@ -101,11 +123,11 @@ export class WebhookService {
     }
 
     const startTime = Date.now();
-    
+
     try {
       const { signature, timestamp } = this.hmacAuthService.signWebhook(
         delivery.payload,
-        delivery.webhook.secret
+        delivery.webhook.secret,
       );
 
       const payload = {
@@ -124,7 +146,7 @@ export class WebhookService {
             'User-Agent': 'CurrentDao-Webhook/1.0',
           },
           timeout: delivery.webhook.timeoutMs,
-        })
+        }),
       );
 
       const duration = Date.now() - startTime;
@@ -137,17 +159,26 @@ export class WebhookService {
         deliveredAt: new Date(),
       });
 
-      await this.webhookRepository.increment({ id: delivery.webhookId }, 'deliveryCount', 1);
+      await this.webhookRepository.increment(
+        { id: delivery.webhookId },
+        'deliveryCount',
+        1,
+      );
 
-      this.logger.log(`Webhook delivered successfully: ${deliveryId} to ${delivery.webhook.url}`);
-
+      this.logger.log(
+        `Webhook delivered successfully: ${deliveryId} to ${delivery.webhook.url}`,
+      );
     } catch (error) {
       const duration = Date.now() - startTime;
       await this.handleFailedDelivery(delivery, error, duration);
     }
   }
 
-  private async handleFailedDelivery(delivery: WebhookDelivery, error: any, duration: number): Promise<void> {
+  private async handleFailedDelivery(
+    delivery: WebhookDelivery,
+    error: any,
+    duration: number,
+  ): Promise<void> {
     const attemptNumber = delivery.attemptNumber + 1;
     const maxRetries = delivery.webhook.maxRetries;
 
@@ -159,13 +190,22 @@ export class WebhookService {
         duration,
       });
 
-      await this.webhookRepository.increment({ id: delivery.webhookId }, 'failureCount', 1);
+      await this.webhookRepository.increment(
+        { id: delivery.webhookId },
+        'failureCount',
+        1,
+      );
 
-      this.logger.error(`Webhook delivery failed permanently: ${delivery.id}`, error);
+      this.logger.error(
+        `Webhook delivery failed permanently: ${delivery.id}`,
+        error,
+      );
       return;
     }
 
-    const nextRetryAt = new Date(Date.now() + this.calculateBackoffDelay(attemptNumber));
+    const nextRetryAt = new Date(
+      Date.now() + this.calculateBackoffDelay(attemptNumber),
+    );
 
     await this.deliveryRepository.update(delivery.id, {
       status: DeliveryStatus.RETRYING,
@@ -175,7 +215,9 @@ export class WebhookService {
       duration,
     });
 
-    this.logger.warn(`Webhook delivery failed, scheduling retry: ${delivery.id} in ${this.calculateBackoffDelay(attemptNumber)}ms`);
+    this.logger.warn(
+      `Webhook delivery failed, scheduling retry: ${delivery.id} in ${this.calculateBackoffDelay(attemptNumber)}ms`,
+    );
   }
 
   private calculateBackoffDelay(attemptNumber: number): number {
@@ -209,12 +251,18 @@ export class WebhookService {
     successRate: number;
   }> {
     const whereClause = webhookId ? { webhookId } : {};
-    
+
     const [total, success, failed, pending] = await Promise.all([
       this.deliveryRepository.count({ where: whereClause }),
-      this.deliveryRepository.count({ where: { ...whereClause, status: DeliveryStatus.SUCCESS } }),
-      this.deliveryRepository.count({ where: { ...whereClause, status: DeliveryStatus.FAILED } }),
-      this.deliveryRepository.count({ where: { ...whereClause, status: DeliveryStatus.PENDING } }),
+      this.deliveryRepository.count({
+        where: { ...whereClause, status: DeliveryStatus.SUCCESS },
+      }),
+      this.deliveryRepository.count({
+        where: { ...whereClause, status: DeliveryStatus.FAILED },
+      }),
+      this.deliveryRepository.count({
+        where: { ...whereClause, status: DeliveryStatus.PENDING },
+      }),
     ]);
 
     const successRate = total > 0 ? (success / total) * 100 : 0;
@@ -222,9 +270,13 @@ export class WebhookService {
     return { total, success, failed, pending, successRate };
   }
 
-  async getDeliveries(page = 1, limit = 10, webhookId?: string): Promise<{ deliveries: WebhookDelivery[]; total: number }> {
+  async getDeliveries(
+    page = 1,
+    limit = 10,
+    webhookId?: string,
+  ): Promise<{ deliveries: WebhookDelivery[]; total: number }> {
     const whereClause = webhookId ? { webhookId } : {};
-    
+
     const [deliveries, total] = await this.deliveryRepository.findAndCount({
       where: whereClause,
       relations: ['webhook'],

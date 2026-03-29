@@ -1,9 +1,20 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuditLog, AuditAction, AuditResource, AuditSeverity } from '../entities/audit-log.entity';
+import {
+  AuditLog,
+  AuditAction,
+  AuditResource,
+  AuditSeverity,
+} from '../entities/audit-log.entity';
 import { TransactionLog } from '../entities/transaction-log.entity';
 import { AuditService } from '../audit.service';
 
@@ -30,7 +41,7 @@ export class AuditInterceptor implements NestInterceptor {
     try {
       // Get audit metadata from the method or class
       const auditMetadata = this.getAuditMetadata(context);
-      
+
       if (!auditMetadata) {
         return next.handle();
       }
@@ -51,12 +62,21 @@ export class AuditInterceptor implements NestInterceptor {
 
       // Create transaction log if applicable
       if (this.isTransactionRequest(request)) {
-        transactionLog = await this.createTransactionLog(request, auditMetadata, startTime, result);
-        await this.updateTransactionLog(transactionLog, response, startTime, result);
+        transactionLog = await this.createTransactionLog(
+          request,
+          auditMetadata,
+          startTime,
+          result,
+        );
+        await this.updateTransactionLog(
+          transactionLog,
+          response,
+          startTime,
+          result,
+        );
       }
 
       return result;
-
     } catch (error) {
       // Log error in audit log
       if (auditLog) {
@@ -73,13 +93,20 @@ export class AuditInterceptor implements NestInterceptor {
 
   private getAuditMetadata(context: ExecutionContext): any {
     const handler = context.getHandler();
-    const classMetadata = Reflect.getMetadata('audit:global', handler?.constructor);
+    const classMetadata = Reflect.getMetadata(
+      'audit:global',
+      handler?.constructor,
+    );
     const methodMetadata = Reflect.getMetadata('audit', handler);
-    
+
     return { ...classMetadata, ...methodMetadata };
   }
 
-  private async createAuditLog(request: Request, metadata: any, startTime: number): Promise<AuditLog> {
+  private async createAuditLog(
+    request: Request,
+    metadata: any,
+    startTime: number,
+  ): Promise<AuditLog> {
     const auditLog = this.auditLogRepository.create({
       action: metadata.action,
       resource: metadata.resource,
@@ -91,7 +118,9 @@ export class AuditInterceptor implements NestInterceptor {
       userAgent: this.getUserAgent(request),
       requestMethod: request.method,
       requestUrl: request.url,
-      requestBody: metadata.includeRequestBody ? this.sanitizeData(request.body) : undefined,
+      requestBody: metadata.includeRequestBody
+        ? this.sanitizeData(request.body)
+        : undefined,
       responseBody: undefined, // Will be set in updateAuditLog
       responseStatus: undefined, // Will be set in updateAuditLog
       executionTime: undefined, // Will be set in updateAuditLog
@@ -150,12 +179,13 @@ export class AuditInterceptor implements NestInterceptor {
       auditLog.isSensitive = true;
       auditLog.privacy = {
         dataClassification: 'confidential',
-        redactionRules: metadata.redactFields?.map(field => ({
-          field,
-          condition: 'always',
-          action: 'redact',
-          applied: false,
-        })) || [],
+        redactionRules:
+          metadata.redactFields?.map((field) => ({
+            field,
+            condition: 'always',
+            action: 'redact',
+            applied: false,
+          })) || [],
       };
     }
 
@@ -196,7 +226,8 @@ export class AuditInterceptor implements NestInterceptor {
 
     // Update security information
     if (auditLog.security) {
-      auditLog.security.permissionsChecked = this.getPermissionsChecked(request);
+      auditLog.security.permissionsChecked =
+        this.getPermissionsChecked(request);
       auditLog.security.rolesChecked = this.getRolesChecked(request);
     }
 
@@ -343,7 +374,11 @@ export class AuditInterceptor implements NestInterceptor {
     await this.transactionLogRepository.save(transactionLog);
   }
 
-  private async logError(auditLog: AuditLog, error: any, startTime: number): Promise<void> {
+  private async logError(
+    auditLog: AuditLog,
+    error: any,
+    startTime: number,
+  ): Promise<void> {
     const endTime = Date.now();
     const executionTime = endTime - startTime;
 
@@ -365,7 +400,11 @@ export class AuditInterceptor implements NestInterceptor {
     await this.auditLogRepository.save(auditLog);
   }
 
-  private async logTransactionError(transactionLog: TransactionLog, error: any, startTime: number): Promise<void> {
+  private async logTransactionError(
+    transactionLog: TransactionLog,
+    error: any,
+    startTime: number,
+  ): Promise<void> {
     const endTime = Date.now();
     const executionTime = endTime - startTime;
 
@@ -394,7 +433,7 @@ export class AuditInterceptor implements NestInterceptor {
       '/api/energy/transactions',
     ];
 
-    return transactionPaths.some(path => request.url.startsWith(path));
+    return transactionPaths.some((path) => request.url.startsWith(path));
   }
 
   private getTransactionType(request: Request): string {
@@ -411,17 +450,17 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   private extractAmount(request: Request): number {
-    const body = request.body as any;
+    const body = request.body;
     return body?.amount || body?.quantity || 0;
   }
 
   private extractCurrency(request: Request): string {
-    const body = request.body as any;
+    const body = request.body;
     return body?.currency || 'USD';
   }
 
   private extractParticipants(request: Request): any {
-    const body = request.body as any;
+    const body = request.body;
     return {
       buyer: body?.buyerId ? { id: body.buyerId } : undefined,
       seller: body?.sellerId ? { id: body.sellerId } : undefined,
@@ -429,24 +468,28 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   private extractEnergyDetails(request: Request): any {
-    const body = request.body as any;
+    const body = request.body;
     return {
       energyType: body?.energyType,
       quantity: body?.quantity,
       unit: body?.unit,
       deliveryLocation: body?.deliveryLocation,
-      deliveryDate: body?.deliveryDate ? new Date(body.deliveryDate) : undefined,
+      deliveryDate: body?.deliveryDate
+        ? new Date(body.deliveryDate)
+        : undefined,
       quality: body?.quality,
     };
   }
 
   private extractContractDetails(request: Request): any {
-    const body = request.body as any;
+    const body = request.body;
     return {
       contractId: body?.contractId,
       contractType: body?.contractType,
       terms: body?.terms,
-      expirationDate: body?.expirationDate ? new Date(body.expirationDate) : undefined,
+      expirationDate: body?.expirationDate
+        ? new Date(body.expirationDate)
+        : undefined,
     };
   }
 
@@ -459,7 +502,11 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   private getClientIp(request: Request): string {
-    return request.ip || request.headers['x-forwarded-for'] || request.connection.remoteAddress;
+    return (
+      request.ip ||
+      request.headers['x-forwarded-for'] ||
+      request.connection.remoteAddress
+    );
   }
 
   private getUserAgent(request: Request): string {
@@ -486,7 +533,9 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   private getCorrelationId(request: Request): string | undefined {
-    return request.headers['x-correlation-id'] || request.headers['x-request-id'];
+    return (
+      request.headers['x-correlation-id'] || request.headers['x-request-id']
+    );
   }
 
   private getBatchId(request: Request): string | undefined {
@@ -506,7 +555,7 @@ export class AuditInterceptor implements NestInterceptor {
 
     if (typeof data === 'object' && data !== null) {
       const sanitized: any = {};
-      
+
       for (const [key, value] of Object.entries(data)) {
         if (this.isSensitiveField(key)) {
           sanitized[key] = '***REDACTED***';
@@ -516,7 +565,7 @@ export class AuditInterceptor implements NestInterceptor {
           sanitized[key] = value;
         }
       }
-      
+
       return sanitized;
     }
 
@@ -538,8 +587,8 @@ export class AuditInterceptor implements NestInterceptor {
       'pin',
     ];
 
-    return sensitiveFields.some(field => 
-      fieldName.toLowerCase().includes(field.toLowerCase())
+    return sensitiveFields.some((field) =>
+      fieldName.toLowerCase().includes(field.toLowerCase()),
     );
   }
 
@@ -564,6 +613,6 @@ export class AuditInterceptor implements NestInterceptor {
       'EAI_AGAIN',
     ];
 
-    return recoverableErrors.some(err => error.code === err);
+    return recoverableErrors.some((err) => error.code === err);
   }
 }

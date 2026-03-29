@@ -1,4 +1,8 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 enum CircuitBreakerState {
   CLOSED,
@@ -19,7 +23,9 @@ export class CircuitBreakerService {
    */
   async checkCircuit(): Promise<void> {
     if (this.state === CircuitBreakerState.OPEN) {
-      throw new InternalServerErrorException('Circuit is open, please try again later');
+      throw new InternalServerErrorException(
+        'Circuit is open, please try again later',
+      );
     }
   }
 
@@ -38,12 +44,14 @@ export class CircuitBreakerService {
    */
   async reportFailure(): Promise<void> {
     this.failureCount++;
-    this.logger.error(`Circuit Breaker status: FAILURE (Count: ${this.failureCount}/${this.threshold})`);
-    
+    this.logger.error(
+      `Circuit Breaker status: FAILURE (Count: ${this.failureCount}/${this.threshold})`,
+    );
+
     if (this.failureCount >= this.threshold) {
       this.state = CircuitBreakerState.OPEN;
       this.logger.error('Circuit Breaker status: OPEN');
-      
+
       // Reset state to HALF_OPEN after timeout
       setTimeout(() => {
         this.state = CircuitBreakerState.HALF_OPEN;

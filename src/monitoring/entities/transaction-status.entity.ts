@@ -1,18 +1,25 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum TransactionStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
   FAILED = 'failed',
   RETRYING = 'retrying',
-  TIMEOUT = 'timeout'
+  TIMEOUT = 'timeout',
 }
 
 export enum TransactionPriority {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 @Entity('transaction_status')
@@ -30,14 +37,14 @@ export class TransactionStatusEntity {
   @Column({
     type: 'enum',
     enum: TransactionStatus,
-    default: TransactionStatus.PENDING
+    default: TransactionStatus.PENDING,
   })
   status: TransactionStatus;
 
   @Column({
     type: 'enum',
     enum: TransactionPriority,
-    default: TransactionPriority.MEDIUM
+    default: TransactionPriority.MEDIUM,
   })
   priority: TransactionPriority;
 

@@ -1,9 +1,31 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Between, LessThan, MoreThan, FindManyOptions } from 'typeorm';
-import { EnergyListing, ListingStatus, ListingType } from './entities/energy-listing.entity';
+import {
+  Repository,
+  DataSource,
+  Between,
+  LessThan,
+  MoreThan,
+  FindManyOptions,
+} from 'typeorm';
+import {
+  EnergyListing,
+  ListingStatus,
+  ListingType,
+} from './entities/energy-listing.entity';
 import { Bid, BidStatus } from './entities/bid.entity';
-import { Trade, TradeStatus, PaymentStatus, DeliveryStatus } from './entities/trade.entity';
+import {
+  Trade,
+  TradeStatus,
+  PaymentStatus,
+  DeliveryStatus,
+} from './entities/trade.entity';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { PlaceBidDto } from './dto/place-bid.dto';
@@ -60,7 +82,10 @@ export class EnergyService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async createListing(createListingDto: CreateListingDto, userId: string): Promise<EnergyListing> {
+  async createListing(
+    createListingDto: CreateListingDto,
+    userId: string,
+  ): Promise<EnergyListing> {
     this.logger.log(`Creating new energy listing for user: ${userId}`);
 
     const listing = this.listingRepository.create({
@@ -88,7 +113,7 @@ export class EnergyService {
     }
 
     const savedListing = await this.listingRepository.save(listing);
-    
+
     this.logger.log(`Created listing: ${savedListing.id}`);
     return savedListing;
   }
@@ -97,9 +122,12 @@ export class EnergyService {
     filter: ListingFilter = {},
     pagination: PaginationOptions = { page: 1, limit: 10 },
   ): Promise<PaginatedResult<EnergyListing>> {
-    this.logger.log(`Fetching listings with filter: ${JSON.stringify(filter)}, pagination: ${JSON.stringify(pagination)}`);
+    this.logger.log(
+      `Fetching listings with filter: ${JSON.stringify(filter)}, pagination: ${JSON.stringify(pagination)}`,
+    );
 
-    const queryBuilder = this.listingRepository.createQueryBuilder('listing')
+    const queryBuilder = this.listingRepository
+      .createQueryBuilder('listing')
       .leftJoinAndSelect('listing.bids', 'bids')
       .leftJoinAndSelect('listing.trades', 'trades');
 
@@ -108,52 +136,74 @@ export class EnergyService {
     }
 
     if (filter.energyType) {
-      queryBuilder.andWhere('listing.energyType = :energyType', { energyType: filter.energyType });
+      queryBuilder.andWhere('listing.energyType = :energyType', {
+        energyType: filter.energyType,
+      });
     }
 
     if (filter.status) {
-      queryBuilder.andWhere('listing.status = :status', { status: filter.status });
+      queryBuilder.andWhere('listing.status = :status', {
+        status: filter.status,
+      });
     }
 
     if (filter.minPrice) {
-      queryBuilder.andWhere('listing.price >= :minPrice', { minPrice: filter.minPrice });
+      queryBuilder.andWhere('listing.price >= :minPrice', {
+        minPrice: filter.minPrice,
+      });
     }
 
     if (filter.maxPrice) {
-      queryBuilder.andWhere('listing.price <= :maxPrice', { maxPrice: filter.maxPrice });
+      queryBuilder.andWhere('listing.price <= :maxPrice', {
+        maxPrice: filter.maxPrice,
+      });
     }
 
     if (filter.minQuantity) {
-      queryBuilder.andWhere('listing.quantity >= :minQuantity', { minQuantity: filter.minQuantity });
+      queryBuilder.andWhere('listing.quantity >= :minQuantity', {
+        minQuantity: filter.minQuantity,
+      });
     }
 
     if (filter.maxQuantity) {
-      queryBuilder.andWhere('listing.quantity <= :maxQuantity', { maxQuantity: filter.maxQuantity });
+      queryBuilder.andWhere('listing.quantity <= :maxQuantity', {
+        maxQuantity: filter.maxQuantity,
+      });
     }
 
     if (filter.createdBy) {
-      queryBuilder.andWhere('listing.createdBy = :createdBy', { createdBy: filter.createdBy });
+      queryBuilder.andWhere('listing.createdBy = :createdBy', {
+        createdBy: filter.createdBy,
+      });
     }
 
     if (filter.isFeatured !== undefined) {
-      queryBuilder.andWhere('listing.isFeatured = :isFeatured', { isFeatured: filter.isFeatured });
+      queryBuilder.andWhere('listing.isFeatured = :isFeatured', {
+        isFeatured: filter.isFeatured,
+      });
     }
 
     if (filter.isVerified !== undefined) {
-      queryBuilder.andWhere('listing.isVerified = :isVerified', { isVerified: filter.isVerified });
+      queryBuilder.andWhere('listing.isVerified = :isVerified', {
+        isVerified: filter.isVerified,
+      });
     }
 
     if (filter.expiresAfter) {
-      queryBuilder.andWhere('listing.expiresAt >= :expiresAfter', { expiresAfter: filter.expiresAfter });
+      queryBuilder.andWhere('listing.expiresAt >= :expiresAfter', {
+        expiresAfter: filter.expiresAfter,
+      });
     }
 
     if (filter.expiresBefore) {
-      queryBuilder.andWhere('listing.expiresAt <= :expiresBefore', { expiresBefore: filter.expiresBefore });
+      queryBuilder.andWhere('listing.expiresAt <= :expiresBefore', {
+        expiresBefore: filter.expiresBefore,
+      });
     }
 
     if (filter.location) {
       queryBuilder.andWhere(
-        '(6371 * acos(cos(radians(:latitude)) * cos(radians(listing.location->>\'latitude\')) * cos(radians(listing.location->>\'longitude\') - radians(:longitude)) + sin(radians(:latitude)) * sin(radians(listing.location->>\'latitude\')))) <= :radius',
+        "(6371 * acos(cos(radians(:latitude)) * cos(radians(listing.location->>'latitude')) * cos(radians(listing.location->>'longitude') - radians(:longitude)) + sin(radians(:latitude)) * sin(radians(listing.location->>'latitude')))) <= :radius",
         {
           latitude: filter.location.latitude,
           longitude: filter.location.longitude,
@@ -199,15 +249,24 @@ export class EnergyService {
     return listing;
   }
 
-  async updateListing(id: string, updateListingDto: UpdateListingDto, userId: string): Promise<EnergyListing> {
+  async updateListing(
+    id: string,
+    updateListingDto: UpdateListingDto,
+    userId: string,
+  ): Promise<EnergyListing> {
     const listing = await this.getListingById(id);
 
     if (listing.createdBy !== userId) {
       throw new ForbiddenException('You can only update your own listings');
     }
 
-    if (listing.status === ListingStatus.FILLED || listing.status === ListingStatus.CANCELLED) {
-      throw new BadRequestException('Cannot update listing that is filled or cancelled');
+    if (
+      listing.status === ListingStatus.FILLED ||
+      listing.status === ListingStatus.CANCELLED
+    ) {
+      throw new BadRequestException(
+        'Cannot update listing that is filled or cancelled',
+      );
     }
 
     Object.assign(listing, updateListingDto);
@@ -230,7 +289,7 @@ export class EnergyService {
     }
 
     const updatedListing = await this.listingRepository.save(listing);
-    
+
     this.logger.log(`Updated listing: ${id} by user: ${userId}`);
     return updatedListing;
   }
@@ -243,7 +302,9 @@ export class EnergyService {
     }
 
     if (listing.status === ListingStatus.FILLED) {
-      throw new BadRequestException('Cannot cancel listing that is already filled');
+      throw new BadRequestException(
+        'Cannot cancel listing that is already filled',
+      );
     }
 
     if (listing.status === ListingStatus.CANCELLED) {
@@ -255,15 +316,17 @@ export class EnergyService {
     listing.updatedBy = userId;
 
     const cancelledListing = await this.listingRepository.save(listing);
-    
+
     await this.rejectAllBidsForListing(id, userId);
-    
+
     this.logger.log(`Cancelled listing: ${id} by user: ${userId}`);
     return cancelledListing;
   }
 
   async placeBid(placeBidDto: PlaceBidDto, userId: string): Promise<Bid> {
-    this.logger.log(`Placing bid on listing: ${placeBidDto.listingId} by user: ${userId}`);
+    this.logger.log(
+      `Placing bid on listing: ${placeBidDto.listingId} by user: ${userId}`,
+    );
 
     const listing = await this.getListingById(placeBidDto.listingId);
 
@@ -280,23 +343,39 @@ export class EnergyService {
     }
 
     if (placeBidDto.quantity > listing.quantity) {
-      throw new BadRequestException('Bid quantity cannot exceed listing quantity');
+      throw new BadRequestException(
+        'Bid quantity cannot exceed listing quantity',
+      );
     }
 
     if (listing.minPrice && placeBidDto.price < listing.minPrice) {
-      throw new BadRequestException(`Bid price cannot be below minimum price: ${listing.minPrice}`);
+      throw new BadRequestException(
+        `Bid price cannot be below minimum price: ${listing.minPrice}`,
+      );
     }
 
     if (listing.maxPrice && placeBidDto.price > listing.maxPrice) {
-      throw new BadRequestException(`Bid price cannot exceed maximum price: ${listing.maxPrice}`);
+      throw new BadRequestException(
+        `Bid price cannot exceed maximum price: ${listing.maxPrice}`,
+      );
     }
 
-    if (listing.requirements?.minimumBidQuantity && placeBidDto.quantity < listing.requirements.minimumBidQuantity) {
-      throw new BadRequestException(`Bid quantity must be at least: ${listing.requirements.minimumBidQuantity}`);
+    if (
+      listing.requirements?.minimumBidQuantity &&
+      placeBidDto.quantity < listing.requirements.minimumBidQuantity
+    ) {
+      throw new BadRequestException(
+        `Bid quantity must be at least: ${listing.requirements.minimumBidQuantity}`,
+      );
     }
 
-    if (listing.requirements?.maximumBidQuantity && placeBidDto.quantity > listing.requirements.maximumBidQuantity) {
-      throw new BadRequestException(`Bid quantity cannot exceed: ${listing.requirements.maximumBidQuantity}`);
+    if (
+      listing.requirements?.maximumBidQuantity &&
+      placeBidDto.quantity > listing.requirements.maximumBidQuantity
+    ) {
+      throw new BadRequestException(
+        `Bid quantity cannot exceed: ${listing.requirements.maximumBidQuantity}`,
+      );
     }
 
     const existingBid = await this.bidRepository.findOne({
@@ -308,7 +387,9 @@ export class EnergyService {
     });
 
     if (existingBid) {
-      throw new BadRequestException('You already have a pending bid on this listing');
+      throw new BadRequestException(
+        'You already have a pending bid on this listing',
+      );
     }
 
     const bid = this.bidRepository.create({
@@ -327,14 +408,20 @@ export class EnergyService {
 
     await this.incrementBidCount(placeBidDto.listingId);
 
-    this.logger.log(`Placed bid: ${savedBid.id} on listing: ${placeBidDto.listingId}`);
+    this.logger.log(
+      `Placed bid: ${savedBid.id} on listing: ${placeBidDto.listingId}`,
+    );
     return savedBid;
   }
 
-  async getBidsByUser(userId: string, pagination: PaginationOptions = { page: 1, limit: 10 }): Promise<PaginatedResult<Bid>> {
+  async getBidsByUser(
+    userId: string,
+    pagination: PaginationOptions = { page: 1, limit: 10 },
+  ): Promise<PaginatedResult<Bid>> {
     this.logger.log(`Fetching bids for user: ${userId}`);
 
-    const queryBuilder = this.bidRepository.createQueryBuilder('bid')
+    const queryBuilder = this.bidRepository
+      .createQueryBuilder('bid')
       .leftJoinAndSelect('bid.listing', 'listing')
       .where('bid.bidderId = :userId', { userId });
 
@@ -364,7 +451,9 @@ export class EnergyService {
     const listing = await this.getListingById(listingId);
 
     if (listing.createdBy !== userId) {
-      throw new ForbiddenException('You can only view bids for your own listings');
+      throw new ForbiddenException(
+        'You can only view bids for your own listings',
+      );
     }
 
     return this.bidRepository.find({
@@ -385,7 +474,9 @@ export class EnergyService {
     }
 
     if (bid.listing.createdBy !== userId) {
-      throw new ForbiddenException('You can only accept bids for your own listings');
+      throw new ForbiddenException(
+        'You can only accept bids for your own listings',
+      );
     }
 
     if (bid.status !== BidStatus.PENDING) {
@@ -396,7 +487,7 @@ export class EnergyService {
       throw new BadRequestException('Listing is no longer active');
     }
 
-    return await this.dataSource.transaction(async manager => {
+    return await this.dataSource.transaction(async (manager) => {
       bid.status = BidStatus.ACCEPTED;
       bid.acceptedAt = new Date();
       bid.respondedBy = userId;
@@ -413,7 +504,11 @@ export class EnergyService {
     });
   }
 
-  async rejectBid(bidId: string, userId: string, reason?: string): Promise<Bid> {
+  async rejectBid(
+    bidId: string,
+    userId: string,
+    reason?: string,
+  ): Promise<Bid> {
     const bid = await this.bidRepository.findOne({
       where: { id: bidId },
       relations: ['listing'],
@@ -424,7 +519,9 @@ export class EnergyService {
     }
 
     if (bid.listing.createdBy !== userId) {
-      throw new ForbiddenException('You can only reject bids for your own listings');
+      throw new ForbiddenException(
+        'You can only reject bids for your own listings',
+      );
     }
 
     if (bid.status !== BidStatus.PENDING) {
@@ -446,7 +543,7 @@ export class EnergyService {
     });
 
     const rejectedBid = await this.bidRepository.save(bid);
-    
+
     this.logger.log(`Rejected bid: ${bidId} for listing: ${bid.listingId}`);
     return rejectedBid;
   }
@@ -471,15 +568,20 @@ export class EnergyService {
     bid.updatedBy = userId;
 
     const withdrawnBid = await this.bidRepository.save(bid);
-    
+
     await this.decrementBidCount(bid.listingId);
-    
+
     this.logger.log(`Withdrew bid: ${bidId} by user: ${userId}`);
     return withdrawnBid;
   }
 
-  async executeTrade(executeTradeDto: ExecuteTradeDto, userId: string): Promise<Trade> {
-    this.logger.log(`Executing trade for bid: ${executeTradeDto.bidId} by user: ${userId}`);
+  async executeTrade(
+    executeTradeDto: ExecuteTradeDto,
+    userId: string,
+  ): Promise<Trade> {
+    this.logger.log(
+      `Executing trade for bid: ${executeTradeDto.bidId} by user: ${userId}`,
+    );
 
     const bid = await this.bidRepository.findOne({
       where: { id: executeTradeDto.bidId },
@@ -487,7 +589,9 @@ export class EnergyService {
     });
 
     if (!bid) {
-      throw new NotFoundException(`Bid with ID ${executeTradeDto.bidId} not found`);
+      throw new NotFoundException(
+        `Bid with ID ${executeTradeDto.bidId} not found`,
+      );
     }
 
     if (bid.status !== BidStatus.ACCEPTED) {
@@ -497,8 +601,13 @@ export class EnergyService {
     const isBuyer = bid.listing.type === ListingType.SELL;
     const isSeller = bid.listing.type === ListingType.BUY;
 
-    if ((isBuyer && bid.bidderId !== userId) || (isSeller && bid.listing.createdBy !== userId)) {
-      throw new ForbiddenException('You are not authorized to execute this trade');
+    if (
+      (isBuyer && bid.bidderId !== userId) ||
+      (isSeller && bid.listing.createdBy !== userId)
+    ) {
+      throw new ForbiddenException(
+        'You are not authorized to execute this trade',
+      );
     }
 
     const existingTrade = await this.tradeRepository.findOne({
@@ -509,7 +618,7 @@ export class EnergyService {
       throw new BadRequestException('Trade already exists for this bid');
     }
 
-    const finalPrice = executeTradeDto.negotiatedDiscount 
+    const finalPrice = executeTradeDto.negotiatedDiscount
       ? bid.price * (1 - executeTradeDto.negotiatedDiscount)
       : bid.price;
 
@@ -552,38 +661,48 @@ export class EnergyService {
     if (executeTradeDto.paymentDetails?.paymentSchedule) {
       trade.paymentDetails = {
         ...executeTradeDto.paymentDetails,
-        paymentSchedule: executeTradeDto.paymentDetails.paymentSchedule.map(schedule => ({
-          ...schedule,
-          dueDate: new Date(schedule.dueDate),
-        })),
+        paymentSchedule: executeTradeDto.paymentDetails.paymentSchedule.map(
+          (schedule) => ({
+            ...schedule,
+            dueDate: new Date(schedule.dueDate),
+          }),
+        ),
       };
     }
 
     if (executeTradeDto.contractTerms?.termsAcceptedAt) {
       trade.contractTerms = {
         ...executeTradeDto.contractTerms,
-        termsAcceptedAt: new Date(executeTradeDto.contractTerms.termsAcceptedAt),
+        termsAcceptedAt: new Date(
+          executeTradeDto.contractTerms.termsAcceptedAt,
+        ),
       };
     }
 
     if (executeTradeDto.qualityAssurance?.inspectionDate) {
       trade.qualityAssurance = {
         ...executeTradeDto.qualityAssurance,
-        inspectionDate: new Date(executeTradeDto.qualityAssurance.inspectionDate),
+        inspectionDate: new Date(
+          executeTradeDto.qualityAssurance.inspectionDate,
+        ),
       };
     }
 
     if (executeTradeDto.milestones) {
-      trade.milestones = executeTradeDto.milestones.map(milestone => ({
+      trade.milestones = executeTradeDto.milestones.map((milestone) => ({
         ...milestone,
         dueDate: new Date(milestone.dueDate),
-        completedDate: milestone.completedDate ? new Date(milestone.completedDate) : undefined,
+        completedDate: milestone.completedDate
+          ? new Date(milestone.completedDate)
+          : undefined,
       }));
     }
 
     const savedTrade = await this.tradeRepository.save(trade);
 
-    this.logger.log(`Executed trade: ${savedTrade.id} for bid: ${executeTradeDto.bidId}`);
+    this.logger.log(
+      `Executed trade: ${savedTrade.id} for bid: ${executeTradeDto.bidId}`,
+    );
     return savedTrade;
   }
 
@@ -598,16 +717,22 @@ export class EnergyService {
     }
 
     if (trade.buyerId !== userId && trade.sellerId !== userId) {
-      throw new ForbiddenException('You can only view trades you are involved in');
+      throw new ForbiddenException(
+        'You can only view trades you are involved in',
+      );
     }
 
     return trade;
   }
 
-  async getTradesByUser(userId: string, pagination: PaginationOptions = { page: 1, limit: 10 }): Promise<PaginatedResult<Trade>> {
+  async getTradesByUser(
+    userId: string,
+    pagination: PaginationOptions = { page: 1, limit: 10 },
+  ): Promise<PaginatedResult<Trade>> {
     this.logger.log(`Fetching trades for user: ${userId}`);
 
-    const queryBuilder = this.tradeRepository.createQueryBuilder('trade')
+    const queryBuilder = this.tradeRepository
+      .createQueryBuilder('trade')
       .leftJoinAndSelect('trade.listing', 'listing')
       .leftJoinAndSelect('trade.bid', 'bid')
       .where('trade.buyerId = :userId OR trade.sellerId = :userId', { userId });
@@ -634,12 +759,19 @@ export class EnergyService {
     };
   }
 
-  async updateTradeStatus(id: string, status: TradeStatus, userId: string, reason?: string): Promise<Trade> {
+  async updateTradeStatus(
+    id: string,
+    status: TradeStatus,
+    userId: string,
+    reason?: string,
+  ): Promise<Trade> {
     const trade = await this.getTradeById(id, userId);
 
     const validTransitions = this.getValidStatusTransitions(trade.status);
     if (!validTransitions.includes(status)) {
-      throw new BadRequestException(`Cannot transition from ${trade.status} to ${status}`);
+      throw new BadRequestException(
+        `Cannot transition from ${trade.status} to ${status}`,
+      );
     }
 
     const previousStatus = trade.status;
@@ -678,7 +810,9 @@ export class EnergyService {
 
     const updatedTrade = await this.tradeRepository.save(trade);
 
-    this.logger.log(`Updated trade status: ${id} to ${status} by user: ${userId}`);
+    this.logger.log(
+      `Updated trade status: ${id} to ${status} by user: ${userId}`,
+    );
     return updatedTrade;
   }
 
@@ -699,20 +833,40 @@ export class EnergyService {
     const sellFilter = { ...filter, type: ListingType.SELL };
 
     const [buyOrders, sellOrders] = await Promise.all([
-      this.getListings(buyFilter, { page: 1, limit: 100, sortBy: 'price', sortOrder: 'DESC' }),
-      this.getListings(sellFilter, { page: 1, limit: 100, sortBy: 'price', sortOrder: 'ASC' }),
+      this.getListings(buyFilter, {
+        page: 1,
+        limit: 100,
+        sortBy: 'price',
+        sortOrder: 'DESC',
+      }),
+      this.getListings(sellFilter, {
+        page: 1,
+        limit: 100,
+        sortBy: 'price',
+        sortOrder: 'ASC',
+      }),
     ]);
 
-    const totalBuyQuantity = buyOrders.data.reduce((sum, order) => sum + order.quantity, 0);
-    const totalSellQuantity = sellOrders.data.reduce((sum, order) => sum + order.quantity, 0);
+    const totalBuyQuantity = buyOrders.data.reduce(
+      (sum, order) => sum + order.quantity,
+      0,
+    );
+    const totalSellQuantity = sellOrders.data.reduce(
+      (sum, order) => sum + order.quantity,
+      0,
+    );
 
-    const avgBuyPrice = buyOrders.data.length > 0 
-      ? buyOrders.data.reduce((sum, order) => sum + order.price, 0) / buyOrders.data.length 
-      : 0;
+    const avgBuyPrice =
+      buyOrders.data.length > 0
+        ? buyOrders.data.reduce((sum, order) => sum + order.price, 0) /
+          buyOrders.data.length
+        : 0;
 
-    const avgSellPrice = sellOrders.data.length > 0 
-      ? sellOrders.data.reduce((sum, order) => sum + order.price, 0) / sellOrders.data.length 
-      : 0;
+    const avgSellPrice =
+      sellOrders.data.length > 0
+        ? sellOrders.data.reduce((sum, order) => sum + order.price, 0) /
+          sellOrders.data.length
+        : 0;
 
     const spread = avgSellPrice - avgBuyPrice;
 
@@ -743,7 +897,10 @@ export class EnergyService {
     await this.listingRepository.decrement({ id: listingId }, 'bidCount', 1);
   }
 
-  private async rejectAllBidsForListing(listingId: string, userId: string): Promise<void> {
+  private async rejectAllBidsForListing(
+    listingId: string,
+    userId: string,
+  ): Promise<void> {
     const pendingBids = await this.bidRepository.find({
       where: { listingId, status: BidStatus.PENDING },
     });
@@ -756,10 +913,14 @@ export class EnergyService {
     }
   }
 
-  private async rejectOtherBidsForListing(listingId: string, acceptedBidId: string, manager: Repository<Bid>): Promise<void> {
+  private async rejectOtherBidsForListing(
+    listingId: string,
+    acceptedBidId: string,
+    manager: Repository<Bid>,
+  ): Promise<void> {
     const otherBids = await manager.find({
-      where: { 
-        listingId, 
+      where: {
+        listingId,
         status: BidStatus.PENDING,
         id: Not(acceptedBidId),
       },
@@ -776,10 +937,18 @@ export class EnergyService {
     const transitions: Record<TradeStatus, TradeStatus[]> = {
       [TradeStatus.PENDING]: [TradeStatus.CONFIRMED, TradeStatus.CANCELLED],
       [TradeStatus.CONFIRMED]: [TradeStatus.IN_PROGRESS, TradeStatus.CANCELLED],
-      [TradeStatus.IN_PROGRESS]: [TradeStatus.COMPLETED, TradeStatus.DISPUTED, TradeStatus.CANCELLED],
+      [TradeStatus.IN_PROGRESS]: [
+        TradeStatus.COMPLETED,
+        TradeStatus.DISPUTED,
+        TradeStatus.CANCELLED,
+      ],
       [TradeStatus.COMPLETED]: [TradeStatus.REFUNDED],
       [TradeStatus.CANCELLED]: [],
-      [TradeStatus.DISPUTED]: [TradeStatus.COMPLETED, TradeStatus.CANCELLED, TradeStatus.REFUNDED],
+      [TradeStatus.DISPUTED]: [
+        TradeStatus.COMPLETED,
+        TradeStatus.CANCELLED,
+        TradeStatus.REFUNDED,
+      ],
       [TradeStatus.REFUNDED]: [],
     };
 

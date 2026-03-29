@@ -22,16 +22,18 @@ export class AdvancedRateLimiterService {
     ttl: number = 60000,
   ): Promise<boolean> {
     const key = userId ? `user:${userId}` : `ip:${ip}`;
-    
+
     // In a real-world scenario, we'd use a distributed storage like Redis here.
     // For now, we'll implement a simple in-memory bucket for demonstration.
     // Given the 10k RPS requirement, this should eventually be backed by Redis.
-    
-    this.logger.debug(`Checking rate limit for ${key} (Limit: ${limit}, TTL: ${ttl}ms)`);
-    
+
+    this.logger.debug(
+      `Checking rate limit for ${key} (Limit: ${limit}, TTL: ${ttl}ms)`,
+    );
+
     // Placeholder for actual rate limiting logic
     // In production, this would call Redis or another distributed cache
-    return true; 
+    return true;
   }
 
   /**

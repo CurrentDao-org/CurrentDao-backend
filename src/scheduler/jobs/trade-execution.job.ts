@@ -2,8 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { ScheduledJob, JobStatus, RetryStrategy } from '../entities/scheduled-job.entity';
-import { Trade, TradeStatus, PaymentStatus, DeliveryStatus } from '../../energy/entities/trade.entity';
+import {
+  ScheduledJob,
+  JobStatus,
+  RetryStrategy,
+} from '../entities/scheduled-job.entity';
+import {
+  Trade,
+  TradeStatus,
+  PaymentStatus,
+  DeliveryStatus,
+} from '../../energy/entities/trade.entity';
 
 export interface TradeExecutionResult {
   success: boolean;
@@ -51,7 +60,9 @@ export class TradeExecutionJob {
         return;
       }
 
-      this.logger.log(`Found ${pendingJobs.length} pending trade execution jobs`);
+      this.logger.log(
+        `Found ${pendingJobs.length} pending trade execution jobs`,
+      );
 
       for (const job of pendingJobs) {
         await this.executeTradeJob(job);
@@ -63,7 +74,7 @@ export class TradeExecutionJob {
 
   async executeTradeJob(job: ScheduledJob): Promise<TradeExecutionResult> {
     const startTime = Date.now();
-    
+
     this.logger.log(`Executing trade job: ${job.id} - ${job.name}`);
 
     try {
@@ -71,7 +82,9 @@ export class TradeExecutionJob {
 
       if (job.marketHoursOnly && !this.isWithinMarketHours(job.timeZone)) {
         await this.rescheduleForMarketHours(job);
-        return this.createResult(false, [], [], 0, Date.now() - startTime, { reason: 'Outside market hours' });
+        return this.createResult(false, [], [], 0, Date.now() - startTime, {
+          reason: 'Outside market hours',
+        });
       }
 
       const result = await this.processTradeExecution(job);
@@ -79,21 +92,26 @@ export class TradeExecutionJob {
       await this.updateJobCompletion(job, result);
 
       const executionTime = Date.now() - startTime;
-      this.logger.log(`Trade job ${job.id} completed in ${executionTime}ms. Processed: ${result.totalProcessed}, Success: ${result.success}`);
+      this.logger.log(
+        `Trade job ${job.id} completed in ${executionTime}ms. Processed: ${result.totalProcessed}, Success: ${result.success}`,
+      );
 
       return result;
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
       this.logger.error(`Trade job ${job.id} failed`, error);
 
       await this.handleJobFailure(job, error, executionTime);
 
-      return this.createResult(false, [], [], 0, executionTime, { error: error.message });
+      return this.createResult(false, [], [], 0, executionTime, {
+        error: error.message,
+      });
     }
   }
 
-  private async processTradeExecution(job: ScheduledJob): Promise<TradeExecutionResult> {
+  private async processTradeExecution(
+    job: ScheduledJob,
+  ): Promise<TradeExecutionResult> {
     const parameters = job.parameters || {};
     const tradeId = parameters.tradeId;
 
@@ -104,7 +122,10 @@ export class TradeExecutionJob {
     }
   }
 
-  private async executeSingleTrade(tradeId: string, job: ScheduledJob): Promise<TradeExecutionResult> {
+  private async executeSingleTrade(
+    tradeId: string,
+    job: ScheduledJob,
+  ): Promise<TradeExecutionResult> {
     const startTime = Date.now();
 
     try {
@@ -117,8 +138,13 @@ export class TradeExecutionJob {
         throw new Error(`Trade ${tradeId} not found`);
       }
 
-      if (trade.status !== TradeStatus.PENDING && trade.status !== TradeStatus.CONFIRMED) {
-        throw new Error(`Trade ${tradeId} is not in executable status: ${trade.status}`);
+      if (
+        trade.status !== TradeStatus.PENDING &&
+        trade.status !== TradeStatus.CONFIRMED
+      ) {
+        throw new Error(
+          `Trade ${tradeId} is not in executable status: ${trade.status}`,
+        );
       }
 
       const result = await this.performTradeExecution(trade, job);
@@ -131,16 +157,17 @@ export class TradeExecutionJob {
         executionTime: Date.now() - startTime,
         details: result,
       };
-
     } catch (error) {
       return {
         success: false,
         processedTrades: [],
-        failedTrades: [{
-          tradeId,
-          error: error.message,
-          retryable: this.isRetryableError(error),
-        }],
+        failedTrades: [
+          {
+            tradeId,
+            error: error.message,
+            retryable: this.isRetryableError(error),
+          },
+        ],
         totalProcessed: 0,
         executionTime: Date.now() - startTime,
         details: { error: error.message },
@@ -148,11 +175,17 @@ export class TradeExecutionJob {
     }
   }
 
-  private async executeBatchTrades(job: ScheduledJob): Promise<TradeExecutionResult> {
+  private async executeBatchTrades(
+    job: ScheduledJob,
+  ): Promise<TradeExecutionResult> {
     const startTime = Date.now();
     const batchSize = job.parameters?.batchSize || 10;
     const processedTrades: string[] = [];
-    const failedTrades: Array<{ tradeId: string; error: string; retryable: boolean }> = [];
+    const failedTrades: Array<{
+      tradeId: string;
+      error: string;
+      retryable: boolean;
+    }> = [];
 
     try {
       const pendingTrades = await this.tradeRepository.find({
@@ -171,7 +204,7 @@ export class TradeExecutionJob {
         try {
           const result = await this.performTradeExecution(trade, job);
           processedTrades.push(trade.id);
-          
+
           this.logger.debug(`Successfully executed trade ${trade.id}`);
         } catch (error) {
           failedTrades.push({
@@ -179,7 +212,7 @@ export class TradeExecutionJob {
             error: error.message,
             retryable: this.isRetryableError(error),
           });
-          
+
           this.logger.error(`Failed to execute trade ${trade.id}`, error);
         }
       }
@@ -198,7 +231,6 @@ export class TradeExecutionJob {
           successRate: processedTrades.length / totalProcessed,
         },
       };
-
     } catch (error) {
       return {
         success: false,
@@ -211,8 +243,11 @@ export class TradeExecutionJob {
     }
   }
 
-  private async performTradeExecution(trade: Trade, job: ScheduledJob): Promise<any> {
-    return await this.dataSource.transaction(async manager => {
+  private async performTradeExecution(
+    trade: Trade,
+    job: ScheduledJob,
+  ): Promise<any> {
+    return await this.dataSource.transaction(async (manager) => {
       const executionDetails = {
         executedAt: new Date(),
         executedBy: job.id,
@@ -221,7 +256,7 @@ export class TradeExecutionJob {
 
       trade.status = TradeStatus.IN_PROGRESS;
       trade.deliveryStatus = DeliveryStatus.SCHEDULED;
-      
+
       if (!trade.auditTrail) trade.auditTrail = [];
       trade.auditTrail.push({
         timestamp: new Date(),
@@ -249,7 +284,10 @@ export class TradeExecutionJob {
     });
   }
 
-  private async initializeDeliveryProcess(trade: Trade, manager: any): Promise<void> {
+  private async initializeDeliveryProcess(
+    trade: Trade,
+    manager: any,
+  ): Promise<void> {
     if (trade.deliveryDetails?.deliveryDate) {
       const deliveryDate = new Date(trade.deliveryDetails.deliveryDate);
       const now = new Date();
@@ -265,12 +303,18 @@ export class TradeExecutionJob {
     }
   }
 
-  private async triggerNotifications(trade: Trade, event: string, manager: any): Promise<void> {
+  private async triggerNotifications(
+    trade: Trade,
+    event: string,
+    manager: any,
+  ): Promise<void> {
     this.logger.log(`Triggering ${event} notifications for trade ${trade.id}`);
-    
   }
 
-  private async updateJobStatus(job: ScheduledJob, status: JobStatus): Promise<void> {
+  private async updateJobStatus(
+    job: ScheduledJob,
+    status: JobStatus,
+  ): Promise<void> {
     job.status = status;
     job.updatedAt = new Date();
 
@@ -281,7 +325,10 @@ export class TradeExecutionJob {
     await this.scheduledJobRepository.save(job);
   }
 
-  private async updateJobCompletion(job: ScheduledJob, result: TradeExecutionResult): Promise<void> {
+  private async updateJobCompletion(
+    job: ScheduledJob,
+    result: TradeExecutionResult,
+  ): Promise<void> {
     job.status = result.success ? JobStatus.COMPLETED : JobStatus.FAILED;
     job.completedAt = new Date();
     job.result = {
@@ -292,15 +339,16 @@ export class TradeExecutionJob {
       duration: result.executionTime,
     };
 
-    if (!job.metrics) job.metrics = {
-      executionCount: 0,
-      successCount: 0,
-      failureCount: 0,
-      avgExecutionTime: 0,
-      minExecutionTime: 0,
-      maxExecutionTime: 0,
-      totalExecutionTime: 0,
-    };
+    if (!job.metrics)
+      job.metrics = {
+        executionCount: 0,
+        successCount: 0,
+        failureCount: 0,
+        avgExecutionTime: 0,
+        minExecutionTime: 0,
+        maxExecutionTime: 0,
+        totalExecutionTime: 0,
+      };
 
     job.metrics.executionCount++;
     if (result.success) {
@@ -310,12 +358,16 @@ export class TradeExecutionJob {
     }
 
     job.metrics.totalExecutionTime += result.executionTime;
-    job.metrics.avgExecutionTime = job.metrics.totalExecutionTime / job.metrics.executionCount;
-    
-    if (job.metrics.minExecutionTime === 0 || result.executionTime < job.metrics.minExecutionTime) {
+    job.metrics.avgExecutionTime =
+      job.metrics.totalExecutionTime / job.metrics.executionCount;
+
+    if (
+      job.metrics.minExecutionTime === 0 ||
+      result.executionTime < job.metrics.minExecutionTime
+    ) {
       job.metrics.minExecutionTime = result.executionTime;
     }
-    
+
     if (result.executionTime > job.metrics.maxExecutionTime) {
       job.metrics.maxExecutionTime = result.executionTime;
     }
@@ -328,7 +380,11 @@ export class TradeExecutionJob {
     await this.scheduledJobRepository.save(job);
   }
 
-  private async handleJobFailure(job: ScheduledJob, error: any, executionTime: number): Promise<void> {
+  private async handleJobFailure(
+    job: ScheduledJob,
+    error: any,
+    executionTime: number,
+  ): Promise<void> {
     job.retryCount++;
     job.status = JobStatus.FAILED;
     job.completedAt = new Date();
@@ -364,7 +420,9 @@ export class TradeExecutionJob {
     ];
 
     const errorMessage = error?.message?.toUpperCase() || '';
-    return retryableErrors.some(retryableError => errorMessage.includes(retryableError));
+    return retryableErrors.some((retryableError) =>
+      errorMessage.includes(retryableError),
+    );
   }
 
   private calculateNextRetryTime(job: ScheduledJob): Date {
@@ -397,7 +455,7 @@ export class TradeExecutionJob {
   private calculateNextRunTime(job: ScheduledJob): Date {
     const now = new Date();
     const nextRun = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Next day by default
-    
+
     if (job.scheduling?.endDate && nextRun > job.scheduling.endDate) {
       job.scheduling.isActive = false;
     }
@@ -407,28 +465,31 @@ export class TradeExecutionJob {
 
   private isWithinMarketHours(timeZone: string = 'UTC'): boolean {
     const now = new Date();
-    
+
     try {
       const options: Intl.DateTimeFormatOptions = {
         timeZone,
         hour: '2-digit',
         hour12: false,
       };
-      
+
       const timeString = now.toLocaleTimeString('en-US', options);
       const currentHour = parseInt(timeString);
-      
+
       const dayOptions: Intl.DateTimeFormatOptions = {
         timeZone,
         weekday: 'long',
       };
-      
+
       const dayString = now.toLocaleDateString('en-US', dayOptions);
       const isWeekday = !['Saturday', 'Sunday'].includes(dayString);
-      
+
       return isWeekday && currentHour >= 9 && currentHour < 17;
     } catch (error) {
-      this.logger.warn(`Error checking market hours for timezone ${timeZone}`, error);
+      this.logger.warn(
+        `Error checking market hours for timezone ${timeZone}`,
+        error,
+      );
       return true; // Default to allowing execution
     }
   }
@@ -437,34 +498,41 @@ export class TradeExecutionJob {
     const nextMarketOpen = this.getNextMarketOpen(job.timeZone);
     job.scheduledAt = nextMarketOpen;
     job.status = JobStatus.PENDING;
-    
+
     await this.scheduledJobRepository.save(job);
-    
-    this.logger.log(`Job ${job.id} rescheduled for market open at ${nextMarketOpen.toISOString()}`);
+
+    this.logger.log(
+      `Job ${job.id} rescheduled for market open at ${nextMarketOpen.toISOString()}`,
+    );
   }
 
   private getNextMarketOpen(timeZone: string = 'UTC'): Date {
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    
+
     try {
       const marketOpen = new Date(tomorrow);
       marketOpen.setUTCHours(14, 0, 0, 0); // 9:00 AM EST (2:00 PM UTC)
-      
+
       const options: Intl.DateTimeFormatOptions = {
         timeZone,
         weekday: 'long',
       };
-      
+
       const dayString = marketOpen.toLocaleDateString('en-US', options);
-      
+
       if (['Saturday', 'Sunday'].includes(dayString)) {
-        marketOpen.setDate(marketOpen.getDate() + (dayString === 'Saturday' ? 2 : 1));
+        marketOpen.setDate(
+          marketOpen.getDate() + (dayString === 'Saturday' ? 2 : 1),
+        );
       }
-      
+
       return marketOpen;
     } catch (error) {
-      this.logger.warn(`Error calculating next market open for timezone ${timeZone}`, error);
+      this.logger.warn(
+        `Error calculating next market open for timezone ${timeZone}`,
+        error,
+      );
       return new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now as fallback
     }
   }

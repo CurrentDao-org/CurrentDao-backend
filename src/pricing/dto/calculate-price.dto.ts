@@ -1,4 +1,12 @@
-import { IsString, IsNumber, IsOptional, IsBoolean, Min, Max, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+  Min,
+  Max,
+  IsEnum,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum EnergyType {
@@ -7,7 +15,7 @@ export enum EnergyType {
   HYDRO = 'hydro',
   NUCLEAR = 'nuclear',
   FOSSIL = 'fossil',
-  GEOTHERMAL = 'geothermal'
+  GEOTHERMAL = 'geothermal',
 }
 
 export class CalculatePriceDto {

@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SecurityEvent, SeverityLevel } from '../entities/security-event.entity';
+import {
+  SecurityEvent,
+  SeverityLevel,
+} from '../entities/security-event.entity';
 
 export interface AlertPayload {
   eventId: string;
@@ -83,30 +86,38 @@ export class SecurityAlertService {
     }
   }
 
-  private async determineRecipients(event: SecurityEvent): Promise<AlertRecipient[]> {
+  private async determineRecipients(
+    event: SecurityEvent,
+  ): Promise<AlertRecipient[]> {
     const recipients: AlertRecipient[] = [];
 
     // Configure based on severity
     if (event.severity === SeverityLevel.CRITICAL) {
       recipients.push(
-        { type: 'pagerduty', address: process.env.PAGERDUTY_INTEGRATION_URL! },
-        { type: 'slack', address: process.env.SLACK_CRITICAL_WEBHOOK_URL! },
+        { type: 'pagerduty', address: process.env.PAGERDUTY_INTEGRATION_URL },
+        { type: 'slack', address: process.env.SLACK_CRITICAL_WEBHOOK_URL },
       );
     } else if (event.severity === SeverityLevel.HIGH) {
       recipients.push(
-        { type: 'slack', address: process.env.SLACK_HIGH_WEBHOOK_URL! },
-        { type: 'email', address: process.env.SECURITY_TEAM_EMAIL! },
+        { type: 'slack', address: process.env.SLACK_HIGH_WEBHOOK_URL },
+        { type: 'email', address: process.env.SECURITY_TEAM_EMAIL },
       );
     } else if (event.severity === SeverityLevel.MEDIUM) {
-      recipients.push({ type: 'email', address: process.env.SECURITY_TEAM_EMAIL! });
+      recipients.push({
+        type: 'email',
+        address: process.env.SECURITY_TEAM_EMAIL,
+      });
     }
 
     // Add webhooks for compliance monitoring
     if (process.env.COMPLIANCE_WEBHOOK_URL) {
-      recipients.push({ type: 'webhook', address: process.env.COMPLIANCE_WEBHOOK_URL });
+      recipients.push({
+        type: 'webhook',
+        address: process.env.COMPLIANCE_WEBHOOK_URL,
+      });
     }
 
-    return recipients.filter(r => r.address);
+    return recipients.filter((r) => r.address);
   }
 
   private async sendEmail(address: string, alert: AlertPayload): Promise<void> {
@@ -116,7 +127,7 @@ export class SecurityAlertService {
 
   private async sendWebhook(url: string, alert: AlertPayload): Promise<void> {
     this.logger.log(`Sending webhook alert to ${url}`);
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -134,11 +145,14 @@ export class SecurityAlertService {
     }
   }
 
-  private async sendSlack(webhookUrl: string, alert: AlertPayload): Promise<void> {
+  private async sendSlack(
+    webhookUrl: string,
+    alert: AlertPayload,
+  ): Promise<void> {
     this.logger.log(`Sending Slack alert`);
-    
+
     const color = this.getSeverityColor(alert.severity);
-    
+
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -148,10 +162,18 @@ export class SecurityAlertService {
             color,
             title: `🚨 Security Alert: ${alert.type}`,
             fields: [
-              { title: 'Severity', value: alert.severity.toUpperCase(), short: true },
+              {
+                title: 'Severity',
+                value: alert.severity.toUpperCase(),
+                short: true,
+              },
               { title: 'Event ID', value: alert.eventId, short: true },
               { title: 'Description', value: alert.description, short: false },
-              { title: 'Time', value: alert.timestamp.toISOString(), short: true },
+              {
+                title: 'Time',
+                value: alert.timestamp.toISOString(),
+                short: true,
+              },
             ],
             footer: 'Security Monitoring System',
             ts: Math.floor(alert.timestamp.getTime() / 1000),
@@ -167,7 +189,7 @@ export class SecurityAlertService {
 
   private async sendPagerDuty(url: string, alert: AlertPayload): Promise<void> {
     this.logger.log(`Sending PagerDuty alert`);
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

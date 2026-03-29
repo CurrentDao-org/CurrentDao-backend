@@ -85,7 +85,9 @@ describe('FraudMlService', () => {
       };
 
       const result = await service.analyzeTrade(normalTrade);
-      expect([FraudSeverity.LOW, FraudSeverity.MEDIUM]).toContain(result.severity);
+      expect([FraudSeverity.LOW, FraudSeverity.MEDIUM]).toContain(
+        result.severity,
+      );
     });
 
     it('should return higher score for high-volume anomaly', async () => {
@@ -182,7 +184,9 @@ describe('FraudMlService', () => {
         traderId: `trader-${i % 10}`,
       }));
 
-      const results = await Promise.all(trades.map((t) => service.analyzeTrade(t)));
+      const results = await Promise.all(
+        trades.map((t) => service.analyzeTrade(t)),
+      );
       expect(results).toHaveLength(100);
       expect(results.every((r) => r.score >= 0)).toBe(true);
     });

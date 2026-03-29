@@ -14,7 +14,7 @@ export class ReductionAnalyticsService {
       },
       {
         area: 'Renewable Integration',
-        potentialReduction: 0.40,
+        potentialReduction: 0.4,
         implementationCost: 150000,
         paybackPeriod: 36,
       },
@@ -23,7 +23,7 @@ export class ReductionAnalyticsService {
 
   async trackReductionProgress(targetPercent: number): Promise<any> {
     const currentReduction = 0.22; // 22% achieved
-    
+
     return {
       target: targetPercent,
       current: currentReduction,

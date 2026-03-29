@@ -1,4 +1,14 @@
-import { IsEnum, IsNumber, IsBoolean, IsOptional, IsArray, IsString, Min, Max, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  IsString,
+  Min,
+  Max,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum EnergyType {

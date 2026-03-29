@@ -9,10 +9,7 @@ import { PerformanceOptimizer } from './optimizers/performance.optimizer';
 import { RecoveryService } from './recovery/recovery.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([SyncState]),
-    ScheduleModule.forRoot(),
-  ],
+  imports: [TypeOrmModule.forFeature([SyncState]), ScheduleModule.forRoot()],
   providers: [
     SyncService,
     ConflictResolver,

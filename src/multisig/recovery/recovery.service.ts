@@ -1,9 +1,22 @@
-import { Injectable, NotFoundException, BadRequestException, Logger, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { MultisigWallet, WalletStatus } from '../entities/multisig-wallet.entity';
-import { Signature, SignatureStatus, TransactionType } from '../entities/signature.entity';
+import {
+  MultisigWallet,
+  WalletStatus,
+} from '../entities/multisig-wallet.entity';
+import {
+  Signature,
+  SignatureStatus,
+  TransactionType,
+} from '../entities/signature.entity';
 import { InitiateRecoveryDto } from '../dto/multisig.dto';
 
 export interface RecoveryRequest {
@@ -32,7 +45,10 @@ export class RecoveryService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async initiateRecovery(initiateRecoveryDto: InitiateRecoveryDto, initiatorId: string): Promise<RecoveryRequest> {
+  async initiateRecovery(
+    initiateRecoveryDto: InitiateRecoveryDto,
+    initiatorId: string,
+  ): Promise<RecoveryRequest> {
     const wallet = await this.walletRepository.findOne({
       where: { id: initiateRecoveryDto.walletId },
       relations: ['signatures'],
@@ -47,16 +63,22 @@ export class RecoveryService {
     }
 
     if (wallet.status === WalletStatus.RECOVERY) {
-      throw new ConflictException('Recovery is already in progress for this wallet');
+      throw new ConflictException(
+        'Recovery is already in progress for this wallet',
+      );
     }
 
     if (wallet.status === WalletStatus.TERMINATED) {
-      throw new BadRequestException('Cannot initiate recovery for terminated wallet');
+      throw new BadRequestException(
+        'Cannot initiate recovery for terminated wallet',
+      );
     }
 
     this.validateRecoveryRequest(wallet, initiateRecoveryDto);
 
-    const recoveryTransactionHash = await this.generateRecoveryTransactionHash(wallet.id);
+    const recoveryTransactionHash = await this.generateRecoveryTransactionHash(
+      wallet.id,
+    );
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + this.RECOVERY_EXPIRY_HOURS);
 
@@ -64,7 +86,7 @@ export class RecoveryService {
       wallet.status = WalletStatus.RECOVERY;
       wallet.recoveryInitiatedAt = new Date();
       wallet.recoveryInitiatedBy = initiatorId;
-      
+
       if (initiateRecoveryDto.newThreshold) {
         wallet.recoveryThreshold = initiateRecoveryDto.newThreshold;
       }
@@ -75,7 +97,10 @@ export class RecoveryService {
         walletId: wallet.id,
         transactionHash: recoveryTransactionHash,
         signerId: initiatorId,
-        signature: await this.generateRecoverySignature(initiatorId, recoveryTransactionHash),
+        signature: await this.generateRecoverySignature(
+          initiatorId,
+          recoveryTransactionHash,
+        ),
         status: SignatureStatus.COLLECTED,
         transactionType: TransactionType.EMERGENCY_RECOVERY,
         transactionData: {
@@ -97,16 +122,25 @@ export class RecoveryService {
       await manager.save(recoverySignature);
     });
 
-    const recoveryRequest = await this.buildRecoveryRequest(wallet, recoveryTransactionHash);
+    const recoveryRequest = await this.buildRecoveryRequest(
+      wallet,
+      recoveryTransactionHash,
+    );
 
     await this.notifySignersOfRecoveryInitiation(wallet, recoveryRequest);
     await this.auditRecoveryInitiation(wallet, recoveryRequest, initiatorId);
 
-    this.logger.log(`Recovery initiated for wallet ${wallet.id} by ${initiatorId}`);
+    this.logger.log(
+      `Recovery initiated for wallet ${wallet.id} by ${initiatorId}`,
+    );
     return recoveryRequest;
   }
 
-  async signRecovery(walletId: string, transactionHash: string, signerId: string): Promise<Signature> {
+  async signRecovery(
+    walletId: string,
+    transactionHash: string,
+    signerId: string,
+  ): Promise<Signature> {
     const wallet = await this.walletRepository.findOne({
       where: { id: walletId },
     });
@@ -140,24 +174,34 @@ export class RecoveryService {
       },
     });
 
-    const requiredSignatures = Math.ceil(wallet.signers.length * this.SUPER_MAJORITY_THRESHOLD);
+    const requiredSignatures = Math.ceil(
+      wallet.signers.length * this.SUPER_MAJORITY_THRESHOLD,
+    );
 
     if (recoverySignatures.length >= requiredSignatures) {
-      throw new BadRequestException('Sufficient recovery signatures already collected');
+      throw new BadRequestException(
+        'Sufficient recovery signatures already collected',
+      );
     }
 
     const signature = this.signatureRepository.create({
       walletId,
       transactionHash,
       signerId,
-      signature: await this.generateRecoverySignature(signerId, transactionHash),
+      signature: await this.generateRecoverySignature(
+        signerId,
+        transactionHash,
+      ),
       status: SignatureStatus.COLLECTED,
       transactionType: TransactionType.EMERGENCY_RECOVERY,
       transactionData: {
         recoveryType: 'approval',
         walletId,
       },
-      expiresAt: new Date(wallet.recoveryInitiatedAt!.getTime() + (this.RECOVERY_EXPIRY_HOURS * 60 * 60 * 1000)),
+      expiresAt: new Date(
+        wallet.recoveryInitiatedAt.getTime() +
+          this.RECOVERY_EXPIRY_HOURS * 60 * 60 * 1000,
+      ),
       signedAt: new Date(),
     });
 
@@ -166,12 +210,19 @@ export class RecoveryService {
     if (recoverySignatures.length + 1 >= requiredSignatures) {
       await this.executeRecovery(wallet, transactionHash);
     } else {
-      await this.notifyRecoveryProgress(wallet, transactionHash, recoverySignatures.length + 1, requiredSignatures);
+      await this.notifyRecoveryProgress(
+        wallet,
+        transactionHash,
+        recoverySignatures.length + 1,
+        requiredSignatures,
+      );
     }
 
     await this.auditRecoverySignature(wallet, savedSignature);
 
-    this.logger.log(`Recovery signature added for wallet ${walletId} by ${signerId}`);
+    this.logger.log(
+      `Recovery signature added for wallet ${walletId} by ${signerId}`,
+    );
     return savedSignature;
   }
 
@@ -197,10 +248,17 @@ export class RecoveryService {
       order: { signedAt: 'ASC' },
     });
 
-    return await this.buildRecoveryRequest(wallet, recoverySignatures[0]?.transactionHash);
+    return await this.buildRecoveryRequest(
+      wallet,
+      recoverySignatures[0]?.transactionHash,
+    );
   }
 
-  async cancelRecovery(walletId: string, cancellerId: string, reason: string): Promise<void> {
+  async cancelRecovery(
+    walletId: string,
+    cancellerId: string,
+    reason: string,
+  ): Promise<void> {
     const wallet = await this.walletRepository.findOne({
       where: { id: walletId },
     });
@@ -214,31 +272,39 @@ export class RecoveryService {
     }
 
     if (!wallet.signers.includes(cancellerId)) {
-      throw new BadRequestException('Canceller is not authorized for this wallet');
+      throw new BadRequestException(
+        'Canceller is not authorized for this wallet',
+      );
     }
 
     await this.dataSource.transaction(async (manager) => {
       wallet.status = WalletStatus.ACTIVE;
       wallet.recoveryInitiatedAt = null;
       wallet.recoveryInitiatedBy = null;
-      
+
       await manager.save(wallet);
 
-      await manager.update(Signature, {
-        walletId,
-        transactionType: TransactionType.EMERGENCY_RECOVERY,
-        status: SignatureStatus.PENDING,
-      }, {
-        status: SignatureStatus.REVOKED,
-        revokedAt: new Date(),
-        revocationReason: `Recovery cancelled: ${reason}`,
-      });
+      await manager.update(
+        Signature,
+        {
+          walletId,
+          transactionType: TransactionType.EMERGENCY_RECOVERY,
+          status: SignatureStatus.PENDING,
+        },
+        {
+          status: SignatureStatus.REVOKED,
+          revokedAt: new Date(),
+          revocationReason: `Recovery cancelled: ${reason}`,
+        },
+      );
     });
 
     await this.notifyRecoveryCancellation(wallet, reason);
     await this.auditRecoveryCancellation(wallet, cancellerId, reason);
 
-    this.logger.log(`Recovery cancelled for wallet ${walletId} by ${cancellerId}`);
+    this.logger.log(
+      `Recovery cancelled for wallet ${walletId} by ${cancellerId}`,
+    );
   }
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -246,7 +312,9 @@ export class RecoveryService {
     const expiredRecoveryWallets = await this.walletRepository.find({
       where: {
         status: WalletStatus.RECOVERY,
-        recoveryInitiatedAt: new Date(Date.now() - (this.RECOVERY_EXPIRY_HOURS * 60 * 60 * 1000)),
+        recoveryInitiatedAt: new Date(
+          Date.now() - this.RECOVERY_EXPIRY_HOURS * 60 * 60 * 1000,
+        ),
       },
     });
 
@@ -255,11 +323,16 @@ export class RecoveryService {
     }
 
     if (expiredRecoveryWallets.length > 0) {
-      this.logger.log(`Cleaned up ${expiredRecoveryWallets.length} expired recovery processes`);
+      this.logger.log(
+        `Cleaned up ${expiredRecoveryWallets.length} expired recovery processes`,
+      );
     }
   }
 
-  private async executeRecovery(wallet: MultisigWallet, transactionHash: string): Promise<void> {
+  private async executeRecovery(
+    wallet: MultisigWallet,
+    transactionHash: string,
+  ): Promise<void> {
     try {
       const recoverySignatures = await this.signatureRepository.find({
         where: {
@@ -270,18 +343,20 @@ export class RecoveryService {
         },
       });
 
-      const initiationSignature = recoverySignatures.find(s => 
-        s.transactionData?.recoveryType === 'initiation'
+      const initiationSignature = recoverySignatures.find(
+        (s) => s.transactionData?.recoveryType === 'initiation',
       );
 
-      const newSigners = initiationSignature?.transactionData?.newSigners || wallet.signers;
-      const newThreshold = initiationSignature?.transactionData?.newThreshold || wallet.threshold;
+      const newSigners =
+        initiationSignature?.transactionData?.newSigners || wallet.signers;
+      const newThreshold =
+        initiationSignature?.transactionData?.newThreshold || wallet.threshold;
 
       await this.updateMultisigAccount(
         wallet.address,
         newSigners,
         newThreshold,
-        recoverySignatures.map(s => s.signature),
+        recoverySignatures.map((s) => s.signature),
       );
 
       await this.dataSource.transaction(async (manager) => {
@@ -290,25 +365,31 @@ export class RecoveryService {
         wallet.status = WalletStatus.ACTIVE;
         wallet.recoveryInitiatedAt = null;
         wallet.recoveryInitiatedBy = null;
-        
+
         await manager.save(wallet);
 
-        await manager.update(Signature, {
-          walletId: wallet.id,
-          transactionHash,
-        }, {
-          status: SignatureStatus.EXECUTED,
-          executedAt: new Date(),
-        });
+        await manager.update(
+          Signature,
+          {
+            walletId: wallet.id,
+            transactionHash,
+          },
+          {
+            status: SignatureStatus.EXECUTED,
+            executedAt: new Date(),
+          },
+        );
       });
 
       await this.notifyRecoveryCompletion(wallet, newSigners, newThreshold);
       await this.auditRecoveryCompletion(wallet, recoverySignatures);
 
       this.logger.log(`Recovery completed for wallet ${wallet.id}`);
-
     } catch (error) {
-      this.logger.error(`Failed to execute recovery for wallet ${wallet.id}:`, error);
+      this.logger.error(
+        `Failed to execute recovery for wallet ${wallet.id}:`,
+        error,
+      );
       throw new BadRequestException('Recovery execution failed');
     }
   }
@@ -318,16 +399,20 @@ export class RecoveryService {
       wallet.status = WalletStatus.ACTIVE;
       wallet.recoveryInitiatedAt = null;
       wallet.recoveryInitiatedBy = null;
-      
+
       await manager.save(wallet);
 
-      await manager.update(Signature, {
-        walletId: wallet.id,
-        transactionType: TransactionType.EMERGENCY_RECOVERY,
-        status: SignatureStatus.PENDING,
-      }, {
-        status: SignatureStatus.EXPIRED,
-      });
+      await manager.update(
+        Signature,
+        {
+          walletId: wallet.id,
+          transactionType: TransactionType.EMERGENCY_RECOVERY,
+          status: SignatureStatus.PENDING,
+        },
+        {
+          status: SignatureStatus.EXPIRED,
+        },
+      );
     });
 
     await this.notifyRecoveryExpiry(wallet);
@@ -336,7 +421,10 @@ export class RecoveryService {
     this.logger.log(`Recovery expired for wallet ${wallet.id}`);
   }
 
-  private async buildRecoveryRequest(wallet: MultisigWallet, transactionHash?: string): Promise<RecoveryRequest> {
+  private async buildRecoveryRequest(
+    wallet: MultisigWallet,
+    transactionHash?: string,
+  ): Promise<RecoveryRequest> {
     const recoverySignatures = await this.signatureRepository.find({
       where: {
         walletId: wallet.id,
@@ -346,15 +434,20 @@ export class RecoveryService {
       order: { signedAt: 'ASC' },
     });
 
-    const initiationSignature = recoverySignatures.find(s => 
-      s.transactionData?.recoveryType === 'initiation'
+    const initiationSignature = recoverySignatures.find(
+      (s) => s.transactionData?.recoveryType === 'initiation',
     );
 
-    const requiredSignatures = Math.ceil(wallet.signers.length * this.SUPER_MAJORITY_THRESHOLD);
+    const requiredSignatures = Math.ceil(
+      wallet.signers.length * this.SUPER_MAJORITY_THRESHOLD,
+    );
     const isApproved = recoverySignatures.length >= requiredSignatures;
 
     let status: RecoveryRequest['status'] = 'pending';
-    if (wallet.status === WalletStatus.ACTIVE && recoverySignatures.length > 0) {
+    if (
+      wallet.status === WalletStatus.ACTIVE &&
+      recoverySignatures.length > 0
+    ) {
       status = 'completed';
     } else if (isApproved) {
       status = 'approved';
@@ -370,21 +463,34 @@ export class RecoveryService {
       newSigners: initiationSignature?.transactionData?.newSigners,
       recoverySignatures,
       initiatedAt: wallet.recoveryInitiatedAt || new Date(),
-      expiresAt: wallet.recoveryInitiatedAt ? 
-        new Date(wallet.recoveryInitiatedAt.getTime() + (this.RECOVERY_EXPIRY_HOURS * 60 * 60 * 1000)) : 
-        new Date(),
+      expiresAt: wallet.recoveryInitiatedAt
+        ? new Date(
+            wallet.recoveryInitiatedAt.getTime() +
+              this.RECOVERY_EXPIRY_HOURS * 60 * 60 * 1000,
+          )
+        : new Date(),
       status,
     };
   }
 
-  private validateRecoveryRequest(wallet: MultisigWallet, dto: InitiateRecoveryDto): void {
-    if (dto.newSigners && (dto.newSigners.length < 2 || dto.newSigners.length > 15)) {
-      throw new BadRequestException('New signers count must be between 2 and 15');
+  private validateRecoveryRequest(
+    wallet: MultisigWallet,
+    dto: InitiateRecoveryDto,
+  ): void {
+    if (
+      dto.newSigners &&
+      (dto.newSigners.length < 2 || dto.newSigners.length > 15)
+    ) {
+      throw new BadRequestException(
+        'New signers count must be between 2 and 15',
+      );
     }
 
     if (dto.newThreshold && dto.newSigners) {
       if (dto.newThreshold < 2 || dto.newThreshold > dto.newSigners.length) {
-        throw new BadRequestException('New threshold must be between 2 and new signers count');
+        throw new BadRequestException(
+          'New threshold must be between 2 and new signers count',
+        );
       }
     }
 
@@ -395,17 +501,26 @@ export class RecoveryService {
       }
     }
 
-    const superMajorityRequired = Math.ceil(wallet.signers.length * this.SUPER_MAJORITY_THRESHOLD);
+    const superMajorityRequired = Math.ceil(
+      wallet.signers.length * this.SUPER_MAJORITY_THRESHOLD,
+    );
     if (wallet.signers.length < superMajorityRequired) {
-      throw new BadRequestException('Insufficient signers for super-majority recovery');
+      throw new BadRequestException(
+        'Insufficient signers for super-majority recovery',
+      );
     }
   }
 
-  private async generateRecoveryTransactionHash(walletId: string): Promise<string> {
+  private async generateRecoveryTransactionHash(
+    walletId: string,
+  ): Promise<string> {
     return `recovery_${walletId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private async generateRecoverySignature(signerId: string, transactionHash: string): Promise<string> {
+  private async generateRecoverySignature(
+    signerId: string,
+    transactionHash: string,
+  ): Promise<string> {
     return `recovery_sig_${signerId}_${transactionHash}_${Date.now()}`;
   }
 
@@ -413,20 +528,41 @@ export class RecoveryService {
     console.log(`Recovery expired for wallet ${wallet.id}`);
   }
 
-  private async notifySignersOfRecoveryInitiation(wallet: MultisigWallet, recoveryRequest: RecoveryRequest): Promise<void> {
-    console.log(`Notifying signers of recovery initiation for wallet ${wallet.id}`);
+  private async notifySignersOfRecoveryInitiation(
+    wallet: MultisigWallet,
+    recoveryRequest: RecoveryRequest,
+  ): Promise<void> {
+    console.log(
+      `Notifying signers of recovery initiation for wallet ${wallet.id}`,
+    );
   }
 
-  private async notifyRecoveryProgress(wallet: MultisigWallet, transactionHash: string, collected: number, required: number): Promise<void> {
-    console.log(`Notifying recovery progress: ${collected}/${required} for wallet ${wallet.id}`);
+  private async notifyRecoveryProgress(
+    wallet: MultisigWallet,
+    transactionHash: string,
+    collected: number,
+    required: number,
+  ): Promise<void> {
+    console.log(
+      `Notifying recovery progress: ${collected}/${required} for wallet ${wallet.id}`,
+    );
   }
 
-  private async notifyRecoveryCompletion(wallet: MultisigWallet, newSigners: string[], newThreshold: number): Promise<void> {
+  private async notifyRecoveryCompletion(
+    wallet: MultisigWallet,
+    newSigners: string[],
+    newThreshold: number,
+  ): Promise<void> {
     console.log(`Notifying recovery completion for wallet ${wallet.id}`);
   }
 
-  private async notifyRecoveryCancellation(wallet: MultisigWallet, reason: string): Promise<void> {
-    console.log(`Notifying recovery cancellation for wallet ${wallet.id}: ${reason}`);
+  private async notifyRecoveryCancellation(
+    wallet: MultisigWallet,
+    reason: string,
+  ): Promise<void> {
+    console.log(
+      `Notifying recovery cancellation for wallet ${wallet.id}: ${reason}`,
+    );
   }
 
   private async updateMultisigAccount(
@@ -436,22 +572,44 @@ export class RecoveryService {
     signatures: string[],
   ): Promise<void> {
     // Placeholder for Stellar account update
-    console.log(`Updating multisig account ${walletAddress} with ${newSigners.length} signers and threshold ${newThreshold}`);
+    console.log(
+      `Updating multisig account ${walletAddress} with ${newSigners.length} signers and threshold ${newThreshold}`,
+    );
   }
 
-  private async auditRecoveryInitiation(wallet: MultisigWallet, recoveryRequest: RecoveryRequest, initiatorId: string): Promise<void> {
+  private async auditRecoveryInitiation(
+    wallet: MultisigWallet,
+    recoveryRequest: RecoveryRequest,
+    initiatorId: string,
+  ): Promise<void> {
     console.log(`Recovery initiated for wallet ${wallet.id} by ${initiatorId}`);
   }
 
-  private async auditRecoverySignature(wallet: MultisigWallet, signature: Signature): Promise<void> {
-    console.log(`Recovery signature added for wallet ${wallet.id} by ${signature.signerId}`);
+  private async auditRecoverySignature(
+    wallet: MultisigWallet,
+    signature: Signature,
+  ): Promise<void> {
+    console.log(
+      `Recovery signature added for wallet ${wallet.id} by ${signature.signerId}`,
+    );
   }
 
-  private async auditRecoveryCompletion(wallet: MultisigWallet, signatures: Signature[]): Promise<void> {
-    console.log(`Recovery completed for wallet ${wallet.id} with ${signatures.length} signatures`);
+  private async auditRecoveryCompletion(
+    wallet: MultisigWallet,
+    signatures: Signature[],
+  ): Promise<void> {
+    console.log(
+      `Recovery completed for wallet ${wallet.id} with ${signatures.length} signatures`,
+    );
   }
 
-  private async auditRecoveryCancellation(wallet: MultisigWallet, cancellerId: string, reason: string): Promise<void> {
-    console.log(`Recovery cancelled for wallet ${wallet.id} by ${cancellerId}: ${reason}`);
+  private async auditRecoveryCancellation(
+    wallet: MultisigWallet,
+    cancellerId: string,
+    reason: string,
+  ): Promise<void> {
+    console.log(
+      `Recovery cancelled for wallet ${wallet.id} by ${cancellerId}: ${reason}`,
+    );
   }
 }

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum SyncStatus {
   IDLE = 'idle',
@@ -6,13 +13,13 @@ export enum SyncStatus {
   CONFLICT = 'conflict',
   PARTITIONED = 'partitioned',
   RECOVERING = 'recovering',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 export enum SyncType {
   FULL = 'full',
   INCREMENTAL = 'incremental',
-  RECOVERY = 'recovery'
+  RECOVERY = 'recovery',
 }
 
 @Entity('sync_states')

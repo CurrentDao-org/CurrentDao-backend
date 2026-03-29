@@ -47,9 +47,7 @@ export class GasOptimizerService {
       baseline,
     );
 
-    const optimizedFee = String(
-      Math.max(baseline, prediction.predictedFee),
-    );
+    const optimizedFee = String(Math.max(baseline, prediction.predictedFee));
 
     this.logger.debug(
       `Optimised fee for ${network}/${priority}: ${optimizedFee} stroops ` +

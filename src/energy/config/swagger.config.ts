@@ -3,7 +3,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 export function setupSwagger(app) {
   const config = new DocumentBuilder()
     .setTitle('Energy Trading API')
-    .setDescription('Comprehensive RESTful API for energy trading operations including listings, bids, and trade management')
+    .setDescription(
+      'Comprehensive RESTful API for energy trading operations including listings, bids, and trade management',
+    )
     .setVersion('1.0.0')
     .addTag('energy', 'Energy trading operations')
     .addBearerAuth(
@@ -37,7 +39,10 @@ export function setupSwagger(app) {
     .addLicense('MIT', 'https://opensource.org/licenses/MIT')
     .addExternalDoc('API Documentation', 'https://docs.currentdao.com/api')
     .addExternalDoc('Postman Collection', 'https://docs.currentdao.com/postman')
-    .addExternalDoc('OpenAPI Specification', 'https://docs.currentdao.com/openapi.json')
+    .addExternalDoc(
+      'OpenAPI Specification',
+      'https://docs.currentdao.com/openapi.json',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {
@@ -79,7 +84,8 @@ export function setupSwagger(app) {
 
 export const swaggerConfig = {
   title: 'Energy Trading API',
-  description: 'Comprehensive RESTful API for energy trading operations including listings, bids, and trade management',
+  description:
+    'Comprehensive RESTful API for energy trading operations including listings, bids, and trade management',
   version: '1.0.0',
   termsOfService: 'https://currentdao.com/terms',
   contact: {
@@ -201,7 +207,8 @@ export const swaggerConfig = {
   tags: [
     {
       name: 'energy',
-      description: 'Energy trading operations including listings, bids, and trades',
+      description:
+        'Energy trading operations including listings, bids, and trades',
     },
     {
       name: 'listings',
@@ -229,7 +236,8 @@ export const swaggerConfig = {
       get: {
         tags: ['energy', 'listings'],
         summary: 'Browse energy listings with pagination and filters',
-        description: 'Retrieve a paginated list of energy listings with optional filtering by various criteria',
+        description:
+          'Retrieve a paginated list of energy listings with optional filtering by various criteria',
         operationId: 'getListings',
         parameters: [
           {
@@ -247,7 +255,15 @@ export const swaggerConfig = {
             description: 'Filter by energy type',
             schema: {
               type: 'string',
-              enum: ['solar', 'wind', 'hydro', 'nuclear', 'fossil', 'biomass', 'geothermal'],
+              enum: [
+                'solar',
+                'wind',
+                'hydro',
+                'nuclear',
+                'fossil',
+                'biomass',
+                'geothermal',
+              ],
             },
           },
           {

@@ -19,7 +19,17 @@ export interface AlertRule {
 
 export interface AlertCondition {
   field: string;
-  operator: 'eq' | 'ne' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains' | 'regex' | 'exists' | 'not_exists';
+  operator:
+    | 'eq'
+    | 'ne'
+    | 'gt'
+    | 'lt'
+    | 'gte'
+    | 'lte'
+    | 'contains'
+    | 'regex'
+    | 'exists'
+    | 'not_exists';
   value?: any;
   time_window_minutes?: number;
   threshold?: number;
@@ -85,13 +95,13 @@ export class LogAlertService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log('Initializing log alert service');
-    
+
     // Load alert rules from configuration
     await this.loadAlertRules();
-    
+
     // Start alert monitoring
     this.startAlertMonitoring();
-    
+
     this.logger.log('Log alert service initialized');
   }
 
@@ -342,16 +352,16 @@ export class LogAlertService implements OnModuleInit {
 
   async checkAlertConditions(): Promise<void> {
     const now = new Date();
-    
+
     for (const [ruleId, rule] of this.alertRules.entries()) {
       if (!rule.enabled) continue;
-      
+
       // Check cooldown
       if (this.isInCooldown(ruleId, now)) continue;
-      
+
       // Check hourly limit
       if (this.exceedsHourlyLimit(ruleId, now)) continue;
-      
+
       try {
         const shouldAlert = await this.evaluateRule(rule, now);
         if (shouldAlert) {
@@ -365,18 +375,18 @@ export class LogAlertService implements OnModuleInit {
 
   private async evaluateRule(rule: AlertRule, now: Date): Promise<boolean> {
     const searchQuery = this.buildSearchQueryFromRule(rule, now);
-    
+
     try {
       const response = await this.elasticsearchService.searchLogs(searchQuery);
       const hitCount = response.hits?.total?.value || 0;
-      
+
       // Check if any condition threshold is met
       for (const condition of rule.conditions) {
         if (condition.threshold && hitCount >= condition.threshold) {
           return true;
         }
       }
-      
+
       return false;
     } catch (error) {
       this.logger.error(`Failed to evaluate rule ${rule.id}`, error);
@@ -403,7 +413,9 @@ export class LogAlertService implements OnModuleInit {
     };
 
     // Add time range if specified
-    const maxTimeWindow = Math.max(...rule.conditions.map(c => c.time_window_minutes || 0));
+    const maxTimeWindow = Math.max(
+      ...rule.conditions.map((c) => c.time_window_minutes || 0),
+    );
     if (maxTimeWindow > 0) {
       const startTime = new Date(now.getTime() - maxTimeWindow * 60 * 1000);
       query.query.bool.filter.push({
@@ -432,7 +444,9 @@ export class LogAlertService implements OnModuleInit {
       case 'eq':
         return { term: { [condition.field]: condition.value } };
       case 'ne':
-        return { bool: { must_not: { term: { [condition.field]: condition.value } } } };
+        return {
+          bool: { must_not: { term: { [condition.field]: condition.value } } },
+        };
       case 'gt':
         return { range: { [condition.field]: { gt: condition.value } } };
       case 'lt':
@@ -456,7 +470,7 @@ export class LogAlertService implements OnModuleInit {
 
   private async triggerAlert(rule: AlertRule, now: Date): Promise<void> {
     const alertId = `${rule.id}_${now.getTime()}`;
-    
+
     const alert: Alert = {
       id: alertId,
       rule_id: rule.id,
@@ -472,19 +486,19 @@ export class LogAlertService implements OnModuleInit {
     // Store alert
     this.activeAlerts.set(alertId, alert);
     this.alertHistory.push(alert);
-    
+
     // Update metrics
     this.updateAlertMetrics(alert);
-    
+
     // Set cooldown
     this.setCooldown(rule.id, now);
-    
+
     // Increment counter
     this.incrementAlertCounter(rule.id, now);
-    
+
     // Execute actions
     await this.executeAlertActions(alert, rule);
-    
+
     this.logger.log(`Alert triggered: ${rule.name} (${alertId})`);
   }
 
@@ -492,14 +506,14 @@ export class LogAlertService implements OnModuleInit {
     try {
       const searchQuery = this.buildSearchQueryFromRule(rule, new Date());
       const response = await this.elasticsearchService.searchLogs(searchQuery);
-      
+
       const hits = response.hits?.hits || [];
-      const recentLogs = hits.slice(0, 10).map(hit => hit._source);
-      
+      const recentLogs = hits.slice(0, 10).map((hit) => hit._source);
+
       return {
         total_hits: response.hits?.total?.value || 0,
         recent_logs: recentLogs,
-        time_window: `${Math.max(...rule.conditions.map(c => c.time_window_minutes || 0))} minutes`,
+        time_window: `${Math.max(...rule.conditions.map((c) => c.time_window_minutes || 0))} minutes`,
       };
     } catch (error) {
       this.logger.error('Failed to get alert details', error);
@@ -507,12 +521,15 @@ export class LogAlertService implements OnModuleInit {
     }
   }
 
-  private async executeAlertActions(alert: Alert, rule: AlertRule): Promise<NotificationResult[]> {
+  private async executeAlertActions(
+    alert: Alert,
+    rule: AlertRule,
+  ): Promise<NotificationResult[]> {
     const results: NotificationResult[] = [];
-    
+
     for (const action of rule.actions) {
       if (!action.enabled) continue;
-      
+
       try {
         const result = await this.executeAction(alert, action);
         results.push(result);
@@ -526,11 +543,14 @@ export class LogAlertService implements OnModuleInit {
         });
       }
     }
-    
+
     return results;
   }
 
-  private async executeAction(alert: Alert, action: AlertAction): Promise<NotificationResult> {
+  private async executeAction(
+    alert: Alert,
+    action: AlertAction,
+  ): Promise<NotificationResult> {
     switch (action.type) {
       case 'email':
         return await this.sendEmailAlert(alert, action.config);
@@ -549,11 +569,14 @@ export class LogAlertService implements OnModuleInit {
     }
   }
 
-  private async sendEmailAlert(alert: Alert, config: any): Promise<NotificationResult> {
+  private async sendEmailAlert(
+    alert: Alert,
+    config: any,
+  ): Promise<NotificationResult> {
     try {
       // Implementation would depend on your email service
       this.logger.log(`Email alert sent to ${config.recipients?.join(', ')}`);
-      
+
       return {
         action_type: 'email',
         success: true,
@@ -565,7 +588,10 @@ export class LogAlertService implements OnModuleInit {
     }
   }
 
-  private async sendSlackAlert(alert: Alert, config: any): Promise<NotificationResult> {
+  private async sendSlackAlert(
+    alert: Alert,
+    config: any,
+  ): Promise<NotificationResult> {
     try {
       const payload = {
         channel: config.channel || '#alerts',
@@ -608,7 +634,7 @@ export class LogAlertService implements OnModuleInit {
 
       // Implementation would use fetch or http client to send to Slack webhook
       this.logger.log(`Slack alert sent to ${config.channel}`);
-      
+
       return {
         action_type: 'slack',
         success: true,
@@ -620,7 +646,10 @@ export class LogAlertService implements OnModuleInit {
     }
   }
 
-  private async sendWebhookAlert(alert: Alert, config: any): Promise<NotificationResult> {
+  private async sendWebhookAlert(
+    alert: Alert,
+    config: any,
+  ): Promise<NotificationResult> {
     try {
       const payload = {
         alert_id: alert.id,
@@ -634,7 +663,7 @@ export class LogAlertService implements OnModuleInit {
 
       // Implementation would use fetch or http client to send webhook
       this.logger.log(`Webhook alert sent to ${config.url}`);
-      
+
       return {
         action_type: 'webhook',
         success: true,
@@ -646,7 +675,10 @@ export class LogAlertService implements OnModuleInit {
     }
   }
 
-  private async sendPagerDutyAlert(alert: Alert, config: any): Promise<NotificationResult> {
+  private async sendPagerDutyAlert(
+    alert: Alert,
+    config: any,
+  ): Promise<NotificationResult> {
     try {
       const payload = {
         routing_key: config.service_key,
@@ -664,7 +696,7 @@ export class LogAlertService implements OnModuleInit {
 
       // Implementation would use PagerDuty API
       this.logger.log(`PagerDuty alert sent`);
-      
+
       return {
         action_type: 'pagerduty',
         success: true,
@@ -676,7 +708,10 @@ export class LogAlertService implements OnModuleInit {
     }
   }
 
-  private async sendTeamsAlert(alert: Alert, config: any): Promise<NotificationResult> {
+  private async sendTeamsAlert(
+    alert: Alert,
+    config: any,
+  ): Promise<NotificationResult> {
     try {
       const payload = {
         '@type': 'MessageCard',
@@ -699,7 +734,7 @@ export class LogAlertService implements OnModuleInit {
 
       // Implementation would use fetch or http client to send to Teams webhook
       this.logger.log(`Teams alert sent`);
-      
+
       return {
         action_type: 'teams',
         success: true,
@@ -711,13 +746,16 @@ export class LogAlertService implements OnModuleInit {
     }
   }
 
-  private async sendSMSAlert(alert: Alert, config: any): Promise<NotificationResult> {
+  private async sendSMSAlert(
+    alert: Alert,
+    config: any,
+  ): Promise<NotificationResult> {
     try {
       const message = `CurrentDAO Alert: ${alert.message} (${alert.severity.toUpperCase()})`;
-      
+
       // Implementation would use SMS service like Twilio
       this.logger.log(`SMS alert sent to ${config.phone_numbers?.join(', ')}`);
-      
+
       return {
         action_type: 'sms',
         success: true,
@@ -747,11 +785,11 @@ export class LogAlertService implements OnModuleInit {
   private isInCooldown(ruleId: string, now: Date): boolean {
     const cooldownEnd = this.alertCooldowns.get(ruleId);
     if (!cooldownEnd) return false;
-    
+
     if (now < cooldownEnd) {
       return true;
     }
-    
+
     this.alertCooldowns.delete(ruleId);
     return false;
   }
@@ -759,54 +797,59 @@ export class LogAlertService implements OnModuleInit {
   private setCooldown(ruleId: string, now: Date): void {
     const rule = this.alertRules.get(ruleId);
     if (!rule) return;
-    
-    const cooldownEnd = new Date(now.getTime() + rule.cooldown_minutes * 60 * 1000);
+
+    const cooldownEnd = new Date(
+      now.getTime() + rule.cooldown_minutes * 60 * 1000,
+    );
     this.alertCooldowns.set(ruleId, cooldownEnd);
   }
 
   private exceedsHourlyLimit(ruleId: string, now: Date): boolean {
     const counter = this.alertCounters.get(ruleId);
     if (!counter) return false;
-    
+
     const rule = this.alertRules.get(ruleId);
     if (!rule) return false;
-    
+
     return counter >= rule.max_alerts_per_hour;
   }
 
   private incrementAlertCounter(ruleId: string, now: Date): void {
     const currentCount = this.alertCounters.get(ruleId) || 0;
     this.alertCounters.set(ruleId, currentCount + 1);
-    
+
     // Reset counter after an hour
-    setTimeout(() => {
-      const count = this.alertCounters.get(ruleId) || 0;
-      if (count > 0) {
-        this.alertCounters.set(ruleId, count - 1);
-      }
-    }, 60 * 60 * 1000);
+    setTimeout(
+      () => {
+        const count = this.alertCounters.get(ruleId) || 0;
+        if (count > 0) {
+          this.alertCounters.set(ruleId, count - 1);
+        }
+      },
+      60 * 60 * 1000,
+    );
   }
 
   private updateAlertMetrics(alert: Alert): void {
     this.alertMetrics.total_alerts++;
     this.alertMetrics.active_alerts++;
-    
+
     // Update severity count
     const severity = alert.severity;
-    this.alertMetrics.alerts_by_severity[severity] = 
+    this.alertMetrics.alerts_by_severity[severity] =
       (this.alertMetrics.alerts_by_severity[severity] || 0) + 1;
-    
+
     // Update rule count
     const ruleId = alert.rule_id;
-    this.alertMetrics.alerts_by_rule[ruleId] = 
+    this.alertMetrics.alerts_by_rule[ruleId] =
       (this.alertMetrics.alerts_by_rule[ruleId] || 0) + 1;
-    
+
     // Update frequency trend
     const now = new Date();
     const existingTrend = this.alertMetrics.alert_frequency_trend.find(
-      t => t.timestamp.getHours() === now.getHours()
+      (t) => t.timestamp.getHours() === now.getHours(),
     );
-    
+
     if (existingTrend) {
       existingTrend.count++;
     } else {
@@ -815,7 +858,7 @@ export class LogAlertService implements OnModuleInit {
         count: 1,
       });
     }
-    
+
     // Keep only last 24 hours of trend data
     if (this.alertMetrics.alert_frequency_trend.length > 24) {
       this.alertMetrics.alert_frequency_trend.shift();
@@ -826,7 +869,7 @@ export class LogAlertService implements OnModuleInit {
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupOldAlerts(): Promise<void> {
     const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
-    
+
     for (const [alertId, alert] of this.activeAlerts.entries()) {
       if (alert.triggered_at < cutoffTime) {
         alert.status = 'resolved';
@@ -849,12 +892,15 @@ export class LogAlertService implements OnModuleInit {
     this.logger.log(`Alert rule created: ${rule.name}`);
   }
 
-  async updateAlertRule(ruleId: string, updates: Partial<AlertRule>): Promise<void> {
+  async updateAlertRule(
+    ruleId: string,
+    updates: Partial<AlertRule>,
+  ): Promise<void> {
     const existingRule = this.alertRules.get(ruleId);
     if (!existingRule) {
       throw new Error(`Alert rule ${ruleId} not found`);
     }
-    
+
     const updatedRule = { ...existingRule, ...updates };
     this.alertRules.set(ruleId, updatedRule);
     this.logger.log(`Alert rule updated: ${ruleId}`);
@@ -865,7 +911,7 @@ export class LogAlertService implements OnModuleInit {
     if (!deleted) {
       throw new Error(`Alert rule ${ruleId} not found`);
     }
-    
+
     this.logger.log(`Alert rule deleted: ${ruleId}`);
   }
 
@@ -881,16 +927,19 @@ export class LogAlertService implements OnModuleInit {
     return this.alertHistory.slice(-limit);
   }
 
-  async acknowledgeAlert(alertId: string, acknowledgedBy: string): Promise<void> {
+  async acknowledgeAlert(
+    alertId: string,
+    acknowledgedBy: string,
+  ): Promise<void> {
     const alert = this.activeAlerts.get(alertId);
     if (!alert) {
       throw new Error(`Alert ${alertId} not found`);
     }
-    
+
     alert.status = 'acknowledged';
     alert.acknowledged_by = acknowledgedBy;
     alert.acknowledged_at = new Date();
-    
+
     this.logger.log(`Alert acknowledged: ${alertId} by ${acknowledgedBy}`);
   }
 
@@ -899,12 +948,12 @@ export class LogAlertService implements OnModuleInit {
     if (!alert) {
       throw new Error(`Alert ${alertId} not found`);
     }
-    
+
     alert.status = 'resolved';
     alert.resolved_at = new Date();
     this.activeAlerts.delete(alertId);
     this.alertMetrics.active_alerts--;
-    
+
     this.logger.log(`Alert resolved: ${alertId}`);
   }
 
@@ -917,7 +966,7 @@ export class LogAlertService implements OnModuleInit {
     if (!rule) {
       throw new Error(`Alert rule ${ruleId} not found`);
     }
-    
+
     try {
       const shouldAlert = await this.evaluateRule(rule, new Date());
       return shouldAlert;

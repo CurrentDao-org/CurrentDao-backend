@@ -27,7 +27,9 @@ describe('CircuitBreakerService', () => {
       for (let i = 0; i < 5; i++) {
         await service.reportFailure();
       }
-      await expect(service.checkCircuit()).rejects.toThrow(InternalServerErrorException);
+      await expect(service.checkCircuit()).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 
@@ -49,7 +51,9 @@ describe('CircuitBreakerService', () => {
         await expect(service.checkCircuit()).resolves.not.toThrow();
       }
       await service.reportFailure(); // 5th failure
-      await expect(service.checkCircuit()).rejects.toThrow(InternalServerErrorException);
+      await expect(service.checkCircuit()).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 });

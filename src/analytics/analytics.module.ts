@@ -8,9 +8,7 @@ import { UserPerformanceReport } from './reports/user-performance.report';
 import { MarketEfficiencyReport } from './reports/market-efficiency.report';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AnalyticsData])
-  ],
+  imports: [TypeOrmModule.forFeature([AnalyticsData])],
   providers: [
     AnalyticsService,
     TradingVolumeReport,

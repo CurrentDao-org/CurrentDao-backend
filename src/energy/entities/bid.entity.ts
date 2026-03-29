@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { EnergyListing, ListingType } from './energy-listing.entity';
 
 export enum BidStatus {
@@ -130,7 +138,13 @@ export class Bid {
   @Column({ name: 'auto_accept', default: false })
   autoAccept: boolean;
 
-  @Column({ name: 'auto_reject_threshold', type: 'decimal', precision: 3, scale: 2, nullable: true })
+  @Column({
+    name: 'auto_reject_threshold',
+    type: 'decimal',
+    precision: 3,
+    scale: 2,
+    nullable: true,
+  })
   autoRejectThreshold?: number;
 
   @Column({ name: 'expires_at', type: 'datetime', nullable: true })
@@ -190,7 +204,9 @@ export class Bid {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => EnergyListing, listing => listing.bids, { onDelete: 'CASCADE' })
+  @ManyToOne(() => EnergyListing, (listing) => listing.bids, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'listing_id' })
   listing: EnergyListing;
 

@@ -17,7 +17,10 @@ export class RealTimeTrackerService {
     };
   }
 
-  async getHistoricalData(timeRange: { start: Date; end: Date }): Promise<any[]> {
+  async getHistoricalData(timeRange: {
+    start: Date;
+    end: Date;
+  }): Promise<any[]> {
     return [
       { timestamp: new Date(), emissions: 120 },
       { timestamp: new Date(Date.now() - 900000), emissions: 125 },

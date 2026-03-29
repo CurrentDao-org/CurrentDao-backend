@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber, IsEnum, IsDateString } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsDateString,
+} from 'class-validator';
 import { SentimentType, SourceType } from '../entities/sentiment-data.entity';
 
 export class SentimentQueryDto {
@@ -18,12 +24,20 @@ export class SentimentQueryDto {
   @IsDateString()
   endDate?: string;
 
-  @ApiProperty({ description: 'Sentiment type filter', required: false, enum: SentimentType })
+  @ApiProperty({
+    description: 'Sentiment type filter',
+    required: false,
+    enum: SentimentType,
+  })
   @IsOptional()
   @IsEnum(SentimentType)
   sentimentType?: SentimentType;
 
-  @ApiProperty({ description: 'Source type filter', required: false, enum: SourceType })
+  @ApiProperty({
+    description: 'Source type filter',
+    required: false,
+    enum: SourceType,
+  })
   @IsOptional()
   @IsEnum(SourceType)
   sourceType?: SourceType;

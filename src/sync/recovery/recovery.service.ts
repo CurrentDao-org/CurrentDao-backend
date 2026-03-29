@@ -8,7 +8,11 @@ import { takeWhile, switchMap, catchError } from 'rxjs/operators';
 import { SyncState, SyncStatus, SyncType } from '../entities/sync-state.entity';
 
 export interface RecoveryEvent {
-  type: 'recovery_started' | 'recovery_progress' | 'recovery_completed' | 'recovery_failed';
+  type:
+    | 'recovery_started'
+    | 'recovery_progress'
+    | 'recovery_completed'
+    | 'recovery_failed';
   timestamp: Date;
   entityType: string;
   entityId: string;
@@ -27,7 +31,11 @@ export interface RecoveryMetrics {
 }
 
 export interface RecoveryStrategy {
-  type: 'full_sync' | 'incremental_sync' | 'checkpoint_restore' | 'manual_intervention';
+  type:
+    | 'full_sync'
+    | 'incremental_sync'
+    | 'checkpoint_restore'
+    | 'manual_intervention';
   priority: 'low' | 'medium' | 'high' | 'critical';
   estimatedDuration: number;
   dataLossRisk: 'none' | 'low' | 'medium' | 'high';
@@ -60,7 +68,7 @@ export class RecoveryService {
 
   async initiateRecovery(syncState: SyncState | null): Promise<void> {
     this.logger.log('Initiating recovery process');
-    
+
     const recoveryStartTime = Date.now();
     this.isRecovering.next(true);
 
@@ -74,11 +82,13 @@ export class RecoveryService {
       const recoveryDuration = Date.now() - recoveryStartTime;
       await this.updateRecoveryMetrics(true, recoveryDuration);
 
-      this.logger.log(`Recovery completed successfully in ${recoveryDuration}ms`);
+      this.logger.log(
+        `Recovery completed successfully in ${recoveryDuration}ms`,
+      );
     } catch (error) {
       const recoveryDuration = Date.now() - recoveryStartTime;
       await this.updateRecoveryMetrics(false, recoveryDuration);
-      
+
       this.logger.error('Recovery failed', error);
       throw error;
     } finally {
@@ -101,16 +111,19 @@ export class RecoveryService {
       try {
         await this.recoverSingleEntity(syncState);
       } catch (error) {
-        this.logger.error(`Failed to recover ${syncState.entityType}:${syncState.entityId}`, error);
+        this.logger.error(
+          `Failed to recover ${syncState.entityType}:${syncState.entityId}`,
+          error,
+        );
       }
     }
   }
 
   private async recoverSingleEntity(syncState: SyncState): Promise<void> {
     const recoveryId = `${syncState.entityType}:${syncState.entityId}`;
-    
+
     this.logger.log(`Starting recovery for ${recoveryId}`);
-    
+
     this.recoveryEvents.next({
       type: 'recovery_started',
       timestamp: new Date(),
@@ -155,7 +168,6 @@ export class RecoveryService {
       });
 
       this.activeRecoveries.delete(recoveryId);
-      
     } catch (error) {
       syncState.status = SyncStatus.ERROR;
       syncState.errorMessage = error.message;
@@ -174,10 +186,12 @@ export class RecoveryService {
     }
   }
 
-  private async determineRecoveryStrategy(syncState: SyncState): Promise<RecoveryStrategy> {
+  private async determineRecoveryStrategy(
+    syncState: SyncState,
+  ): Promise<RecoveryStrategy> {
     const currentLedger = await this.getCurrentLedgerSequence();
     const ledgerGap = currentLedger - syncState.lastLedgerSequence;
-    const timeSinceLastSync = syncState.lastSuccessfulSyncAt 
+    const timeSinceLastSync = syncState.lastSuccessfulSyncAt
       ? Date.now() - syncState.lastSuccessfulSyncAt.getTime()
       : Infinity;
 
@@ -200,7 +214,8 @@ export class RecoveryService {
       };
     }
 
-    if (ledgerGap > 1000 || timeSinceLastSync > 3600000) { // 1 hour
+    if (ledgerGap > 1000 || timeSinceLastSync > 3600000) {
+      // 1 hour
       return {
         type: 'full_sync',
         priority: 'medium',
@@ -218,14 +233,16 @@ export class RecoveryService {
   }
 
   private async performFullSync(syncState: SyncState): Promise<void> {
-    this.logger.log(`Performing full sync for ${syncState.entityType}:${syncState.entityId}`);
+    this.logger.log(
+      `Performing full sync for ${syncState.entityType}:${syncState.entityId}`,
+    );
 
     syncState.status = SyncStatus.RECOVERING;
     syncState.syncType = SyncType.FULL;
     await this.syncStateRepository.save(syncState);
 
     const currentLedger = await this.getCurrentLedgerSequence();
-    
+
     // Reset to a safe starting point
     syncState.lastLedgerSequence = Math.max(0, currentLedger - 1000);
     syncState.targetLedgerSequence = currentLedger;
@@ -233,17 +250,24 @@ export class RecoveryService {
 
     // Process in batches
     const batchSize = 100;
-    for (let sequence = syncState.lastLedgerSequence; sequence <= currentLedger; sequence += batchSize) {
+    for (
+      let sequence = syncState.lastLedgerSequence;
+      sequence <= currentLedger;
+      sequence += batchSize
+    ) {
       const endSequence = Math.min(sequence + batchSize - 1, currentLedger);
-      
+
       try {
         await this.processLedgerBatch(syncState, sequence, endSequence);
-        
+
         syncState.lastLedgerSequence = endSequence;
         await this.syncStateRepository.save(syncState);
 
         // Report progress
-        const progress = ((endSequence - syncState.lastLedgerSequence + 1000) / (currentLedger - 1000 + 1)) * 100;
+        const progress =
+          ((endSequence - syncState.lastLedgerSequence + 1000) /
+            (currentLedger - 1000 + 1)) *
+          100;
         this.recoveryEvents.next({
           type: 'recovery_progress',
           timestamp: new Date(),
@@ -251,16 +275,20 @@ export class RecoveryService {
           entityId: syncState.entityId,
           progress: Math.round(progress),
         });
-
       } catch (error) {
-        this.logger.error(`Failed to process batch ${sequence}-${endSequence}`, error);
+        this.logger.error(
+          `Failed to process batch ${sequence}-${endSequence}`,
+          error,
+        );
         throw error;
       }
     }
   }
 
   private async performIncrementalSync(syncState: SyncState): Promise<void> {
-    this.logger.log(`Performing incremental sync for ${syncState.entityType}:${syncState.entityId}`);
+    this.logger.log(
+      `Performing incremental sync for ${syncState.entityType}:${syncState.entityId}`,
+    );
 
     syncState.status = SyncStatus.RECOVERING;
     syncState.syncType = SyncType.INCREMENTAL;
@@ -268,20 +296,22 @@ export class RecoveryService {
 
     const currentLedger = await this.getCurrentLedgerSequence();
     const startSequence = syncState.lastLedgerSequence + 1;
-    
+
     // Process missed ledgers
     await this.processLedgerBatch(syncState, startSequence, currentLedger);
-    
+
     syncState.lastLedgerSequence = currentLedger;
     await this.syncStateRepository.save(syncState);
   }
 
   private async performCheckpointRestore(syncState: SyncState): Promise<void> {
-    this.logger.log(`Performing checkpoint restore for ${syncState.entityType}:${syncState.entityId}`);
+    this.logger.log(
+      `Performing checkpoint restore for ${syncState.entityType}:${syncState.entityId}`,
+    );
 
     // Find the last known good checkpoint
     const checkpoint = await this.findLastGoodCheckpoint(syncState);
-    
+
     if (!checkpoint) {
       throw new Error('No valid checkpoint found for restore');
     }
@@ -297,25 +327,32 @@ export class RecoveryService {
   }
 
   private async requestManualIntervention(syncState: SyncState): Promise<void> {
-    this.logger.error(`Manual intervention required for ${syncState.entityType}:${syncState.entityId}`);
-    
+    this.logger.error(
+      `Manual intervention required for ${syncState.entityType}:${syncState.entityId}`,
+    );
+
     // Create incident ticket
     await this.createIncidentTicket(syncState);
-    
+
     // Send alert
     await this.sendAlert(syncState);
-    
+
     // Mark as awaiting manual intervention
     syncState.status = SyncStatus.ERROR;
     syncState.errorMessage = 'Manual intervention required';
     await this.syncStateRepository.save(syncState);
   }
 
-  private async processLedgerBatch(syncState: SyncState, startSequence: number, endSequence: number): Promise<void> {
+  private async processLedgerBatch(
+    syncState: SyncState,
+    startSequence: number,
+    endSequence: number,
+  ): Promise<void> {
     for (let sequence = startSequence; sequence <= endSequence; sequence++) {
       try {
         const ledger = await this.server.ledgers().ledger(sequence).call();
-        const transactions = await this.server.transactions()
+        const transactions = await this.server
+          .transactions()
           .forLedger(sequence)
           .order('asc')
           .limit(100)
@@ -325,7 +362,6 @@ export class RecoveryService {
         for (const tx of transactions.records) {
           await this.processTransactionForRecovery(tx, syncState);
         }
-
       } catch (error) {
         this.logger.error(`Failed to process ledger ${sequence}`, error);
         throw error;
@@ -333,20 +369,25 @@ export class RecoveryService {
     }
   }
 
-  private async processTransactionForRecovery(tx: any, syncState: SyncState): Promise<void> {
+  private async processTransactionForRecovery(
+    tx: any,
+    syncState: SyncState,
+  ): Promise<void> {
     // Implement transaction processing logic for recovery
     // This would be similar to the normal sync processing but with additional validation
     try {
       // Validate transaction
       await this.validateTransaction(tx);
-      
+
       // Apply transaction
       await this.applyTransactionForRecovery(tx);
-      
+
       syncState.transactionsProcessed++;
-      
     } catch (error) {
-      this.logger.error(`Failed to process transaction ${tx.id} during recovery`, error);
+      this.logger.error(
+        `Failed to process transaction ${tx.id} during recovery`,
+        error,
+      );
       throw error;
     }
   }
@@ -356,7 +397,7 @@ export class RecoveryService {
     if (!tx.id || !tx.hash) {
       throw new Error('Invalid transaction structure');
     }
-    
+
     // Additional validation logic here
   }
 
@@ -365,12 +406,14 @@ export class RecoveryService {
     // This would update your database based on the transaction
   }
 
-  private async findLastGoodCheckpoint(syncState: SyncState): Promise<{ ledgerSequence: number; timestamp: Date } | null> {
+  private async findLastGoodCheckpoint(
+    syncState: SyncState,
+  ): Promise<{ ledgerSequence: number; timestamp: Date } | null> {
     // This would query your checkpoints table for the last known good state
     // For now, return a simple checkpoint based on time
     const oneHourAgo = new Date(Date.now() - 3600000);
     const currentLedger = await this.getCurrentLedgerSequence();
-    
+
     return {
       ledgerSequence: Math.max(0, currentLedger - 3600), // Approximate 1 hour of ledgers
       timestamp: oneHourAgo,
@@ -379,17 +422,25 @@ export class RecoveryService {
 
   private async createIncidentTicket(syncState: SyncState): Promise<void> {
     // Create incident in your incident management system
-    this.logger.error(`Incident created for ${syncState.entityType}:${syncState.entityId}`);
+    this.logger.error(
+      `Incident created for ${syncState.entityType}:${syncState.entityId}`,
+    );
   }
 
   private async sendAlert(syncState: SyncState): Promise<void> {
     // Send alert to monitoring system
-    this.logger.error(`Alert sent for ${syncState.entityType}:${syncState.entityId}`);
+    this.logger.error(
+      `Alert sent for ${syncState.entityType}:${syncState.entityId}`,
+    );
   }
 
   private async getCurrentLedgerSequence(): Promise<number> {
     try {
-      const latestLedger = await this.server.ledgers().order('desc').limit(1).call();
+      const latestLedger = await this.server
+        .ledgers()
+        .order('desc')
+        .limit(1)
+        .call();
       return latestLedger.records[0]?.sequence || 0;
     } catch (error) {
       this.logger.error('Failed to get current ledger sequence', error);
@@ -397,13 +448,20 @@ export class RecoveryService {
     }
   }
 
-  private async updateRecoveryMetrics(success: boolean, duration: number): Promise<void> {
+  private async updateRecoveryMetrics(
+    success: boolean,
+    duration: number,
+  ): Promise<void> {
     const currentMetrics = this.metrics.value;
     const newMetrics = {
       ...currentMetrics,
       totalRecoveries: currentMetrics.totalRecoveries + 1,
-      successfulRecoveries: success ? currentMetrics.successfulRecoveries + 1 : currentMetrics.successfulRecoveries,
-      failedRecoveries: !success ? currentMetrics.failedRecoveries + 1 : currentMetrics.failedRecoveries,
+      successfulRecoveries: success
+        ? currentMetrics.successfulRecoveries + 1
+        : currentMetrics.successfulRecoveries,
+      failedRecoveries: !success
+        ? currentMetrics.failedRecoveries + 1
+        : currentMetrics.failedRecoveries,
       averageRecoveryTime: (currentMetrics.averageRecoveryTime + duration) / 2,
       lastRecoveryTime: new Date(),
     };
@@ -430,20 +488,20 @@ export class RecoveryService {
 
   async cancelRecovery(entityType: string, entityId: string): Promise<void> {
     const recoveryId = `${entityType}:${entityId}`;
-    
+
     if (this.activeRecoveries.has(recoveryId)) {
       this.activeRecoveries.delete(recoveryId);
-      
+
       const syncState = await this.syncStateRepository.findOne({
         where: { entityType, entityId },
       });
-      
+
       if (syncState) {
         syncState.status = SyncStatus.ERROR;
         syncState.errorMessage = 'Recovery cancelled';
         await this.syncStateRepository.save(syncState);
       }
-      
+
       this.logger.log(`Recovery cancelled for ${recoveryId}`);
     }
   }
@@ -453,7 +511,7 @@ export class RecoveryService {
       const syncState = await this.syncStateRepository.findOne({
         where: { entityType, entityId },
       });
-      
+
       if (syncState) {
         await this.initiateRecovery(syncState);
       }
@@ -468,12 +526,12 @@ export class RecoveryService {
 
   async testRecoveryProcedures(): Promise<void> {
     this.logger.log('Testing recovery procedures');
-    
+
     // Create a test sync state with error status
     const testSyncState = await this.syncStateRepository.findOne({
       where: { entityType: 'test', entityId: 'recovery_test' },
     });
-    
+
     if (!testSyncState) {
       // Create test state if it doesn't exist
       const newState = this.syncStateRepository.create({
@@ -485,7 +543,7 @@ export class RecoveryService {
         errorMessage: 'Test error for recovery',
       });
       await this.syncStateRepository.save(newState);
-      
+
       await this.initiateRecovery(newState);
     }
   }

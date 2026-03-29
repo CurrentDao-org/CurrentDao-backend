@@ -21,4 +21,4 @@ import { MatchingEventsService } from './events/matching-events.service';
   ],
   exports: [MatchingService, AuditService, MatchingEventsService],
 })
-export class MatchingModule { }
+export class MatchingModule {}

@@ -1,4 +1,14 @@
-import { IsString, IsNumber, IsEnum, IsOptional, IsBoolean, IsArray, IsObject, ValidateNested, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsObject,
+  ValidateNested,
+  IsDateString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BidType } from '../entities/bid.entity';
@@ -124,7 +134,10 @@ export class MetadataDto {
   @IsString()
   source?: string;
 
-  @ApiPropertyOptional({ enum: ['low', 'medium', 'high', 'critical'], example: 'high' })
+  @ApiPropertyOptional({
+    enum: ['low', 'medium', 'high', 'critical'],
+    example: 'high',
+  })
   @IsOptional()
   @IsEnum(['low', 'medium', 'high', 'critical'])
   urgency?: 'low' | 'medium' | 'high' | 'critical';
@@ -172,7 +185,9 @@ export class PlaceBidDto {
   @IsEnum(BidType)
   type?: BidType;
 
-  @ApiPropertyOptional({ example: 'We offer competitive pricing with reliable delivery schedule' })
+  @ApiPropertyOptional({
+    example: 'We offer competitive pricing with reliable delivery schedule',
+  })
   @IsOptional()
   @IsString()
   message?: string;

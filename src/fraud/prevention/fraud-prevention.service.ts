@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { FraudCaseEntity, FraudCaseStatus, FraudSeverity } from '../entities/fraud-case.entity';
 import {
-  PreTradeCheckDto,
-  PreTradeCheckResult,
-} from '../dto/fraud-alert.dto';
+  FraudCaseEntity,
+  FraudCaseStatus,
+  FraudSeverity,
+} from '../entities/fraud-case.entity';
+import { PreTradeCheckDto, PreTradeCheckResult } from '../dto/fraud-alert.dto';
 
 export interface BlockedTrader {
   traderId: string;
@@ -72,17 +73,28 @@ export class FraudPreventionService {
     // 1. Whitelist bypass for trusted entities
     if (this.whitelist.has(traderId)) {
       this.stats.whitelistedPassed++;
-      return { allowed: true, riskScore: 0, reasons: ['Whitelisted trader'], recommendedAction: 'allow' };
+      return {
+        allowed: true,
+        riskScore: 0,
+        reasons: ['Whitelisted trader'],
+        recommendedAction: 'allow',
+      };
     }
 
     // 2. Check blocklist
     const blockEntry = this.blockedTraders.get(traderId);
     if (blockEntry) {
-      const isExpired = blockEntry.expiresAt && blockEntry.expiresAt < new Date();
+      const isExpired =
+        blockEntry.expiresAt && blockEntry.expiresAt < new Date();
       if (!isExpired) {
         reasons.push(`Trader blocked: ${blockEntry.reason}`);
         this.recordPrevention(traderId, tradeValue ?? 0);
-        return { allowed: false, riskScore: 1.0, reasons, recommendedAction: 'block' };
+        return {
+          allowed: false,
+          riskScore: 1.0,
+          reasons,
+          recommendedAction: 'block',
+        };
       } else {
         // Auto-unblock expired entries
         this.blockedTraders.delete(traderId);
@@ -92,36 +104,69 @@ export class FraudPreventionService {
     // 3. Rate limit check
     const isRateLimited = this.checkRateLimit(traderId);
     if (isRateLimited) {
-      reasons.push(`Rate limit exceeded: >${this.RATE_LIMIT_PER_MINUTE} trades/min`);
+      reasons.push(
+        `Rate limit exceeded: >${this.RATE_LIMIT_PER_MINUTE} trades/min`,
+      );
       this.recordPrevention(traderId, tradeValue ?? 0);
-      return { allowed: false, riskScore: 0.9, reasons, recommendedAction: 'block' };
+      return {
+        allowed: false,
+        riskScore: 0.9,
+        reasons,
+        recommendedAction: 'block',
+      };
     }
 
     // 4. ML score gate
     if (mlScore !== undefined) {
       if (mlScore >= this.BLOCK_THRESHOLD) {
-        reasons.push(`ML fraud score ${mlScore.toFixed(3)} exceeds block threshold ${this.BLOCK_THRESHOLD}`);
+        reasons.push(
+          `ML fraud score ${mlScore.toFixed(3)} exceeds block threshold ${this.BLOCK_THRESHOLD}`,
+        );
         this.recordPrevention(traderId, tradeValue ?? 0);
-        return { allowed: false, riskScore: mlScore, reasons, recommendedAction: 'block' };
+        return {
+          allowed: false,
+          riskScore: mlScore,
+          reasons,
+          recommendedAction: 'block',
+        };
       }
 
       if (mlScore >= this.REVIEW_THRESHOLD) {
-        reasons.push(`ML fraud score ${mlScore.toFixed(3)} requires manual review`);
-        return { allowed: true, riskScore: mlScore, reasons, recommendedAction: 'review' };
+        reasons.push(
+          `ML fraud score ${mlScore.toFixed(3)} requires manual review`,
+        );
+        return {
+          allowed: true,
+          riskScore: mlScore,
+          reasons,
+          recommendedAction: 'review',
+        };
       }
     }
 
     // 5. Large trade value threshold
     if (tradeValue > 50_000_000) {
-      reasons.push(`Trade value $${tradeValue.toLocaleString()} exceeds large-trade threshold`);
-      return { allowed: true, riskScore: 0.5, reasons, recommendedAction: 'review' };
+      reasons.push(
+        `Trade value $${tradeValue.toLocaleString()} exceeds large-trade threshold`,
+      );
+      return {
+        allowed: true,
+        riskScore: 0.5,
+        reasons,
+        recommendedAction: 'review',
+      };
     }
 
     // 6. Self-trade prevention
     if (checkDto.counterpartyId && checkDto.counterpartyId === traderId) {
       reasons.push('Self-trade detected: buyer and seller are the same entity');
       this.recordPrevention(traderId, tradeValue ?? 0);
-      return { allowed: false, riskScore: 1.0, reasons, recommendedAction: 'block' };
+      return {
+        allowed: false,
+        riskScore: 1.0,
+        reasons,
+        recommendedAction: 'block',
+      };
     }
 
     // 7. Check prior fraud case history
@@ -131,7 +176,12 @@ export class FraudPreventionService {
 
     if (priorCases >= 3) {
       reasons.push(`Trader has ${priorCases} open fraud cases`);
-      return { allowed: false, riskScore: 0.8, reasons, recommendedAction: 'block' };
+      return {
+        allowed: false,
+        riskScore: 0.8,
+        reasons,
+        recommendedAction: 'block',
+      };
     }
 
     this.updateRateCount(traderId);
@@ -211,7 +261,9 @@ export class FraudPreventionService {
   getPreventionStats(): object {
     const blockRate =
       this.stats.totalChecks > 0
-        ? parseFloat((this.stats.blockedTrades / this.stats.totalChecks).toFixed(4))
+        ? parseFloat(
+            (this.stats.blockedTrades / this.stats.totalChecks).toFixed(4),
+          )
         : 0;
 
     return {

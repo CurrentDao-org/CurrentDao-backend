@@ -20,7 +20,10 @@ export class CarbonController {
   @Post('calculate')
   @ApiOperation({ summary: 'Calculate carbon emissions' })
   async calculateEmissions(@Body() data: any): Promise<any> {
-    const result = this.calculator.calculateEmissions(data.activityData, data.source);
+    const result = this.calculator.calculateEmissions(
+      data.activityData,
+      data.source,
+    );
     return { ...result, timestamp: new Date() };
   }
 
@@ -59,7 +62,11 @@ export class CarbonController {
 
   @Get('footprint/transaction')
   @ApiOperation({ summary: 'Calculate transaction carbon footprint' })
-  async getTransactionFootprint(@Query('data') transactionData: any): Promise<any> {
-    return this.calculator.calculateTransactionCarbonFootprint(JSON.parse(transactionData));
+  async getTransactionFootprint(
+    @Query('data') transactionData: any,
+  ): Promise<any> {
+    return this.calculator.calculateTransactionCarbonFootprint(
+      JSON.parse(transactionData),
+    );
   }
 }

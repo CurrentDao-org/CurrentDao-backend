@@ -1,6 +1,6 @@
 /**
  * Config Provider
- * 
+ *
  * Custom provider for configuration management with validation,
  * environment-specific overrides, and type safety.
  */
@@ -211,7 +211,10 @@ export class ConfigProvider implements OnModuleInit {
 
     if (errors.length > 0) {
       const errorMessage = errors
-        .map(e => `${e.property}: ${Object.values(e.constraints || {}).join(', ')}`)
+        .map(
+          (e) =>
+            `${e.property}: ${Object.values(e.constraints || {}).join(', ')}`,
+        )
         .join('; ');
 
       this.logger.error(`Configuration validation failed: ${errorMessage}`);
@@ -255,7 +258,7 @@ export class ConfigProvider implements OnModuleInit {
    */
   get<T>(key: string, defaultValue?: T): T {
     const value = this.configService.get<T>(key);
-    return value ?? defaultValue as T;
+    return value ?? defaultValue;
   }
 
   /**

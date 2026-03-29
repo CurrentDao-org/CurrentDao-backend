@@ -1,7 +1,30 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpStatus, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { WebhookService } from './webhook.service';
-import { CreateWebhookDto, UpdateWebhookDto, WebhookQueryDto, WebhookDeliveryQueryDto, TriggerWebhookDto } from './dto/webhook.dto';
+import {
+  CreateWebhookDto,
+  UpdateWebhookDto,
+  WebhookQueryDto,
+  WebhookDeliveryQueryDto,
+  TriggerWebhookDto,
+} from './dto/webhook.dto';
 import { Webhook } from './entities/webhook.entity';
 import { WebhookDelivery } from './entities/webhook-delivery.entity';
 
@@ -12,7 +35,11 @@ export class WebhookController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new webhook' })
-  @ApiResponse({ status: 201, description: 'Webhook created successfully', type: Webhook })
+  @ApiResponse({
+    status: 201,
+    description: 'Webhook created successfully',
+    type: Webhook,
+  })
   @ApiResponse({ status: 400, description: 'Bad request' })
   async create(@Body() createWebhookDto: CreateWebhookDto): Promise<Webhook> {
     return this.webhookService.create(createWebhookDto);
@@ -29,7 +56,11 @@ export class WebhookController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get webhook by ID' })
-  @ApiResponse({ status: 200, description: 'Webhook retrieved successfully', type: Webhook })
+  @ApiResponse({
+    status: 200,
+    description: 'Webhook retrieved successfully',
+    type: Webhook,
+  })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
   @ApiParam({ name: 'id', description: 'Webhook ID' })
   async findOne(@Param('id') id: string): Promise<Webhook> {
@@ -38,10 +69,17 @@ export class WebhookController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update webhook' })
-  @ApiResponse({ status: 200, description: 'Webhook updated successfully', type: Webhook })
+  @ApiResponse({
+    status: 200,
+    description: 'Webhook updated successfully',
+    type: Webhook,
+  })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
   @ApiParam({ name: 'id', description: 'Webhook ID' })
-  async update(@Param('id') id: string, @Body() updateWebhookDto: UpdateWebhookDto): Promise<Webhook> {
+  async update(
+    @Param('id') id: string,
+    @Body() updateWebhookDto: UpdateWebhookDto,
+  ): Promise<Webhook> {
     return this.webhookService.update(id, updateWebhookDto);
   }
 
@@ -58,37 +96,68 @@ export class WebhookController {
   @Post('trigger')
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Trigger webhook event' })
-  @ApiResponse({ status: 202, description: 'Webhook event triggered successfully' })
+  @ApiResponse({
+    status: 202,
+    description: 'Webhook event triggered successfully',
+  })
   async trigger(@Body() triggerDto: TriggerWebhookDto): Promise<void> {
     return this.webhookService.triggerWebhook(triggerDto);
   }
 
   @Get(':id/deliveries')
   @ApiOperation({ summary: 'Get webhook delivery history' })
-  @ApiResponse({ status: 200, description: 'Delivery history retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Delivery history retrieved successfully',
+  })
   @ApiParam({ name: 'id', description: 'Webhook ID' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  async getDeliveries(@Param('id') id: string, @Query() query: WebhookDeliveryQueryDto) {
+  async getDeliveries(
+    @Param('id') id: string,
+    @Query() query: WebhookDeliveryQueryDto,
+  ) {
     return this.webhookService.getDeliveries(query.page, query.limit, id);
   }
 
   @Get('stats/delivery')
   @ApiOperation({ summary: 'Get delivery statistics' })
-  @ApiResponse({ status: 200, description: 'Delivery statistics retrieved successfully' })
-  @ApiQuery({ name: 'webhookId', required: false, description: 'Optional webhook ID to filter stats' })
+  @ApiResponse({
+    status: 200,
+    description: 'Delivery statistics retrieved successfully',
+  })
+  @ApiQuery({
+    name: 'webhookId',
+    required: false,
+    description: 'Optional webhook ID to filter stats',
+  })
   async getDeliveryStats(@Query('webhookId') webhookId?: string) {
     return this.webhookService.getDeliveryStats(webhookId);
   }
 
   @Get('deliveries/all')
   @ApiOperation({ summary: 'Get all webhook deliveries' })
-  @ApiResponse({ status: 200, description: 'All deliveries retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'All deliveries retrieved successfully',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'webhookId', required: false, description: 'Filter by webhook ID' })
-  @ApiQuery({ name: 'status', required: false, description: 'Filter by status' })
+  @ApiQuery({
+    name: 'webhookId',
+    required: false,
+    description: 'Filter by webhook ID',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by status',
+  })
   async getAllDeliveries(@Query() query: WebhookDeliveryQueryDto) {
-    return this.webhookService.getDeliveries(query.page, query.limit, query.webhookId);
+    return this.webhookService.getDeliveries(
+      query.page,
+      query.limit,
+      query.webhookId,
+    );
   }
 }

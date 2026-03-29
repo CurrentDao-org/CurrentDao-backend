@@ -20,4 +20,4 @@ import { APP_FILTER } from '@nestjs/core';
   ],
   exports: [EnergyService],
 })
-export class EnergyModule { }
+export class EnergyModule {}

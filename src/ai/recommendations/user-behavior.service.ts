@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Recommendation, RecommendationType, ConfidenceLevel } from '../entities/recommendation.entity';
+import {
+  Recommendation,
+  RecommendationType,
+  ConfidenceLevel,
+} from '../entities/recommendation.entity';
 
 export interface UserBehaviorProfile {
   riskTolerance: number; // 0-1
@@ -30,7 +34,7 @@ export class UserBehaviorService {
 
     // In production, query actual trading history and user data
     const tradingHistory = await this.getUserTradingHistory(userId);
-    
+
     return {
       riskTolerance: this.calculateRiskTolerance(tradingHistory),
       tradingFrequency: this.determineTradingFrequency(tradingHistory),
@@ -65,8 +69,10 @@ export class UserBehaviorService {
       recommendation.outcome = outcome;
       recommendation.actualReturn = actualReturn || 0;
       await this.recommendationRepo.save(recommendation);
-      
-      this.logger.log(`Tracked outcome for recommendation ${recommendationId}: ${outcome}`);
+
+      this.logger.log(
+        `Tracked outcome for recommendation ${recommendationId}: ${outcome}`,
+      );
     }
   }
 
@@ -78,13 +84,15 @@ export class UserBehaviorService {
   private calculateRiskTolerance(tradingHistory: any[]): number {
     // Analyze historical trades to determine risk tolerance
     // Consider factors like: asset volatility, position sizing, stop-loss usage, leverage usage
-    
+
     return 0.6; // Placeholder
   }
 
-  private determineTradingFrequency(tradingHistory: any[]): 'low' | 'medium' | 'high' {
+  private determineTradingFrequency(
+    tradingHistory: any[],
+  ): 'low' | 'medium' | 'high' {
     const tradesPerMonth = tradingHistory.length / 12; // Assuming 1 year of data
-    
+
     if (tradesPerMonth < 5) return 'low';
     if (tradesPerMonth < 20) return 'medium';
     return 'high';
@@ -92,10 +100,13 @@ export class UserBehaviorService {
 
   private getPreferredAssets(tradingHistory: any[]): string[] {
     // Extract most frequently traded assets
-    const assetCounts = tradingHistory.reduce((acc, trade) => {
-      acc[trade.asset] = (acc[trade.asset] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const assetCounts = tradingHistory.reduce(
+      (acc, trade) => {
+        acc[trade.asset] = (acc[trade.asset] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return Object.entries(assetCounts)
       .sort((a, b) => b[1] - a[1])
@@ -105,32 +116,41 @@ export class UserBehaviorService {
 
   private calculateAverageTradeSize(tradingHistory: any[]): number {
     if (tradingHistory.length === 0) return 0;
-    
-    const totalSize = tradingHistory.reduce((sum, trade) => sum + trade.size, 0);
+
+    const totalSize = tradingHistory.reduce(
+      (sum, trade) => sum + trade.size,
+      0,
+    );
     return totalSize / tradingHistory.length;
   }
 
   private calculateSuccessRate(tradingHistory: any[]): number {
     if (tradingHistory.length === 0) return 0.5;
-    
-    const profitableTrades = tradingHistory.filter(t => t.profit > 0).length;
+
+    const profitableTrades = tradingHistory.filter((t) => t.profit > 0).length;
     return profitableTrades / tradingHistory.length;
   }
 
-  private determineTradingStyle(tradingHistory: any[]): 'conservative' | 'moderate' | 'aggressive' {
+  private determineTradingStyle(
+    tradingHistory: any[],
+  ): 'conservative' | 'moderate' | 'aggressive' {
     const riskMetrics = this.calculateRiskMetrics(tradingHistory);
-    
+
     if (riskMetrics.avgVolatility < 0.15) return 'conservative';
-    if (riskMetrics.avgVolatility < 0.30) return 'moderate';
+    if (riskMetrics.avgVolatility < 0.3) return 'moderate';
     return 'aggressive';
   }
 
-  private calculateRiskMetrics(tradingHistory: any[]): { avgVolatility: number } {
+  private calculateRiskMetrics(tradingHistory: any[]): {
+    avgVolatility: number;
+  } {
     // Calculate portfolio volatility and other risk metrics
     return { avgVolatility: 0.25 }; // Placeholder
   }
 
-  private async getActivityPattern(userId: string): Promise<UserBehaviorProfile['activityPattern']> {
+  private async getActivityPattern(
+    userId: string,
+  ): Promise<UserBehaviorProfile['activityPattern']> {
     // Analyze when user is most active
     return {
       mostActiveHours: [9, 10, 14, 15], // 9-10 AM, 2-3 PM

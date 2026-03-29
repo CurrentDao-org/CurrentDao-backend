@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum JobType {
   TRADE_EXECUTION = 'trade_execution',
@@ -128,7 +134,13 @@ export class ScheduledJob {
   @Column({ name: 'retry_count', default: 0 })
   retryCount: number;
 
-  @Column({ name: 'retry_delay', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({
+    name: 'retry_delay',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
   retryDelay?: number;
 
   @Column({ name: 'timeout_seconds', default: 300 })

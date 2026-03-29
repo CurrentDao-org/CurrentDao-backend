@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum AnalyticsType {
   TRADING_VOLUME = 'trading_volume',
@@ -6,7 +13,7 @@ export enum AnalyticsType {
   USER_PERFORMANCE = 'user_performance',
   MARKET_EFFICIENCY = 'market_efficiency',
   GEOGRAPHIC_PATTERN = 'geographic_pattern',
-  RENEWABLE_ENERGY = 'renewable_energy'
+  RENEWABLE_ENERGY = 'renewable_energy',
 }
 
 export enum AggregationPeriod {
@@ -15,7 +22,7 @@ export enum AggregationPeriod {
   WEEKLY = 'weekly',
   MONTHLY = 'monthly',
   QUARTERLY = 'quarterly',
-  YEARLY = 'yearly'
+  YEARLY = 'yearly',
 }
 
 @Entity('analytics_data')
@@ -28,13 +35,13 @@ export class AnalyticsData {
 
   @Column({
     type: 'enum',
-    enum: AnalyticsType
+    enum: AnalyticsType,
   })
   type: AnalyticsType;
 
   @Column({
     type: 'enum',
-    enum: AggregationPeriod
+    enum: AggregationPeriod,
   })
   period: AggregationPeriod;
 

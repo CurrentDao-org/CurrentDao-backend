@@ -1,6 +1,6 @@
 /**
  * Scope Decorator
- * 
+ *
  * Decorators for defining provider scope and lifecycle in NestJS DI.
  * Supports singleton, request-scoped, and transient providers.
  */
@@ -29,12 +29,12 @@ export const CACHE_TTL_KEY = 'cache_ttl';
 
 /**
  * Set provider scope
- * 
+ *
  * @example
  * ```typescript
  * @Injectable({ scope: Scope.DEFAULT })
  * export class MyService {}
- * 
+ *
  * @Injectable({ scope: Scope.REQUEST })
  * export class RequestScopedService {}
  * ```
@@ -45,14 +45,18 @@ export const SetScope = (scope: Scope | ScopeType) => {
 
 /**
  * Mark service as singleton (default)
- * 
+ *
  * @example
  * @Singleton()
  * export class MySingletonService {}
  */
 export const Singleton = (): ClassDecorator & MethodDecorator => {
-  return (target: any, key?: string | symbol, descriptor?: PropertyDescriptor) => {
-    SetScope(Scope.DEFAULT)(target, key!, descriptor!);
+  return (
+    target: any,
+    key?: string | symbol,
+    descriptor?: PropertyDescriptor,
+  ) => {
+    SetScope(Scope.DEFAULT)(target, key, descriptor);
     Injectable()(target);
     return descriptor || target;
   };
@@ -60,14 +64,18 @@ export const Singleton = (): ClassDecorator & MethodDecorator => {
 
 /**
  * Mark service as request-scoped
- * 
+ *
  * @example
  * @RequestScoped()
  * export class RequestService {}
  */
 export const RequestScoped = (): ClassDecorator & MethodDecorator => {
-  return (target: any, key?: string | symbol, descriptor?: PropertyDescriptor) => {
-    SetScope(Scope.REQUEST)(target, key!, descriptor!);
+  return (
+    target: any,
+    key?: string | symbol,
+    descriptor?: PropertyDescriptor,
+  ) => {
+    SetScope(Scope.REQUEST)(target, key, descriptor);
     Injectable({ scope: Scope.REQUEST })(target);
     return descriptor || target;
   };
@@ -75,14 +83,18 @@ export const RequestScoped = (): ClassDecorator & MethodDecorator => {
 
 /**
  * Mark service as transient
- * 
+ *
  * @example
  * @Transient()
  * export class TransientService {}
  */
 export const Transient = (): ClassDecorator & MethodDecorator => {
-  return (target: any, key?: string | symbol, descriptor?: PropertyDescriptor) => {
-    SetScope(Scope.TRANSIENT)(target, key!, descriptor!);
+  return (
+    target: any,
+    key?: string | symbol,
+    descriptor?: PropertyDescriptor,
+  ) => {
+    SetScope(Scope.TRANSIENT)(target, key, descriptor);
     Injectable({ scope: Scope.TRANSIENT })(target);
     return descriptor || target;
   };
@@ -90,7 +102,7 @@ export const Transient = (): ClassDecorator & MethodDecorator => {
 
 /**
  * Mark service as cacheable
- * 
+ *
  * @example
  * @Cacheable({ ttl: 60000 })
  * async getData() {}
@@ -105,7 +117,11 @@ export interface CacheableOptions {
 }
 
 export const Cacheable = (options?: CacheableOptions): MethodDecorator => {
-  return (target: any, key: string | symbol, descriptor: PropertyDescriptor) => {
+  return (
+    target: any,
+    key: string | symbol,
+    descriptor: PropertyDescriptor,
+  ) => {
     SetMetadata(CACHE_KEY, true)(target, key, descriptor);
     if (options?.ttl) {
       SetMetadata(CACHE_TTL_KEY, options.ttl)(target, key, descriptor);
@@ -116,7 +132,7 @@ export const Cacheable = (options?: CacheableOptions): MethodDecorator => {
 
 /**
  * Invalidate cache decorator
- * 
+ *
  * @example
  * @InvalidateCache({ prefix: 'users' })
  * async updateUser() {}
@@ -130,8 +146,14 @@ export interface InvalidateCacheOptions {
   all?: boolean;
 }
 
-export const InvalidateCache = (options?: InvalidateCacheOptions): MethodDecorator => {
-  return (target: any, key: string | symbol, descriptor: PropertyDescriptor) => {
+export const InvalidateCache = (
+  options?: InvalidateCacheOptions,
+): MethodDecorator => {
+  return (
+    target: any,
+    key: string | symbol,
+    descriptor: PropertyDescriptor,
+  ) => {
     SetMetadata('invalidate_cache', options || true)(target, key, descriptor);
     return descriptor;
   };
@@ -139,7 +161,7 @@ export const InvalidateCache = (options?: InvalidateCacheOptions): MethodDecorat
 
 /**
  * Lazy load decorator - for lazy loading heavy dependencies
- * 
+ *
  * @example
  * @Lazy()
  * private heavyService: HeavyService;
@@ -152,7 +174,7 @@ export const Lazy = (): PropertyDecorator => {
 
 /**
  * Factory decorator - for custom provider factories
- * 
+ *
  * @example
  * @Factory({ scope: Scope.DEFAULT })
  * createMyService() {
@@ -167,7 +189,11 @@ export interface FactoryOptions {
 }
 
 export const Factory = (options?: FactoryOptions): MethodDecorator => {
-  return (target: any, key: string | symbol, descriptor: PropertyDescriptor) => {
+  return (
+    target: any,
+    key: string | symbol,
+    descriptor: PropertyDescriptor,
+  ) => {
     if (options?.scope) {
       SetScope(options.scope)(target, key, descriptor);
     }
@@ -178,24 +204,26 @@ export const Factory = (options?: FactoryOptions): MethodDecorator => {
 
 /**
  * Tag decorator for grouping providers
- * 
+ *
  * @example
  * @Tag('database')
  * export class DatabaseService {}
- * 
+ *
  * @Tag('cache')
  * export class CacheService {}
  */
 export const Tag = (tag: string): ClassDecorator => {
   return (target: any) => {
-    SetMetadata('tags', [...(Reflect.getMetadata('tags', target) || []), tag])(target);
+    SetMetadata('tags', [...(Reflect.getMetadata('tags', target) || []), tag])(
+      target,
+    );
     return target;
   };
 };
 
 /**
  * Alias decorator for creating provider aliases
- * 
+ *
  * @example
  * @Alias('EntityManager')
  * export class CustomEntityManager {}
@@ -248,7 +276,10 @@ export const isCacheable = (target: any, key: string | symbol): boolean => {
 /**
  * Get cache TTL for method
  */
-export const getCacheTTL = (target: any, key: string | symbol): number | undefined => {
+export const getCacheTTL = (
+  target: any,
+  key: string | symbol,
+): number | undefined => {
   return Reflect.getMetadata(CACHE_TTL_KEY, target, key);
 };
 
@@ -285,7 +316,7 @@ export const getScopedDependencies = (
   dependencies: any[],
   scopes: Map<any, ScopeType>,
 ): ScopedDependency[] => {
-  return dependencies.map(dep => ({
+  return dependencies.map((dep) => ({
     token: dep,
     scope: scopes.get(dep) || ScopeType.DEFAULT,
   }));

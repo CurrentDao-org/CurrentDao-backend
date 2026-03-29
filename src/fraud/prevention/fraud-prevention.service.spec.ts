@@ -61,7 +61,9 @@ describe('FraudPreventionService', () => {
 
       expect(result.allowed).toBe(false);
       expect(result.recommendedAction).toBe('block');
-      expect(result.reasons.some((r) => r.includes('ML fraud score'))).toBe(true);
+      expect(result.reasons.some((r) => r.includes('ML fraud score'))).toBe(
+        true,
+      );
     });
 
     it('should recommend review for score between 0.65 and 0.85', async () => {
@@ -80,7 +82,9 @@ describe('FraudPreventionService', () => {
       const result = await service.preTradeCheck(selfTradeCheck, 0.1);
 
       expect(result.allowed).toBe(false);
-      expect(result.reasons.some((r) => r.toLowerCase().includes('self'))).toBe(true);
+      expect(result.reasons.some((r) => r.toLowerCase().includes('self'))).toBe(
+        true,
+      );
     });
 
     it('should allow whitelisted trader regardless of score', async () => {
@@ -92,7 +96,11 @@ describe('FraudPreventionService', () => {
     });
 
     it('should block trader on blocklist', async () => {
-      service.blockTrader(baseCheck.traderId, 'Manual block', FraudSeverity.HIGH);
+      service.blockTrader(
+        baseCheck.traderId,
+        'Manual block',
+        FraudSeverity.HIGH,
+      );
       const result = await service.preTradeCheck(baseCheck, 0.1);
 
       expect(result.allowed).toBe(false);
@@ -119,7 +127,10 @@ describe('FraudPreventionService', () => {
 
     it('should track total check count in stats', async () => {
       for (let i = 0; i < 5; i++) {
-        await service.preTradeCheck({ ...baseCheck, traderId: `trader-${i}` }, 0.1);
+        await service.preTradeCheck(
+          { ...baseCheck, traderId: `trader-${i}` },
+          0.1,
+        );
       }
 
       const stats = service.getPreventionStats() as any;

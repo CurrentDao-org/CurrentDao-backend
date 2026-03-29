@@ -21,7 +21,8 @@ import { ElasticsearchService } from './elasticsearch.service';
         maxConnections: 100,
         compression: 'gzip',
         tls: {
-          rejectUnauthorized: process.env.ELASTICSEARCH_VERIFY_CERTS !== 'false',
+          rejectUnauthorized:
+            process.env.ELASTICSEARCH_VERIFY_CERTS !== 'false',
         },
       }),
     }),

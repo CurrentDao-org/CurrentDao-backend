@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 
 export enum ListingType {
   BUY = 'buy',
@@ -185,10 +194,22 @@ export class EnergyListing {
   @Column({ name: 'is_premium', default: false })
   isPremium: boolean;
 
-  @Column({ name: 'visibility_score', type: 'decimal', precision: 3, scale: 2, default: 1.0 })
+  @Column({
+    name: 'visibility_score',
+    type: 'decimal',
+    precision: 3,
+    scale: 2,
+    default: 1.0,
+  })
   visibilityScore: number;
 
-  @Column({ name: 'match_score', type: 'decimal', precision: 3, scale: 2, nullable: true })
+  @Column({
+    name: 'match_score',
+    type: 'decimal',
+    precision: 3,
+    scale: 2,
+    nullable: true,
+  })
   matchScore?: number;
 
   @Column({ type: 'json', nullable: true })
@@ -212,9 +233,9 @@ export class EnergyListing {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @OneToMany(() => Bid, bid => bid.listing)
+  @OneToMany(() => Bid, (bid) => bid.listing)
   bids: Bid[];
 
-  @OneToMany(() => Trade, trade => trade.listing)
+  @OneToMany(() => Trade, (trade) => trade.listing)
   trades: Trade[];
 }

@@ -4,7 +4,9 @@ import { CdnService } from './cdn.service';
 describe('CdnService', () => {
   let service: CdnService;
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({ providers: [CdnService] }).compile();
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [CdnService],
+    }).compile();
     service = module.get<CdnService>(CdnService);
   });
   it('should resolve asset URL', () => {

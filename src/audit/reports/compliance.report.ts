@@ -1,8 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThan, MoreThan } from 'typeorm';
-import { AuditLog, AuditAction, AuditResource, AuditSeverity } from '../entities/audit-log.entity';
-import { TransactionLog, TransactionStatus, TransactionType } from '../entities/transaction-log.entity';
+import {
+  AuditLog,
+  AuditAction,
+  AuditResource,
+  AuditSeverity,
+} from '../entities/audit-log.entity';
+import {
+  TransactionLog,
+  TransactionStatus,
+  TransactionType,
+} from '../entities/transaction-log.entity';
 
 export interface ComplianceReportData {
   reportId: string;
@@ -134,7 +143,9 @@ export class ComplianceReport {
     startDate: Date,
     endDate: Date,
   ): Promise<ComplianceReportData> {
-    this.logger.log(`Generating ${reportType} compliance report for period ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    this.logger.log(
+      `Generating ${reportType} compliance report for period ${startDate.toISOString()} to ${endDate.toISOString()}`,
+    );
 
     const reportId = this.generateReportId(reportType, startDate);
 
@@ -178,36 +189,86 @@ export class ComplianceReport {
     return report;
   }
 
-  async generateDailyReport(date: Date = new Date()): Promise<ComplianceReportData> {
-    const startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+  async generateDailyReport(
+    date: Date = new Date(),
+  ): Promise<ComplianceReportData> {
+    const startDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
+    const endDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
 
     return this.generateReport('daily', startDate, endDate);
   }
 
-  async generateWeeklyReport(date: Date = new Date()): Promise<ComplianceReportData> {
-    const startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
-    const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 6, 23, 59, 59, 999);
+  async generateWeeklyReport(
+    date: Date = new Date(),
+  ): Promise<ComplianceReportData> {
+    const startDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate() - date.getDay(),
+    );
+    const endDate = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate() + 6,
+      23,
+      59,
+      59,
+      999,
+    );
 
     return this.generateReport('weekly', startDate, endDate);
   }
 
-  async generateMonthlyReport(date: Date = new Date()): Promise<ComplianceReportData> {
+  async generateMonthlyReport(
+    date: Date = new Date(),
+  ): Promise<ComplianceReportData> {
     const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-    const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+    const endDate = new Date(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
 
     return this.generateReport('monthly', startDate, endDate);
   }
 
-  async generateQuarterlyReport(date: Date = new Date()): Promise<ComplianceReportData> {
+  async generateQuarterlyReport(
+    date: Date = new Date(),
+  ): Promise<ComplianceReportData> {
     const quarter = Math.floor(date.getMonth() / 3);
     const startDate = new Date(date.getFullYear(), quarter * 3, 1);
-    const endDate = new Date(date.getFullYear(), (quarter + 1) * 3, 0, 23, 59, 59, 999);
+    const endDate = new Date(
+      date.getFullYear(),
+      (quarter + 1) * 3,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
 
     return this.generateReport('quarterly', startDate, endDate);
   }
 
-  async generateAnnualReport(date: Date = new Date()): Promise<ComplianceReportData> {
+  async generateAnnualReport(
+    date: Date = new Date(),
+  ): Promise<ComplianceReportData> {
     const startDate = new Date(date.getFullYear(), 0, 1);
     const endDate = new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999);
 
@@ -229,7 +290,11 @@ export class ComplianceReport {
     const violations: ComplianceViolation[] = [];
 
     for (const requirement of regulation.requirements) {
-      const check = await this.validateRequirement(requirement, startDate, endDate);
+      const check = await this.validateRequirement(
+        requirement,
+        startDate,
+        endDate,
+      );
       checks.push(check);
 
       if (check.status === 'non_compliant') {
@@ -239,13 +304,18 @@ export class ComplianceReport {
           requirementId: requirement.id,
           severity: this.getViolationSeverity(requirement),
           description: check.details,
-          affectedRecords: await this.countAffectedRecords(requirement, startDate, endDate),
+          affectedRecords: await this.countAffectedRecords(
+            requirement,
+            startDate,
+            endDate,
+          ),
           detectedAt: new Date(),
         });
       }
     }
 
-    const overallScore = checks.reduce((sum, check) => sum + check.score, 0) / checks.length;
+    const overallScore =
+      checks.reduce((sum, check) => sum + check.score, 0) / checks.length;
 
     return {
       regulation,
@@ -255,7 +325,10 @@ export class ComplianceReport {
     };
   }
 
-  async generateComplianceDashboard(startDate: Date, endDate: Date): Promise<{
+  async generateComplianceDashboard(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{
     overview: {
       totalRegulations: number;
       compliantRegulations: number;
@@ -292,21 +365,37 @@ export class ComplianceReport {
     const regulationResults = [];
 
     for (const regulation of regulations) {
-      const result = await this.checkCompliance(regulation.id, startDate, endDate);
+      const result = await this.checkCompliance(
+        regulation.id,
+        startDate,
+        endDate,
+      );
       regulationResults.push({
         id: regulation.id,
         name: regulation.name,
         jurisdiction: regulation.jurisdiction,
         score: result.overallScore,
         violations: result.violations.length,
-        status: result.overallScore >= 80 ? 'compliant' : result.overallScore >= 60 ? 'pending' : 'non_compliant',
+        status:
+          result.overallScore >= 80
+            ? 'compliant'
+            : result.overallScore >= 60
+              ? 'pending'
+              : 'non_compliant',
       });
     }
 
     const totalRegulations = regulations.length;
-    const compliantRegulations = regulationResults.filter(r => r.status === 'compliant').length;
-    const overallScore = regulationResults.reduce((sum, r) => sum + r.score, 0) / regulationResults.length;
-    const violationsCount = regulationResults.reduce((sum, r) => sum + r.violations, 0);
+    const compliantRegulations = regulationResults.filter(
+      (r) => r.status === 'compliant',
+    ).length;
+    const overallScore =
+      regulationResults.reduce((sum, r) => sum + r.score, 0) /
+      regulationResults.length;
+    const violationsCount = regulationResults.reduce(
+      (sum, r) => sum + r.violations,
+      0,
+    );
 
     return {
       overview: {
@@ -356,27 +445,30 @@ export class ComplianceReport {
   }
 
   private async generateSummary(startDate: Date, endDate: Date): Promise<any> {
-    const [totalAuditLogs, totalTransactions, totalVolume, errorRate] = await Promise.all([
-      this.auditLogRepository.count({
-        where: { createdAt: Between(startDate, endDate) },
-      }),
-      this.transactionLogRepository.count({
-        where: { createdAt: Between(startDate, endDate) },
-      }),
-      this.transactionLogRepository
-        .createQueryBuilder('transaction')
-        .where('transaction.createdAt >= :startDate', { startDate })
-        .andWhere('transaction.createdAt <= :endDate', { endDate })
-        .select(['SUM(transaction.amount)'])
-        .getRawOne(),
-      this.calculateErrorRate(startDate, endDate),
-    ]);
+    const [totalAuditLogs, totalTransactions, totalVolume, errorRate] =
+      await Promise.all([
+        this.auditLogRepository.count({
+          where: { createdAt: Between(startDate, endDate) },
+        }),
+        this.transactionLogRepository.count({
+          where: { createdAt: Between(startDate, endDate) },
+        }),
+        this.transactionLogRepository
+          .createQueryBuilder('transaction')
+          .where('transaction.createdAt >= :startDate', { startDate })
+          .andWhere('transaction.createdAt <= :endDate', { endDate })
+          .select(['SUM(transaction.amount)'])
+          .getRawOne(),
+        this.calculateErrorRate(startDate, endDate),
+      ]);
 
-    const [complianceScore, riskScore, retentionCompliance] = await Promise.all([
-      this.calculateComplianceScore(startDate, endDate),
-      this.calculateRiskScore(startDate, endDate),
-      this.calculateRetentionCompliance(startDate, endDate),
-    ]);
+    const [complianceScore, riskScore, retentionCompliance] = await Promise.all(
+      [
+        this.calculateComplianceScore(startDate, endDate),
+        this.calculateRiskScore(startDate, endDate),
+        this.calculateRetentionCompliance(startDate, endDate),
+      ],
+    );
 
     return {
       totalAuditLogs,
@@ -389,13 +481,17 @@ export class ComplianceReport {
     };
   }
 
-  private async generateAuditMetrics(startDate: Date, endDate: Date): Promise<any> {
-    const [logsByAction, logsByResource, logsBySeverity, avgExecutionTime] = await Promise.all([
-      this.getLogsByAction(startDate, endDate),
-      this.getLogsByResource(startDate, endDate),
-      this.getLogsBySeverity(startDate, endDate),
-      this.calculateAverageExecutionTime(startDate, endDate),
-    ]);
+  private async generateAuditMetrics(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any> {
+    const [logsByAction, logsByResource, logsBySeverity, avgExecutionTime] =
+      await Promise.all([
+        this.getLogsByAction(startDate, endDate),
+        this.getLogsByResource(startDate, endDate),
+        this.getLogsBySeverity(startDate, endDate),
+        this.calculateAverageExecutionTime(startDate, endDate),
+      ]);
 
     const [sensitiveDataLogs, encryptedLogs] = await Promise.all([
       this.countSensitiveDataLogs(startDate, endDate),
@@ -412,12 +508,16 @@ export class ComplianceReport {
     };
   }
 
-  private async generateTransactionMetrics(startDate: Date, endDate: Date): Promise<any> {
-    const [transactionsByType, transactionsByStatus, avgAmount] = await Promise.all([
-      this.getTransactionsByType(startDate, endDate),
-      this.getTransactionsByStatus(startDate, endDate),
-      this.calculateAverageAmount(startDate, endDate),
-    ]);
+  private async generateTransactionMetrics(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any> {
+    const [transactionsByType, transactionsByStatus, avgAmount] =
+      await Promise.all([
+        this.getTransactionsByType(startDate, endDate),
+        this.getTransactionsByStatus(startDate, endDate),
+        this.calculateAverageAmount(startDate, endDate),
+      ]);
 
     const [totalFees, totalTaxes] = await Promise.all([
       this.calculateTotalFees(startDate, endDate),
@@ -433,38 +533,55 @@ export class ComplianceReport {
     };
   }
 
-  private async generateComplianceMetrics(startDate: Date, endDate: Date): Promise<any> {
+  private async generateComplianceMetrics(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any> {
     const regulations = await this.getActiveRegulations();
     const regulationResults = [];
 
     for (const regulation of regulations) {
-      const result = await this.checkCompliance(regulation.id, startDate, endDate);
+      const result = await this.checkCompliance(
+        regulation.id,
+        startDate,
+        endDate,
+      );
       regulationResults.push(result);
     }
 
-    const violations = regulationResults.flatMap(r => r.violations);
+    const violations = regulationResults.flatMap((r) => r.violations);
     const recommendations = this.generateRecommendations(violations);
 
     return {
-      regulations: regulationResults.map(r => ({
+      regulations: regulationResults.map((r) => ({
         name: r.regulation.name,
         jurisdiction: r.regulation.jurisdiction,
         requirements: r.regulation.requirements,
         compliant: r.overallScore >= 80,
-        violations: r.violations.map(v => ({
+        violations: r.violations.map((v) => ({
           requirement: v.requirementId,
           severity: v.severity,
           description: v.description,
           count: v.affectedRecords,
         })),
       })),
-      overallScore: regulationResults.reduce((sum, r) => sum + r.overallScore, 0) / regulationResults.length,
+      overallScore:
+        regulationResults.reduce((sum, r) => sum + r.overallScore, 0) /
+        regulationResults.length,
       recommendations,
     };
   }
 
-  private async generatePrivacyMetrics(startDate: Date, endDate: Date): Promise<any> {
-    const [dataClassification, redactionApplied, consentRecords, retentionPolicies] = await Promise.all([
+  private async generatePrivacyMetrics(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any> {
+    const [
+      dataClassification,
+      redactionApplied,
+      consentRecords,
+      retentionPolicies,
+    ] = await Promise.all([
       this.getDataClassificationMetrics(startDate, endDate),
       this.countRedactionApplied(startDate, endDate),
       this.countConsentRecords(startDate, endDate),
@@ -479,8 +596,16 @@ export class ComplianceReport {
     };
   }
 
-  private async generateSecurityMetrics(startDate: Date, endDate: Date): Promise<any> {
-    const [authenticationEvents, accessDeniedEvents, securityViolations, threatDetections] = await Promise.all([
+  private async generateSecurityMetrics(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any> {
+    const [
+      authenticationEvents,
+      accessDeniedEvents,
+      securityViolations,
+      threatDetections,
+    ] = await Promise.all([
       this.countAuthenticationEvents(startDate, endDate),
       this.countAccessDeniedEvents(startDate, endDate),
       this.countSecurityViolations(startDate, endDate),
@@ -495,13 +620,17 @@ export class ComplianceReport {
     };
   }
 
-  private async generatePerformanceMetrics(startDate: Date, endDate: Date): Promise<any> {
-    const [avgResponseTime, throughput, systemUptime, errorRate] = await Promise.all([
-      this.calculateAverageResponseTime(startDate, endDate),
-      this.calculateThroughput(startDate, endDate),
-      this.calculateSystemUptime(startDate, endDate),
-      this.calculateErrorRate(startDate, endDate),
-    ]);
+  private async generatePerformanceMetrics(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any> {
+    const [avgResponseTime, throughput, systemUptime, errorRate] =
+      await Promise.all([
+        this.calculateAverageResponseTime(startDate, endDate),
+        this.calculateThroughput(startDate, endDate),
+        this.calculateSystemUptime(startDate, endDate),
+        this.calculateErrorRate(startDate, endDate),
+      ]);
 
     return {
       avgResponseTime,
@@ -511,8 +640,16 @@ export class ComplianceReport {
     };
   }
 
-  private async generateRiskMetrics(startDate: Date, endDate: Date): Promise<any> {
-    const [highRiskTransactions, suspiciousActivities, complianceViolations, riskScore] = await Promise.all([
+  private async generateRiskMetrics(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any> {
+    const [
+      highRiskTransactions,
+      suspiciousActivities,
+      complianceViolations,
+      riskScore,
+    ] = await Promise.all([
       this.countHighRiskTransactions(startDate, endDate),
       this.countSuspiciousActivities(startDate, endDate),
       this.countComplianceViolations(startDate, endDate),
@@ -532,10 +669,12 @@ export class ComplianceReport {
     return `compliance_${reportType}_${dateStr}_${Date.now()}`;
   }
 
-  private async getRegulation(regulationId: string): Promise<ComplianceRegulation> {
+  private async getRegulation(
+    regulationId: string,
+  ): Promise<ComplianceRegulation> {
     // This would fetch from a database or configuration
     const regulations: Record<string, ComplianceRegulation> = {
-      'sox': {
+      sox: {
         id: 'sox',
         name: 'Sarbanes-Oxley Act',
         jurisdiction: 'US',
@@ -544,22 +683,26 @@ export class ComplianceReport {
           {
             id: 'sox_404',
             name: 'Section 404 - Internal Controls',
-            description: 'Establish and maintain internal controls over financial reporting',
+            description:
+              'Establish and maintain internal controls over financial reporting',
             mandatory: true,
-            validation: 'audit_trail_exists && audit_trail_immutable && audit_trail_complete',
+            validation:
+              'audit_trail_exists && audit_trail_immutable && audit_trail_complete',
           },
           {
             id: 'sox_302',
             name: 'Section 302 - Corporate Responsibility',
-            description: 'Ensure financial statements are accurate and complete',
+            description:
+              'Ensure financial statements are accurate and complete',
             mandatory: true,
-            validation: 'transaction_integrity_verified && no_material_weaknesses',
+            validation:
+              'transaction_integrity_verified && no_material_weaknesses',
           },
         ],
         lastUpdated: new Date(),
         isActive: true,
       },
-      'gdpr': {
+      gdpr: {
         id: 'gdpr',
         name: 'General Data Protection Regulation',
         jurisdiction: 'EU',
@@ -568,16 +711,19 @@ export class ComplianceReport {
           {
             id: 'gdpr_32',
             name: 'Security of Processing',
-            description: 'Implement appropriate technical and organizational measures',
+            description:
+              'Implement appropriate technical and organizational measures',
             mandatory: true,
-            validation: 'data_encryption_enabled && access_controls_implemented && security_incidents_logged',
+            validation:
+              'data_encryption_enabled && access_controls_implemented && security_incidents_logged',
           },
           {
             id: 'gdpr_25',
             name: 'Data Protection by Design and Default',
             description: 'Implement data protection principles from the start',
             mandatory: true,
-            validation: 'privacy_by_design && data_minimization && consent_management',
+            validation:
+              'privacy_by_design && data_minimization && consent_management',
           },
         ],
         lastUpdated: new Date(),
@@ -588,7 +734,11 @@ export class ComplianceReport {
     return regulations[regulationId] || regulations['sox'];
   }
 
-  private async validateRequirement(requirement: any, startDate: Date, endDate: Date): Promise<ComplianceCheck> {
+  private async validateRequirement(
+    requirement: any,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<ComplianceCheck> {
     const validation = requirement.validation;
     let status: 'compliant' | 'non_compliant' | 'pending' = 'pending';
     let score = 0;
@@ -600,7 +750,7 @@ export class ComplianceReport {
       const auditLogsCount = await this.auditLogRepository.count({
         where: { createdAt: Between(startDate, endDate) },
       });
-      
+
       if (auditLogsCount > 0) {
         score += 50;
         details += 'Audit trail exists. ';
@@ -612,12 +762,12 @@ export class ComplianceReport {
     if (validation.includes('audit_trail_immutable')) {
       // Check if audit logs have checksums and signatures
       const immutableLogs = await this.auditLogRepository.count({
-        where: { 
+        where: {
           createdAt: Between(startDate, endDate),
           checksum: MoreThan(''),
         },
       });
-      
+
       if (immutableLogs > 0) {
         score += 50;
         details += 'Audit trail is immutable. ';
@@ -626,7 +776,8 @@ export class ComplianceReport {
       }
     }
 
-    status = score >= 80 ? 'compliant' : score >= 60 ? 'pending' : 'non_compliant';
+    status =
+      score >= 80 ? 'compliant' : score >= 60 ? 'pending' : 'non_compliant';
 
     return {
       regulationId: 'sox',
@@ -639,12 +790,18 @@ export class ComplianceReport {
     };
   }
 
-  private async countAffectedRecords(requirement: any, startDate: Date, endDate: Date): Promise<number> {
+  private async countAffectedRecords(
+    requirement: any,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // This would count records affected by non-compliance
     return 0;
   }
 
-  private getViolationSeverity(requirement: any): 'low' | 'medium' | 'high' | 'critical' {
+  private getViolationSeverity(
+    requirement: any,
+  ): 'low' | 'medium' | 'high' | 'critical' {
     return requirement.mandatory ? 'high' : 'medium';
   }
 
@@ -654,13 +811,13 @@ export class ComplianceReport {
 
   private async getActiveRegulations(): Promise<ComplianceRegulation[]> {
     // This would fetch from database
-    return [
-      await this.getRegulation('sox'),
-      await this.getRegulation('gdpr'),
-    ];
+    return [await this.getRegulation('sox'), await this.getRegulation('gdpr')];
   }
 
-  private async generateComplianceTrends(startDate: Date, endDate: Date): Promise<{
+  private async generateComplianceTrends(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{
     scores: Array<{ date: Date; score: number }>;
     violations: Array<{ date: Date; count: number }>;
   }> {
@@ -684,12 +841,17 @@ export class ComplianceReport {
     return { scores, violations };
   }
 
-  private async generateComplianceAlerts(startDate: Date, endDate: Date): Promise<Array<{
-    type: string;
-    severity: string;
-    message: string;
-    timestamp: Date;
-  }>> {
+  private async generateComplianceAlerts(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<
+    Array<{
+      type: string;
+      severity: string;
+      message: string;
+      timestamp: Date;
+    }>
+  > {
     // This would generate alerts based on compliance issues
     return [
       {
@@ -719,12 +881,16 @@ export class ComplianceReport {
   private generateRecommendations(violations: ComplianceViolation[]): string[] {
     const recommendations = [];
 
-    if (violations.some(v => v.severity === 'critical')) {
-      recommendations.push('Immediate action required for critical compliance violations');
+    if (violations.some((v) => v.severity === 'critical')) {
+      recommendations.push(
+        'Immediate action required for critical compliance violations',
+      );
     }
 
-    if (violations.some(v => v.severity === 'high')) {
-      recommendations.push('Review and remediate high-priority compliance issues');
+    if (violations.some((v) => v.severity === 'high')) {
+      recommendations.push(
+        'Review and remediate high-priority compliance issues',
+      );
     }
 
     if (violations.length > 10) {
@@ -735,7 +901,10 @@ export class ComplianceReport {
   }
 
   // Helper methods for metrics calculation
-  private async calculateErrorRate(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateErrorRate(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     const totalLogs = await this.auditLogRepository.count({
       where: { createdAt: Between(startDate, endDate) },
     });
@@ -750,77 +919,122 @@ export class ComplianceReport {
     return totalLogs > 0 ? (errorLogs / totalLogs) * 100 : 0;
   }
 
-  private async calculateComplianceScore(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateComplianceScore(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 85 + Math.random() * 15;
   }
 
-  private async calculateRiskScore(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateRiskScore(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 20 + Math.random() * 30;
   }
 
-  private async calculateRetentionCompliance(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateRetentionCompliance(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 90 + Math.random() * 10;
   }
 
-  private async getLogsByAction(startDate: Date, endDate: Date): Promise<Record<AuditAction, number>> {
+  private async getLogsByAction(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Record<AuditAction, number>> {
     // Placeholder implementation
     return {} as Record<AuditAction, number>;
   }
 
-  private async getLogsByResource(startDate: Date, endDate: Date): Promise<Record<AuditResource, number>> {
+  private async getLogsByResource(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Record<AuditResource, number>> {
     // Placeholder implementation
     return {} as Record<AuditResource, number>;
   }
 
-  private async getLogsBySeverity(startDate: Date, endDate: Date): Promise<Record<AuditSeverity, number>> {
+  private async getLogsBySeverity(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Record<AuditSeverity, number>> {
     // Placeholder implementation
     return {} as Record<AuditSeverity, number>;
   }
 
-  private async calculateAverageExecutionTime(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateAverageExecutionTime(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 100 + Math.random() * 50;
   }
 
-  private async countSensitiveDataLogs(startDate: Date, endDate: Date): Promise<number> {
+  private async countSensitiveDataLogs(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 100);
   }
 
-  private async countEncryptedLogs(startDate: Date, endDate: Date): Promise<number> {
+  private async countEncryptedLogs(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 50);
   }
 
-  private async getTransactionsByType(startDate: Date, endDate: Date): Promise<Record<TransactionType, number>> {
+  private async getTransactionsByType(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Record<TransactionType, number>> {
     // Placeholder implementation
     return {} as Record<TransactionType, number>;
   }
 
-  private async getTransactionsByStatus(startDate: Date, endDate: Date): Promise<Record<TransactionStatus, number>> {
+  private async getTransactionsByStatus(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Record<TransactionStatus, number>> {
     // Placeholder implementation
     return {} as Record<TransactionStatus, number>;
   }
 
-  private async calculateAverageAmount(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateAverageAmount(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 1000 + Math.random() * 5000;
   }
 
-  private async calculateTotalFees(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateTotalFees(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.random() * 10000;
   }
 
-  private async calculateTotalTaxes(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateTotalTaxes(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.random() * 5000;
   }
 
-  private async getDataClassificationMetrics(startDate: Date, endDate: Date): Promise<Record<string, number>> {
+  private async getDataClassificationMetrics(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Record<string, number>> {
     // Placeholder implementation
     return {
       public: Math.floor(Math.random() * 100),
@@ -830,17 +1044,26 @@ export class ComplianceReport {
     };
   }
 
-  private async countRedactionApplied(startDate: Date, endDate: Date): Promise<number> {
+  private async countRedactionApplied(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 25);
   }
 
-  private async countConsentRecords(startDate: Date, endDate: Date): Promise<number> {
+  private async countConsentRecords(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 150);
   }
 
-  private async getRetentionPolicyMetrics(startDate: Date, endDate: Date): Promise<Record<string, number>> {
+  private async getRetentionPolicyMetrics(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Record<string, number>> {
     // Placeholder implementation
     return {
       '1_year': Math.floor(Math.random() * 100),
@@ -850,67 +1073,106 @@ export class ComplianceReport {
     };
   }
 
-  private async countAuthenticationEvents(startDate: Date, endDate: Date): Promise<number> {
+  private async countAuthenticationEvents(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 500);
   }
 
-  private async countAccessDeniedEvents(startDate: Date, endDate: Date): Promise<number> {
+  private async countAccessDeniedEvents(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 50);
   }
 
-  private async countSecurityViolations(startDate: Date, endDate: Date): Promise<number> {
+  private async countSecurityViolations(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 10);
   }
 
-  private async countThreatDetections(startDate: Date, endDate: Date): Promise<number> {
+  private async countThreatDetections(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 5);
   }
 
-  private async calculateAverageResponseTime(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateAverageResponseTime(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 150 + Math.random() * 100;
   }
 
-  private async calculateThroughput(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateThroughput(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 1000 + Math.random() * 500;
   }
 
-  private async calculateSystemUptime(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateSystemUptime(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 99.5 + Math.random() * 0.5;
   }
 
-  private async countHighRiskTransactions(startDate: Date, endDate: Date): Promise<number> {
+  private async countHighRiskTransactions(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 20);
   }
 
-  private async countSuspiciousActivities(startDate: Date, endDate: Date): Promise<number> {
+  private async countSuspiciousActivities(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 15);
   }
 
-  private async countComplianceViolations(startDate: Date, endDate: Date): Promise<number> {
+  private async countComplianceViolations(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return Math.floor(Math.random() * 10);
   }
 
-  private async calculateAverageResponseTime(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateAverageResponseTime(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 150 + Math.random() * 100;
   }
 
-  private async calculateThroughput(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateThroughput(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 1000 + Math.random() * 500;
   }
 
-  private async calculateSystemUptime(startDate: Date, endDate: Date): Promise<number> {
+  private async calculateSystemUptime(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
     // Placeholder implementation
     return 99.5 + Math.random() * 0.5;
   }

@@ -1,6 +1,6 @@
 /**
  * Classification Module
- * 
+ *
  * Module for managing energy classifications, quality ratings, and certifications.
  */
 
@@ -13,18 +13,9 @@ import { Certification } from './entities/certification.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      EnergyCategory,
-      EnergyQuality,
-      Certification,
-    ]),
+    TypeOrmModule.forFeature([EnergyCategory, EnergyQuality, Certification]),
   ],
-  providers: [
-    ClassificationService,
-  ],
-  exports: [
-    ClassificationService,
-    TypeOrmModule,
-  ],
+  providers: [ClassificationService],
+  exports: [ClassificationService, TypeOrmModule],
 })
 export class ClassificationModule {}

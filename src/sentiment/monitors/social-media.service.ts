@@ -6,14 +6,19 @@ export class SocialMediaMonitorService {
 
   async monitorPlatforms(keywords: string[]): Promise<any[]> {
     this.logger.log('Monitoring social media platforms');
-    
+
     // In production, integrate with Twitter/X API, Reddit API, etc.
     const posts = await this.fetchPosts(keywords);
     return posts;
   }
 
   async fetchTrendingTopics(): Promise<string[]> {
-    return ['renewable energy', 'solar power', 'wind energy', 'electric vehicles'];
+    return [
+      'renewable energy',
+      'solar power',
+      'wind energy',
+      'electric vehicles',
+    ];
   }
 
   private async fetchPosts(keywords: string[]): Promise<any[]> {

@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum RecommendationType {
   BUY = 'buy',
@@ -36,7 +42,11 @@ export class Recommendation {
   @Column({ type: 'float', default: 0 })
   confidenceScore: number;
 
-  @Column({ type: 'enum', enum: ConfidenceLevel, default: ConfidenceLevel.MEDIUM })
+  @Column({
+    type: 'enum',
+    enum: ConfidenceLevel,
+    default: ConfidenceLevel.MEDIUM,
+  })
   confidenceLevel: ConfidenceLevel;
 
   @Column('jsonb')

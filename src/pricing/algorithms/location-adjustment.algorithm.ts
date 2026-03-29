@@ -18,12 +18,12 @@ export class LocationAdjustmentAlgorithm {
       key: 'new-york',
       value: {
         latitude: 40.7128,
-        longitude: -74.0060,
+        longitude: -74.006,
         gridDistance: 50,
         populationDensity: 10000,
         infrastructureQuality: 0.9,
-        localDemand: 1000
-      }
+        localDemand: 1000,
+      },
     },
     {
       key: 'london',
@@ -33,8 +33,8 @@ export class LocationAdjustmentAlgorithm {
         gridDistance: 30,
         populationDensity: 5700,
         infrastructureQuality: 0.85,
-        localDemand: 800
-      }
+        localDemand: 800,
+      },
     },
     {
       key: 'tokyo',
@@ -44,19 +44,19 @@ export class LocationAdjustmentAlgorithm {
         gridDistance: 20,
         populationDensity: 15000,
         infrastructureQuality: 0.95,
-        localDemand: 1200
-      }
+        localDemand: 1200,
+      },
     },
     {
       key: 'berlin',
       value: {
-        latitude: 52.5200,
-        longitude: 13.4050,
+        latitude: 52.52,
+        longitude: 13.405,
         gridDistance: 40,
         populationDensity: 4000,
         infrastructureQuality: 0.8,
-        localDemand: 600
-      }
+        localDemand: 600,
+      },
     },
     {
       key: 'paris',
@@ -66,26 +66,38 @@ export class LocationAdjustmentAlgorithm {
         gridDistance: 35,
         populationDensity: 21000,
         infrastructureQuality: 0.88,
-        localDemand: 900
-      }
-    }
+        localDemand: 900,
+      },
+    },
   ]);
 
   calculateLocationMultiplier(location: string): number {
     const locationData = this.getLocationData(location);
-    
+
     if (!locationData) {
-      this.logger.warn(`Location data not found for ${location}, using default multiplier`);
+      this.logger.warn(
+        `Location data not found for ${location}, using default multiplier`,
+      );
       return 1.0;
     }
 
-    const gridDistanceMultiplier = this.calculateGridDistanceMultiplier(locationData.gridDistance);
-    const populationDensityMultiplier = this.calculatePopulationDensityMultiplier(locationData.populationDensity);
-    const infrastructureMultiplier = this.calculateInfrastructureMultiplier(locationData.infrastructureQuality);
-    const demandMultiplier = this.calculateLocalDemandMultiplier(locationData.localDemand);
+    const gridDistanceMultiplier = this.calculateGridDistanceMultiplier(
+      locationData.gridDistance,
+    );
+    const populationDensityMultiplier =
+      this.calculatePopulationDensityMultiplier(locationData.populationDensity);
+    const infrastructureMultiplier = this.calculateInfrastructureMultiplier(
+      locationData.infrastructureQuality,
+    );
+    const demandMultiplier = this.calculateLocalDemandMultiplier(
+      locationData.localDemand,
+    );
 
-    const finalMultiplier = gridDistanceMultiplier * populationDensityMultiplier * 
-                           infrastructureMultiplier * demandMultiplier;
+    const finalMultiplier =
+      gridDistanceMultiplier *
+      populationDensityMultiplier *
+      infrastructureMultiplier *
+      demandMultiplier;
 
     return Math.round(finalMultiplier * 100) / 100;
   }
@@ -123,7 +135,10 @@ export class LocationAdjustmentAlgorithm {
     return 0.95;
   }
 
-  calculateDistanceBasedMultiplier(location1: string, location2: string): number {
+  calculateDistanceBasedMultiplier(
+    location1: string,
+    location2: string,
+  ): number {
     const data1 = this.getLocationData(location1);
     const data2 = this.getLocationData(location2);
 
@@ -132,7 +147,7 @@ export class LocationAdjustmentAlgorithm {
     }
 
     const distance = this.calculateDistance(data1, data2);
-    
+
     if (distance <= 100) return 1.0;
     if (distance <= 500) return 1.05;
     if (distance <= 1000) return 1.1;
@@ -144,11 +159,14 @@ export class LocationAdjustmentAlgorithm {
     const R = 6371;
     const dLat = this.toRadians(loc2.latitude - loc1.latitude);
     const dLon = this.toRadians(loc2.longitude - loc1.longitude);
-    
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.toRadians(loc1.latitude)) * Math.cos(this.toRadians(loc2.latitude)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(loc1.latitude)) *
+        Math.cos(this.toRadians(loc2.latitude)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }

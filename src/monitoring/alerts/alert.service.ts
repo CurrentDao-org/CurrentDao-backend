@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TransactionStatusEntity, TransactionStatus, TransactionPriority } from '../entities/transaction-status.entity';
+import {
+  TransactionStatusEntity,
+  TransactionStatus,
+  TransactionPriority,
+} from '../entities/transaction-status.entity';
 
 export interface AlertChannel {
   name: string;
@@ -20,42 +24,42 @@ export interface Alert {
 
 export class EmailAlertChannel implements AlertChannel {
   name = 'email';
-  
+
   isEnabled(): boolean {
     return process.env.ALERT_EMAIL_ENABLED === 'true';
   }
 
   async send(alert: Alert): Promise<void> {
     if (!this.isEnabled()) return;
-    
+
     this.logger.log(`Email alert sent: ${alert.message}`);
   }
 }
 
 export class SlackAlertChannel implements AlertChannel {
   name = 'slack';
-  
+
   isEnabled(): boolean {
     return process.env.ALERT_SLACK_ENABLED === 'true';
   }
 
   async send(alert: Alert): Promise<void> {
     if (!this.isEnabled()) return;
-    
+
     this.logger.log(`Slack alert sent: ${alert.message}`);
   }
 }
 
 export class WebhookAlertChannel implements AlertChannel {
   name = 'webhook';
-  
+
   isEnabled(): boolean {
     return process.env.ALERT_WEBHOOK_ENABLED === 'true';
   }
 
   async send(alert: Alert): Promise<void> {
     if (!this.isEnabled()) return;
-    
+
     this.logger.log(`Webhook alert sent: ${alert.message}`);
   }
 }
@@ -102,7 +106,10 @@ export class AlertService {
     await this.recordAlert(transaction, alert);
   }
 
-  async sendCriticalAlert(message: string, metadata?: Record<string, any>): Promise<void> {
+  async sendCriticalAlert(
+    message: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
     const alert: Alert = {
       type: 'critical',
       severity: 'critical',
@@ -119,7 +126,10 @@ export class AlertService {
     transaction: TransactionStatusEntity,
     errorMessage: string,
   ): Promise<void> {
-    const severity = transaction.priority === TransactionPriority.CRITICAL ? 'critical' : 'high';
+    const severity =
+      transaction.priority === TransactionPriority.CRITICAL
+        ? 'critical'
+        : 'high';
     const message = `Transaction ${transaction.transactionHash} failed: ${errorMessage}`;
 
     const alert: Alert = {
@@ -141,7 +151,10 @@ export class AlertService {
   }
 
   async sendTimeoutAlert(transaction: TransactionStatusEntity): Promise<void> {
-    const severity = transaction.priority === TransactionPriority.CRITICAL ? 'critical' : 'high';
+    const severity =
+      transaction.priority === TransactionPriority.CRITICAL
+        ? 'critical'
+        : 'high';
     const message = `Transaction ${transaction.transactionHash} timed out after 5 minutes`;
 
     const alert: Alert = {
@@ -160,7 +173,10 @@ export class AlertService {
     await this.recordAlert(transaction, alert);
   }
 
-  async sendRetryAlert(transaction: TransactionStatusEntity, attempt: number): Promise<void> {
+  async sendRetryAlert(
+    transaction: TransactionStatusEntity,
+    attempt: number,
+  ): Promise<void> {
     const message = `Retrying transaction ${transaction.transactionHash} (attempt ${attempt}/${transaction.maxRetries})`;
 
     const alert: Alert = {
@@ -211,18 +227,22 @@ export class AlertService {
       return;
     }
 
-    const enabledChannels = Array.from(this.channels.values()).filter(channel => 
-      channel.isEnabled() && this.shouldSendToChannel(alert.severity, channel.name)
+    const enabledChannels = Array.from(this.channels.values()).filter(
+      (channel) =>
+        channel.isEnabled() &&
+        this.shouldSendToChannel(alert.severity, channel.name),
     );
 
-    const promises = enabledChannels.map(channel => 
-      channel.send(alert).catch(error => 
-        this.logger.error(`Failed to send alert via ${channel.name}:`, error)
-      )
+    const promises = enabledChannels.map((channel) =>
+      channel
+        .send(alert)
+        .catch((error) =>
+          this.logger.error(`Failed to send alert via ${channel.name}:`, error),
+        ),
     );
 
     await Promise.allSettled(promises);
-    
+
     this.updateRateLimiter(alert.type);
     this.logger.log(`Alert sent: ${alert.message} (${alert.severity})`);
   }
@@ -233,11 +253,11 @@ export class AlertService {
   ): Promise<void> {
     const alerts = this.alertHistory.get(transaction.transactionHash) || [];
     alerts.push(alert);
-    
+
     if (alerts.length > 100) {
       alerts.shift();
     }
-    
+
     this.alertHistory.set(transaction.transactionHash, alerts);
 
     const entityAlerts = transaction.alerts || [];
@@ -250,7 +270,7 @@ export class AlertService {
 
     await this.transactionStatusRepository.update(
       { transactionHash: transaction.transactionHash },
-      { alerts: entityAlerts }
+      { alerts: entityAlerts },
     );
   }
 
@@ -258,14 +278,17 @@ export class AlertService {
     status: TransactionStatus,
     priority: TransactionPriority,
   ): 'low' | 'medium' | 'high' | 'critical' {
-    if (status === TransactionStatus.FAILED || status === TransactionStatus.TIMEOUT) {
+    if (
+      status === TransactionStatus.FAILED ||
+      status === TransactionStatus.TIMEOUT
+    ) {
       return priority === TransactionPriority.CRITICAL ? 'critical' : 'high';
     }
-    
+
     if (status === TransactionStatus.RETRYING) {
       return priority === TransactionPriority.CRITICAL ? 'high' : 'medium';
     }
-    
+
     return 'low';
   }
 
@@ -298,7 +321,7 @@ export class AlertService {
 
   async getSystemAlerts(limit: number = 100): Promise<Alert[]> {
     const allAlerts: Alert[] = [];
-    
+
     for (const alerts of this.alertHistory.values()) {
       allAlerts.push(...alerts);
     }
@@ -315,20 +338,26 @@ export class AlertService {
     rateLimitedTypes: string[];
   } {
     const allAlerts: Alert[] = [];
-    
+
     for (const alerts of this.alertHistory.values()) {
       allAlerts.push(...alerts);
     }
 
-    const alertsByType = allAlerts.reduce((acc, alert) => {
-      acc[alert.type] = (acc[alert.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const alertsByType = allAlerts.reduce(
+      (acc, alert) => {
+        acc[alert.type] = (acc[alert.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
-    const alertsBySeverity = allAlerts.reduce((acc, alert) => {
-      acc[alert.severity] = (acc[alert.severity] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const alertsBySeverity = allAlerts.reduce(
+      (acc, alert) => {
+        acc[alert.severity] = (acc[alert.severity] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       totalAlerts: allAlerts.length,

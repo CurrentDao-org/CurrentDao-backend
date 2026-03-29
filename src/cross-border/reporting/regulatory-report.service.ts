@@ -435,7 +435,7 @@ export class RegulatoryReportService {
     }
 
     const totalTime = completedTransactions.reduce((sum, t) => {
-      return sum + (t.processedAt!.getTime() - t.createdAt.getTime());
+      return sum + (t.processedAt.getTime() - t.createdAt.getTime());
     }, 0);
 
     return totalTime / completedTransactions.length;

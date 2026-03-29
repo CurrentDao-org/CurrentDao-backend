@@ -1,6 +1,6 @@
 /**
  * Classification Service
- * 
+ *
  * Service for managing energy classifications, quality ratings, and certifications.
  */
 
@@ -83,7 +83,9 @@ export class ClassificationService implements OnModuleInit {
     }
 
     this.logger.log('Seeding default energy categories...');
-    const categories = this.categoryRepository.create(DEFAULT_ENERGY_CATEGORIES);
+    const categories = this.categoryRepository.create(
+      DEFAULT_ENERGY_CATEGORIES,
+    );
     await this.categoryRepository.save(categories);
     this.logger.log('Default energy categories seeded');
   }
@@ -99,10 +101,10 @@ export class ClassificationService implements OnModuleInit {
     }
 
     this.logger.log('Seeding default quality ratings...');
-    
+
     // Get all categories to link qualities
     const categories = await this.categoryRepository.find();
-    
+
     for (const quality of DEFAULT_QUALITY_RATINGS) {
       for (const category of categories) {
         const qualityEntity = this.qualityRepository.create({
@@ -112,7 +114,7 @@ export class ClassificationService implements OnModuleInit {
         await this.qualityRepository.save(qualityEntity);
       }
     }
-    
+
     this.logger.log('Default quality ratings seeded');
   }
 
@@ -127,7 +129,9 @@ export class ClassificationService implements OnModuleInit {
     }
 
     this.logger.log('Seeding default certifications...');
-    const certifications = this.certificationRepository.create(DEFAULT_CERTIFICATIONS);
+    const certifications = this.certificationRepository.create(
+      DEFAULT_CERTIFICATIONS,
+    );
     await this.certificationRepository.save(certifications);
     this.logger.log('Default certifications seeded');
   }
@@ -179,7 +183,9 @@ export class ClassificationService implements OnModuleInit {
       relations: ['qualities', 'certifications'],
     });
     if (!category) {
-      throw new NotFoundException(`Category with energy type ${energyType} not found`);
+      throw new NotFoundException(
+        `Category with energy type ${energyType} not found`,
+      );
     }
     return category;
   }
@@ -194,17 +200,29 @@ export class ClassificationService implements OnModuleInit {
     limit: number;
     totalPages: number;
   }> {
-    const { page = 1, limit = 10, search, isRenewable, isActive, energyType, tags } = filter;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      isRenewable,
+      isActive,
+      energyType,
+      tags,
+    } = filter;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.categoryRepository.createQueryBuilder('category');
 
     if (energyType) {
-      queryBuilder.andWhere('category.energyType = :energyType', { energyType });
+      queryBuilder.andWhere('category.energyType = :energyType', {
+        energyType,
+      });
     }
 
     if (isRenewable !== undefined) {
-      queryBuilder.andWhere('category.isRenewable = :isRenewable', { isRenewable });
+      queryBuilder.andWhere('category.isRenewable = :isRenewable', {
+        isRenewable,
+      });
     }
 
     if (isActive !== undefined) {
@@ -222,10 +240,7 @@ export class ClassificationService implements OnModuleInit {
       queryBuilder.andWhere('category.tags && :tags', { tags });
     }
 
-    queryBuilder
-      .orderBy('category.sortOrder', 'ASC')
-      .skip(skip)
-      .take(limit);
+    queryBuilder.orderBy('category.sortOrder', 'ASC').skip(skip).take(limit);
 
     const [categories, total] = await queryBuilder.getManyAndCount();
 
@@ -270,9 +285,8 @@ export class ClassificationService implements OnModuleInit {
         name: category.name,
         priceMultiplier: Number(category.priceMultiplier),
         isRenewable: category.isRenewable,
-        children: children.length > 0
-          ? await this.buildCategoryTree(children)
-          : [],
+        children:
+          children.length > 0 ? await this.buildCategoryTree(children) : [],
       });
     }
 
@@ -348,16 +362,23 @@ export class ClassificationService implements OnModuleInit {
   /**
    * List quality ratings with filters
    */
-  async listQualityRatings(
-    filter: QualityRatingFilterDto,
-  ): Promise<{
+  async listQualityRatings(filter: QualityRatingFilterDto): Promise<{
     qualities: EnergyQuality[];
     total: number;
     page: number;
     limit: number;
     totalPages: number;
   }> {
-    const { page = 1, limit = 10, search, rating, tier, categoryId, isVerified, isActive } = filter;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      rating,
+      tier,
+      categoryId,
+      isVerified,
+      isActive,
+    } = filter;
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.qualityRepository.createQueryBuilder('quality');
@@ -389,10 +410,7 @@ export class ClassificationService implements OnModuleInit {
       );
     }
 
-    queryBuilder
-      .orderBy('quality.sortOrder', 'ASC')
-      .skip(skip)
-      .take(limit);
+    queryBuilder.orderBy('quality.sortOrder', 'ASC').skip(skip).take(limit);
 
     const [qualities, total] = await queryBuilder.getManyAndCount();
 
@@ -456,7 +474,9 @@ export class ClassificationService implements OnModuleInit {
   /**
    * Get certification by type
    */
-  async getCertificationByType(type: CertificationType): Promise<Certification> {
+  async getCertificationByType(
+    type: CertificationType,
+  ): Promise<Certification> {
     const certification = await this.certificationRepository.findOne({
       where: { type },
     });
@@ -469,9 +489,7 @@ export class ClassificationService implements OnModuleInit {
   /**
    * List certifications with filters
    */
-  async listCertifications(
-    filter: CertificationFilterDto,
-  ): Promise<{
+  async listCertifications(filter: CertificationFilterDto): Promise<{
     certifications: Certification[];
     total: number;
     page: number;
@@ -490,7 +508,8 @@ export class ClassificationService implements OnModuleInit {
     } = filter;
     const skip = (page - 1) * limit;
 
-    const queryBuilder = this.certificationRepository.createQueryBuilder('cert');
+    const queryBuilder =
+      this.certificationRepository.createQueryBuilder('cert');
 
     if (type) {
       queryBuilder.andWhere('cert.type = :type', { type });
@@ -509,7 +528,9 @@ export class ClassificationService implements OnModuleInit {
     }
 
     if (validOnly) {
-      queryBuilder.andWhere('cert.status = :active', { active: CertificationStatus.ACTIVE });
+      queryBuilder.andWhere('cert.status = :active', {
+        active: CertificationStatus.ACTIVE,
+      });
       queryBuilder.andWhere('cert.validFrom <= :now', { now: new Date() });
       queryBuilder.andWhere(
         '(cert.validUntil IS NULL OR cert.validUntil >= :now)',
@@ -524,10 +545,7 @@ export class ClassificationService implements OnModuleInit {
       );
     }
 
-    queryBuilder
-      .orderBy('cert.name', 'ASC')
-      .skip(skip)
-      .take(limit);
+    queryBuilder.orderBy('cert.name', 'ASC').skip(skip).take(limit);
 
     const [certifications, total] = await queryBuilder.getManyAndCount();
 
@@ -588,14 +606,22 @@ export class ClassificationService implements OnModuleInit {
   /**
    * Calculate price with all adjustments
    */
-  async calculatePrice(dto: CalculatePriceDto): Promise<CalculatePriceResponseDto> {
-    const { basePrice, energyType, qualityMultiplier = 1.0, certificationMultiplier = 1.0 } = dto;
+  async calculatePrice(
+    dto: CalculatePriceDto,
+  ): Promise<CalculatePriceResponseDto> {
+    const {
+      basePrice,
+      energyType,
+      qualityMultiplier = 1.0,
+      certificationMultiplier = 1.0,
+    } = dto;
 
     // Get category for additional multiplier
     const category = await this.getCategoryByEnergyType(energyType);
     const categoryMultiplier = Number(category.priceMultiplier);
 
-    const totalMultiplier = categoryMultiplier * qualityMultiplier * certificationMultiplier;
+    const totalMultiplier =
+      categoryMultiplier * qualityMultiplier * certificationMultiplier;
     const adjustedPrice = basePrice * totalMultiplier;
 
     return {
@@ -632,13 +658,12 @@ export class ClassificationService implements OnModuleInit {
     );
 
     if (isRenewable !== undefined) {
-      queryBuilder.andWhere('category.isRenewable = :isRenewable', { isRenewable });
+      queryBuilder.andWhere('category.isRenewable = :isRenewable', {
+        isRenewable,
+      });
     }
 
-    queryBuilder
-      .orderBy('category.name', 'ASC')
-      .skip(skip)
-      .take(limit);
+    queryBuilder.orderBy('category.name', 'ASC').skip(skip).take(limit);
 
     const [categories, total] = await queryBuilder.getManyAndCount();
 

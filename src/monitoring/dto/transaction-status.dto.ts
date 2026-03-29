@@ -1,6 +1,20 @@
-import { IsString, IsEnum, IsOptional, IsNumber, IsDateString, IsObject, IsBoolean, IsArray, ValidateNested, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsDateString,
+  IsObject,
+  IsBoolean,
+  IsArray,
+  ValidateNested,
+  IsUUID,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { TransactionStatus, TransactionPriority } from '../entities/transaction-status.entity';
+import {
+  TransactionStatus,
+  TransactionPriority,
+} from '../entities/transaction-status.entity';
 
 export class CreateTransactionStatusDto {
   @IsString()
@@ -275,11 +289,14 @@ export class TransactionAnalyticsDto {
   priorityBreakdown: Record<TransactionPriority, number>;
 
   @IsObject()
-  hourlyStats: Record<string, {
-    count: number;
-    successRate: number;
-    averageTime: number;
-  }>;
+  hourlyStats: Record<
+    string,
+    {
+      count: number;
+      successRate: number;
+      averageTime: number;
+    }
+  >;
 }
 
 export class RetryTransactionDto {

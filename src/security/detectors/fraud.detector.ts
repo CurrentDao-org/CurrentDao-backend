@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SecurityEvent, SeverityLevel } from '../entities/security-event.entity';
+import {
+  SecurityEvent,
+  SeverityLevel,
+} from '../entities/security-event.entity';
 
 export interface FraudAnalysisResult {
   isSuspicious: boolean;
@@ -54,14 +57,15 @@ export class FraudDetectorService {
     }
 
     // Check for other suspicious patterns
-    const suspiciousPatternResult = await this.detectSuspiciousPatterns(transactionData);
+    const suspiciousPatternResult =
+      await this.detectSuspiciousPatterns(transactionData);
     if (suspiciousPatternResult) {
       patterns.push('SUSPICIOUS_PATTERN');
       riskScore += this.riskWeights.suspiciousPatterns;
     }
 
     const severity = this.calculateSeverity(riskScore);
-    
+
     return {
       isSuspicious: riskScore > 0.3,
       severity,
@@ -91,7 +95,8 @@ export class FraudDetectorService {
     }
 
     // Check for price manipulation patterns
-    const priceManipulation = await this.detectPriceManipulation(transactionData);
+    const priceManipulation =
+      await this.detectPriceManipulation(transactionData);
     if (priceManipulation) {
       indicators.push('PRICE_MANIPULATION');
       confidence += 0.2;
@@ -114,7 +119,7 @@ export class FraudDetectorService {
 
   private async detectSelfTrading(transactionData: any): Promise<boolean> {
     const { buyerId, sellerId, walletAddress } = transactionData;
-    
+
     // Check if buyer and seller are the same entity
     if (buyerId === sellerId) {
       return true;
@@ -127,7 +132,7 @@ export class FraudDetectorService {
 
   private async detectRapidReversal(transactionData: any): Promise<boolean> {
     const { walletAddress, timestamp, amount } = transactionData;
-    
+
     // Look for opposite transactions within short time window (e.g., 5 minutes)
     const reversalExists = await this.findOppositeTransaction(
       walletAddress,
@@ -141,7 +146,7 @@ export class FraudDetectorService {
 
   private async detectCircularTrading(transactionData: any): Promise<boolean> {
     const { participants } = transactionData;
-    
+
     // Detect circular trading patterns (A->B->C->A)
     if (participants && participants.length >= 3) {
       const hasCircularPattern = await this.checkCircularPattern(participants);
@@ -151,7 +156,9 @@ export class FraudDetectorService {
     return false;
   }
 
-  private async detectSuspiciousPatterns(transactionData: any): Promise<boolean> {
+  private async detectSuspiciousPatterns(
+    transactionData: any,
+  ): Promise<boolean> {
     // Check for structuring (breaking large transactions into smaller ones)
     const structuringDetected = await this.detectStructuring(transactionData);
     if (structuringDetected) return true;
@@ -163,13 +170,16 @@ export class FraudDetectorService {
     return false;
   }
 
-  private async detectPriceManipulation(transactionData: any): Promise<boolean> {
+  private async detectPriceManipulation(
+    transactionData: any,
+  ): Promise<boolean> {
     const { price, marketPrice, recentPrices } = transactionData;
-    
+
     if (!recentPrices || recentPrices.length === 0) return false;
 
     // Check for artificial price movements
-    const avgRecentPrice = recentPrices.reduce((a, b) => a + b, 0) / recentPrices.length;
+    const avgRecentPrice =
+      recentPrices.reduce((a, b) => a + b, 0) / recentPrices.length;
     const deviation = Math.abs(price - avgRecentPrice) / avgRecentPrice;
 
     return deviation > 0.2; // 20% deviation suggests manipulation
@@ -177,7 +187,7 @@ export class FraudDetectorService {
 
   private async detectVolumeInflation(transactionData: any): Promise<boolean> {
     const { amount, walletAddress } = transactionData;
-    
+
     // Check for unusually high volume compared to historical data
     const avgVolume = await this.getHistoricalAverageVolume(walletAddress);
     const ratio = amount / avgVolume;
@@ -193,7 +203,10 @@ export class FraudDetectorService {
   }
 
   // Helper methods - implement actual DB queries in production
-  private async checkWalletRelationship(wallet1: string, wallet2: string): Promise<boolean> {
+  private async checkWalletRelationship(
+    wallet1: string,
+    wallet2: string,
+  ): Promise<boolean> {
     // Check if wallets are related through common ownership, IP, etc.
     return false; // Placeholder
   }
@@ -233,7 +246,9 @@ export class FraudDetectorService {
     return false; // Placeholder
   }
 
-  private async getHistoricalAverageVolume(walletAddress: string): Promise<number> {
+  private async getHistoricalAverageVolume(
+    walletAddress: string,
+  ): Promise<number> {
     return 1000; // Placeholder
   }
 }

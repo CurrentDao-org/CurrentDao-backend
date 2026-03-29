@@ -1,6 +1,6 @@
 /**
  * Certification Entity
- * 
+ *
  * Defines certifications for energy sources (Green Energy, Carbon Neutral, etc.).
  */
 
@@ -63,11 +63,10 @@ export class Certification {
   @Column({ name: 'category_id', nullable: true })
   categoryId: string;
 
-  @ManyToOne(
-    () => EnergyCategory,
-    (category) => category.certifications,
-    { nullable: true, onDelete: 'SET NULL' },
-  )
+  @ManyToOne(() => EnergyCategory, (category) => category.certifications, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'category_id' })
   category: EnergyCategory;
 
@@ -96,7 +95,13 @@ export class Certification {
   @Column({ name: 'renewal_period_days', nullable: true })
   renewalPeriodDays: number;
 
-  @Column({ name: 'price_adjustment', type: 'decimal', precision: 5, scale: 2, default: 1.0 })
+  @Column({
+    name: 'price_adjustment',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    default: 1.0,
+  })
   priceAdjustment: number;
 
   @Column({ name: 'is_verified', default: false })
@@ -131,7 +136,8 @@ export const DEFAULT_CERTIFICATIONS = [
   {
     type: CertificationType.GREEN_ENERGY,
     name: 'Green Energy Certification',
-    description: 'Certifies that energy is generated from renewable sources with minimal environmental impact',
+    description:
+      'Certifies that energy is generated from renewable sources with minimal environmental impact',
     issuingAuthority: 'Green Energy Standards Board',
     certificationCode: 'GEC-001',
     status: CertificationStatus.ACTIVE,
@@ -148,7 +154,8 @@ export const DEFAULT_CERTIFICATIONS = [
   {
     type: CertificationType.CARBON_NEUTRAL,
     name: 'Carbon Neutral Certification',
-    description: 'Certifies that net carbon emissions are zero through offset programs',
+    description:
+      'Certifies that net carbon emissions are zero through offset programs',
     issuingAuthority: 'Carbon Neutral Alliance',
     certificationCode: 'CNC-001',
     status: CertificationStatus.ACTIVE,
@@ -165,7 +172,8 @@ export const DEFAULT_CERTIFICATIONS = [
   {
     type: CertificationType.RENEWABLE_ENERGY,
     name: 'Renewable Energy Certification',
-    description: 'Certifies that energy is sourced entirely from renewable sources',
+    description:
+      'Certifies that energy is sourced entirely from renewable sources',
     issuingAuthority: 'International Renewable Energy Agency',
     certificationCode: 'REC-001',
     status: CertificationStatus.ACTIVE,
@@ -219,13 +227,13 @@ export const isCertificationValid = (certification: Certification): boolean => {
   if (certification.status !== CertificationStatus.ACTIVE) {
     return false;
   }
-  
+
   const now = new Date();
-  
+
   if (certification.validUntil) {
     return now >= certification.validFrom && now <= certification.validUntil;
   }
-  
+
   return now >= certification.validFrom;
 };
 
@@ -236,15 +244,15 @@ export const needsRenewal = (certification: Certification): boolean => {
   if (!certification.isRecurring || !certification.renewalPeriodDays) {
     return false;
   }
-  
+
   if (!certification.validUntil) {
     return false;
   }
-  
+
   const daysUntilExpiry = Math.ceil(
     (certification.validUntil.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
   );
-  
+
   return daysUntilExpiry <= 30;
 };
 
@@ -256,12 +264,12 @@ export const calculatePriceWithCertification = (
   certifications: Certification[],
 ): number => {
   let multiplier = 1.0;
-  
+
   for (const cert of certifications) {
     if (isCertificationValid(cert)) {
       multiplier *= Number(cert.priceAdjustment);
     }
   }
-  
+
   return basePrice * multiplier;
 };

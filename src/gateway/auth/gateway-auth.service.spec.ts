@@ -24,7 +24,9 @@ describe('GatewayAuthService', () => {
     });
 
     it('should throw UnauthorizedException if token is missing', async () => {
-      await expect(service.validateRequest('')).rejects.toThrow(UnauthorizedException);
+      await expect(service.validateRequest('')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 

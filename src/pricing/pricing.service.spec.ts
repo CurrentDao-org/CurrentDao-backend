@@ -68,10 +68,17 @@ describe('PricingService', () => {
       .compile();
 
     service = module.get<PricingService>(PricingService);
-    priceHistoryRepository = module.get<Repository<PriceHistory>>(getRepositoryToken(PriceHistory));
-    dynamicPricingAlgorithm = module.get<DynamicPricingAlgorithm>(DynamicPricingAlgorithm);
-    locationAdjustmentAlgorithm = module.get<LocationAdjustmentAlgorithm>(LocationAdjustmentAlgorithm);
-    timePricingAlgorithm = module.get<TimePricingAlgorithm>(TimePricingAlgorithm);
+    priceHistoryRepository = module.get<Repository<PriceHistory>>(
+      getRepositoryToken(PriceHistory),
+    );
+    dynamicPricingAlgorithm = module.get<DynamicPricingAlgorithm>(
+      DynamicPricingAlgorithm,
+    );
+    locationAdjustmentAlgorithm = module.get<LocationAdjustmentAlgorithm>(
+      LocationAdjustmentAlgorithm,
+    );
+    timePricingAlgorithm =
+      module.get<TimePricingAlgorithm>(TimePricingAlgorithm);
     predictionAlgorithm = module.get<PredictionAlgorithm>(PredictionAlgorithm);
   });
 
@@ -91,7 +98,9 @@ describe('PricingService', () => {
       };
 
       mockDynamicPricingAlgorithm.calculateBasePrice.mockReturnValue(50);
-      mockLocationAdjustmentAlgorithm.calculateLocationMultiplier.mockReturnValue(1.2);
+      mockLocationAdjustmentAlgorithm.calculateLocationMultiplier.mockReturnValue(
+        1.2,
+      );
       mockTimePricingAlgorithm.calculateTimeMultiplier.mockReturnValue(1.1);
       mockTimePricingAlgorithm.isPeakHour.mockReturnValue(false);
       mockDynamicPricingAlgorithm.applyPriceBounds.mockReturnValue(66);
@@ -108,9 +117,15 @@ describe('PricingService', () => {
         isPeakHour: false,
       });
 
-      expect(mockDynamicPricingAlgorithm.calculateBasePrice).toHaveBeenCalledWith(1000, 800, undefined);
-      expect(mockLocationAdjustmentAlgorithm.calculateLocationMultiplier).toHaveBeenCalledWith('new-york');
-      expect(mockTimePricingAlgorithm.calculateTimeMultiplier).toHaveBeenCalled();
+      expect(
+        mockDynamicPricingAlgorithm.calculateBasePrice,
+      ).toHaveBeenCalledWith(1000, 800, undefined);
+      expect(
+        mockLocationAdjustmentAlgorithm.calculateLocationMultiplier,
+      ).toHaveBeenCalledWith('new-york');
+      expect(
+        mockTimePricingAlgorithm.calculateTimeMultiplier,
+      ).toHaveBeenCalled();
       expect(mockPriceHistoryRepository.create).toHaveBeenCalled();
       expect(mockPriceHistoryRepository.save).toHaveBeenCalled();
     });
@@ -133,7 +148,9 @@ describe('PricingService', () => {
       ];
 
       mockDynamicPricingAlgorithm.calculateBasePrice.mockReturnValue(50);
-      mockLocationAdjustmentAlgorithm.calculateLocationMultiplier.mockReturnValue(1.2);
+      mockLocationAdjustmentAlgorithm.calculateLocationMultiplier.mockReturnValue(
+        1.2,
+      );
       mockTimePricingAlgorithm.calculateTimeMultiplier.mockReturnValue(1.1);
       mockTimePricingAlgorithm.isPeakHour.mockReturnValue(false);
       mockDynamicPricingAlgorithm.applyPriceBounds.mockReturnValue(66);
@@ -148,28 +165,41 @@ describe('PricingService', () => {
 
       expect(result.predictedPrice).toBe(68);
       expect(result.predictionAccuracy).toBe(85);
-      expect(mockPredictionAlgorithm.predictPrice).toHaveBeenCalledWith(historicalData, 2, 1000, 800);
+      expect(mockPredictionAlgorithm.predictPrice).toHaveBeenCalledWith(
+        historicalData,
+        2,
+        1000,
+        800,
+      );
     });
   });
 
   describe('calculateRenewablePremium', () => {
     it('should return correct premium for solar energy', () => {
-      const premium = (service as any).calculateRenewablePremium(EnergyType.SOLAR);
+      const premium = (service as any).calculateRenewablePremium(
+        EnergyType.SOLAR,
+      );
       expect(premium).toBe(0.05);
     });
 
     it('should return correct premium for wind energy', () => {
-      const premium = (service as any).calculateRenewablePremium(EnergyType.WIND);
+      const premium = (service as any).calculateRenewablePremium(
+        EnergyType.WIND,
+      );
       expect(premium).toBe(0.08);
     });
 
     it('should return negative premium for nuclear energy', () => {
-      const premium = (service as any).calculateRenewablePremium(EnergyType.NUCLEAR);
+      const premium = (service as any).calculateRenewablePremium(
+        EnergyType.NUCLEAR,
+      );
       expect(premium).toBe(-0.02);
     });
 
     it('should return positive premium for fossil fuel', () => {
-      const premium = (service as any).calculateRenewablePremium(EnergyType.FOSSIL);
+      const premium = (service as any).calculateRenewablePremium(
+        EnergyType.FOSSIL,
+      );
       expect(premium).toBe(0.15);
     });
   });
@@ -179,11 +209,15 @@ describe('PricingService', () => {
       expect((service as any).isRenewableEnergy(EnergyType.SOLAR)).toBe(true);
       expect((service as any).isRenewableEnergy(EnergyType.WIND)).toBe(true);
       expect((service as any).isRenewableEnergy(EnergyType.HYDRO)).toBe(true);
-      expect((service as any).isRenewableEnergy(EnergyType.GEOTHERMAL)).toBe(true);
+      expect((service as any).isRenewableEnergy(EnergyType.GEOTHERMAL)).toBe(
+        true,
+      );
     });
 
     it('should return false for non-renewable energy types', () => {
-      expect((service as any).isRenewableEnergy(EnergyType.NUCLEAR)).toBe(false);
+      expect((service as any).isRenewableEnergy(EnergyType.NUCLEAR)).toBe(
+        false,
+      );
       expect((service as any).isRenewableEnergy(EnergyType.FOSSIL)).toBe(false);
     });
   });
@@ -230,9 +264,24 @@ describe('PricingService', () => {
   describe('getPricingAnalytics', () => {
     it('should return pricing analytics', async () => {
       const history = [
-        { finalPrice: 60, isPeakHour: true, isRenewable: true, predictionAccuracy: 85 },
-        { finalPrice: 65, isPeakHour: false, isRenewable: false, predictionAccuracy: 90 },
-        { finalPrice: 70, isPeakHour: true, isRenewable: true, predictionAccuracy: 80 },
+        {
+          finalPrice: 60,
+          isPeakHour: true,
+          isRenewable: true,
+          predictionAccuracy: 85,
+        },
+        {
+          finalPrice: 65,
+          isPeakHour: false,
+          isRenewable: false,
+          predictionAccuracy: 90,
+        },
+        {
+          finalPrice: 70,
+          isPeakHour: true,
+          isRenewable: true,
+          predictionAccuracy: 80,
+        },
       ];
 
       mockPriceHistoryRepository.find.mockResolvedValue(history as any);

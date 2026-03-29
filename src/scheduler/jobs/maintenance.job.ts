@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan } from 'typeorm';
-import { ScheduledJob, JobStatus, RetryStrategy } from '../entities/scheduled-job.entity';
+import {
+  ScheduledJob,
+  JobStatus,
+  RetryStrategy,
+} from '../entities/scheduled-job.entity';
 import { Trade, TradeStatus } from '../../energy/entities/trade.entity';
 
 export interface MaintenanceResult {
@@ -94,7 +98,7 @@ export class MaintenanceJob {
 
   async executeMaintenanceJob(job: ScheduledJob): Promise<MaintenanceResult> {
     const startTime = Date.now();
-    
+
     this.logger.log(`Executing maintenance job: ${job.id} - ${job.name}`);
 
     try {
@@ -134,8 +138,14 @@ export class MaintenanceJob {
           operations.push(await this.performRoutineMaintenance(details));
       }
 
-      const totalProcessed = operations.reduce((sum, op) => sum + op.processed, 0);
-      const totalErrors = operations.reduce((sum, op) => sum + op.errors.length, 0);
+      const totalProcessed = operations.reduce(
+        (sum, op) => sum + op.processed,
+        0,
+      );
+      const totalErrors = operations.reduce(
+        (sum, op) => sum + op.errors.length,
+        0,
+      );
       const success = totalErrors === 0;
 
       const result = {
@@ -149,10 +159,11 @@ export class MaintenanceJob {
 
       await this.updateJobCompletion(job, result);
 
-      this.logger.log(`Maintenance job ${job.id} completed in ${result.executionTime}ms. Success: ${result.success}, Operations: ${operations.length}`);
+      this.logger.log(
+        `Maintenance job ${job.id} completed in ${result.executionTime}ms. Success: ${result.success}, Operations: ${operations.length}`,
+      );
 
       return result;
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
       this.logger.error(`Maintenance job ${job.id} failed`, error);
@@ -202,7 +213,6 @@ export class MaintenanceJob {
       details.dataCleanup.spaceFreed += tempCleanupResult.spaceFreed;
 
       this.logger.log(`Data cleanup completed. Deleted ${processed} records`);
-
     } catch (error) {
       errors.push(`Data cleanup failed: ${error.message}`);
       this.logger.error('Data cleanup failed', error);
@@ -239,8 +249,9 @@ export class MaintenanceJob {
       const statsResult = await this.updateDatabaseStatistics();
       processed += statsResult.updated;
 
-      this.logger.log(`System optimization completed. Optimized ${processed} items`);
-
+      this.logger.log(
+        `System optimization completed. Optimized ${processed} items`,
+      );
     } catch (error) {
       errors.push(`System optimization failed: ${error.message}`);
       this.logger.error('System optimization failed', error);
@@ -281,8 +292,9 @@ export class MaintenanceJob {
         }
       }
 
-      this.logger.log(`Health checks completed. Passed: ${details.healthChecks.checksPassed}, Failed: ${details.healthChecks.checksFailed}`);
-
+      this.logger.log(
+        `Health checks completed. Passed: ${details.healthChecks.checksPassed}, Failed: ${details.healthChecks.checksFailed}`,
+      );
     } catch (error) {
       errors.push(`Health checks failed: ${error.message}`);
       this.logger.error('Health checks failed', error);
@@ -316,12 +328,15 @@ export class MaintenanceJob {
           processed++;
           details.reportGeneration.reportsGenerated++;
         } else {
-          errors.push(`Report generation failed: ${report.name} - ${report.error}`);
+          errors.push(
+            `Report generation failed: ${report.name} - ${report.error}`,
+          );
         }
       }
 
-      this.logger.log(`Report generation completed. Generated ${processed} reports`);
-
+      this.logger.log(
+        `Report generation completed. Generated ${processed} reports`,
+      );
     } catch (error) {
       errors.push(`Report generation failed: ${error.message}`);
       this.logger.error('Report generation failed', error);
@@ -349,8 +364,9 @@ export class MaintenanceJob {
       await this.clearApplicationCache();
       processed = 2;
 
-      this.logger.log(`Routine maintenance completed. Processed ${processed} items`);
-
+      this.logger.log(
+        `Routine maintenance completed. Processed ${processed} items`,
+      );
     } catch (error) {
       errors.push(`Routine maintenance failed: ${error.message}`);
       this.logger.error('Routine maintenance failed', error);
@@ -365,7 +381,10 @@ export class MaintenanceJob {
     };
   }
 
-  private async cleanupOldAuditTrails(): Promise<{ deleted: number; spaceFreed: number }> {
+  private async cleanupOldAuditTrails(): Promise<{
+    deleted: number;
+    spaceFreed: number;
+  }> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 90); // Keep 90 days
 
@@ -381,7 +400,10 @@ export class MaintenanceJob {
     };
   }
 
-  private async cleanupOldScheduledJobs(): Promise<{ deleted: number; spaceFreed: number }> {
+  private async cleanupOldScheduledJobs(): Promise<{
+    deleted: number;
+    spaceFreed: number;
+  }> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 30); // Keep 30 days
 
@@ -389,7 +411,9 @@ export class MaintenanceJob {
       .createQueryBuilder()
       .delete()
       .where('createdAt < :cutoffDate', { cutoffDate })
-      .andWhere('status IN (:...statuses)', { statuses: [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED] })
+      .andWhere('status IN (:...statuses)', {
+        statuses: [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED],
+      })
       .execute();
 
     return {
@@ -398,7 +422,10 @@ export class MaintenanceJob {
     };
   }
 
-  private async cleanupTemporaryData(): Promise<{ deleted: number; spaceFreed: number }> {
+  private async cleanupTemporaryData(): Promise<{
+    deleted: number;
+    spaceFreed: number;
+  }> {
     // This would clean up any temporary tables, cache entries, etc.
     // For now, return placeholder values
     return {
@@ -418,7 +445,10 @@ export class MaintenanceJob {
     }
   }
 
-  private async clearApplicationCache(): Promise<{ cleared: number; success: boolean }> {
+  private async clearApplicationCache(): Promise<{
+    cleared: number;
+    success: boolean;
+  }> {
     try {
       // This would clear application caches
       // For now, return placeholder
@@ -440,7 +470,11 @@ export class MaintenanceJob {
     }
   }
 
-  private async checkDatabaseHealth(): Promise<{ name: string; passed: boolean; error?: string }> {
+  private async checkDatabaseHealth(): Promise<{
+    name: string;
+    passed: boolean;
+    error?: string;
+  }> {
     try {
       await this.dataSource.query('SELECT 1');
       return { name: 'database', passed: true };
@@ -449,7 +483,11 @@ export class MaintenanceJob {
     }
   }
 
-  private async checkSchedulerHealth(): Promise<{ name: string; passed: boolean; error?: string }> {
+  private async checkSchedulerHealth(): Promise<{
+    name: string;
+    passed: boolean;
+    error?: string;
+  }> {
     try {
       const pendingJobs = await this.scheduledJobRepository.count({
         where: { status: JobStatus.PENDING },
@@ -460,7 +498,11 @@ export class MaintenanceJob {
     }
   }
 
-  private async checkMemoryUsage(): Promise<{ name: string; passed: boolean; error?: string }> {
+  private async checkMemoryUsage(): Promise<{
+    name: string;
+    passed: boolean;
+    error?: string;
+  }> {
     try {
       const memUsage = process.memoryUsage();
       const totalMemory = memUsage.heapTotal;
@@ -468,7 +510,11 @@ export class MaintenanceJob {
       const memoryUsagePercent = (usedMemory / totalMemory) * 100;
 
       if (memoryUsagePercent > 90) {
-        return { name: 'memory', passed: false, error: `Memory usage at ${memoryUsagePercent.toFixed(2)}%` };
+        return {
+          name: 'memory',
+          passed: false,
+          error: `Memory usage at ${memoryUsagePercent.toFixed(2)}%`,
+        };
       }
 
       return { name: 'memory', passed: true };
@@ -477,7 +523,11 @@ export class MaintenanceJob {
     }
   }
 
-  private async checkDiskSpace(): Promise<{ name: string; passed: boolean; error?: string }> {
+  private async checkDiskSpace(): Promise<{
+    name: string;
+    passed: boolean;
+    error?: string;
+  }> {
     try {
       // This would check disk space
       // For now, assume it passes
@@ -487,7 +537,11 @@ export class MaintenanceJob {
     }
   }
 
-  private async checkConnectivity(): Promise<{ name: string; passed: boolean; error?: string }> {
+  private async checkConnectivity(): Promise<{
+    name: string;
+    passed: boolean;
+    error?: string;
+  }> {
     try {
       // This would check external connectivity
       // For now, assume it passes
@@ -497,36 +551,60 @@ export class MaintenanceJob {
     }
   }
 
-  private async generateSchedulerReport(): Promise<{ name: string; success: boolean; error?: string }> {
+  private async generateSchedulerReport(): Promise<{
+    name: string;
+    success: boolean;
+    error?: string;
+  }> {
     try {
       const totalJobs = await this.scheduledJobRepository.count();
-      const pendingJobs = await this.scheduledJobRepository.count({ where: { status: JobStatus.PENDING } });
-      const failedJobs = await this.scheduledJobRepository.count({ where: { status: JobStatus.FAILED } });
+      const pendingJobs = await this.scheduledJobRepository.count({
+        where: { status: JobStatus.PENDING },
+      });
+      const failedJobs = await this.scheduledJobRepository.count({
+        where: { status: JobStatus.FAILED },
+      });
 
-      this.logger.log(`Scheduler Report - Total: ${totalJobs}, Pending: ${pendingJobs}, Failed: ${failedJobs}`);
+      this.logger.log(
+        `Scheduler Report - Total: ${totalJobs}, Pending: ${pendingJobs}, Failed: ${failedJobs}`,
+      );
       return { name: 'scheduler_report', success: true };
     } catch (error) {
       return { name: 'scheduler_report', success: false, error: error.message };
     }
   }
 
-  private async generateSystemReport(): Promise<{ name: string; success: boolean; error?: string }> {
+  private async generateSystemReport(): Promise<{
+    name: string;
+    success: boolean;
+    error?: string;
+  }> {
     try {
       const memUsage = process.memoryUsage();
-      this.logger.log(`System Report - Memory: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
+      this.logger.log(
+        `System Report - Memory: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+      );
       return { name: 'system_report', success: true };
     } catch (error) {
       return { name: 'system_report', success: false, error: error.message };
     }
   }
 
-  private async generatePerformanceReport(): Promise<{ name: string; success: boolean; error?: string }> {
+  private async generatePerformanceReport(): Promise<{
+    name: string;
+    success: boolean;
+    error?: string;
+  }> {
     try {
       // This would generate performance metrics
       this.logger.log('Performance report generated');
       return { name: 'performance_report', success: true };
     } catch (error) {
-      return { name: 'performance_report', success: false, error: error.message };
+      return {
+        name: 'performance_report',
+        success: false,
+        error: error.message,
+      };
     }
   }
 
@@ -581,7 +659,10 @@ export class MaintenanceJob {
     return await this.scheduledJobRepository.save(job);
   }
 
-  private async updateJobStatus(job: ScheduledJob, status: JobStatus): Promise<void> {
+  private async updateJobStatus(
+    job: ScheduledJob,
+    status: JobStatus,
+  ): Promise<void> {
     job.status = status;
     job.updatedAt = new Date();
 
@@ -592,7 +673,10 @@ export class MaintenanceJob {
     await this.scheduledJobRepository.save(job);
   }
 
-  private async updateJobCompletion(job: ScheduledJob, result: MaintenanceResult): Promise<void> {
+  private async updateJobCompletion(
+    job: ScheduledJob,
+    result: MaintenanceResult,
+  ): Promise<void> {
     job.status = result.success ? JobStatus.COMPLETED : JobStatus.FAILED;
     job.completedAt = new Date();
     job.result = {
@@ -603,15 +687,16 @@ export class MaintenanceJob {
       duration: result.executionTime,
     };
 
-    if (!job.metrics) job.metrics = {
-      executionCount: 0,
-      successCount: 0,
-      failureCount: 0,
-      avgExecutionTime: 0,
-      minExecutionTime: 0,
-      maxExecutionTime: 0,
-      totalExecutionTime: 0,
-    };
+    if (!job.metrics)
+      job.metrics = {
+        executionCount: 0,
+        successCount: 0,
+        failureCount: 0,
+        avgExecutionTime: 0,
+        minExecutionTime: 0,
+        maxExecutionTime: 0,
+        totalExecutionTime: 0,
+      };
 
     job.metrics.executionCount++;
     if (result.success) {
@@ -621,12 +706,16 @@ export class MaintenanceJob {
     }
 
     job.metrics.totalExecutionTime += result.executionTime;
-    job.metrics.avgExecutionTime = job.metrics.totalExecutionTime / job.metrics.executionCount;
-    
-    if (job.metrics.minExecutionTime === 0 || result.executionTime < job.metrics.minExecutionTime) {
+    job.metrics.avgExecutionTime =
+      job.metrics.totalExecutionTime / job.metrics.executionCount;
+
+    if (
+      job.metrics.minExecutionTime === 0 ||
+      result.executionTime < job.metrics.minExecutionTime
+    ) {
       job.metrics.minExecutionTime = result.executionTime;
     }
-    
+
     if (result.executionTime > job.metrics.maxExecutionTime) {
       job.metrics.maxExecutionTime = result.executionTime;
     }
@@ -639,7 +728,11 @@ export class MaintenanceJob {
     await this.scheduledJobRepository.save(job);
   }
 
-  private async handleJobFailure(job: ScheduledJob, error: any, executionTime: number): Promise<void> {
+  private async handleJobFailure(
+    job: ScheduledJob,
+    error: any,
+    executionTime: number,
+  ): Promise<void> {
     job.retryCount++;
     job.status = JobStatus.FAILED;
     job.completedAt = new Date();
@@ -675,7 +768,9 @@ export class MaintenanceJob {
     ];
 
     const errorMessage = error?.message?.toUpperCase() || '';
-    return retryableErrors.some(retryableError => errorMessage.includes(retryableError));
+    return retryableErrors.some((retryableError) =>
+      errorMessage.includes(retryableError),
+    );
   }
 
   private calculateNextRetryTime(job: ScheduledJob): Date {
@@ -707,7 +802,7 @@ export class MaintenanceJob {
 
   private calculateNextRunTime(job: ScheduledJob): Date {
     const now = new Date();
-    
+
     if (job.cronExpression.includes('0 2 * * *')) {
       // Daily job - schedule for next day at 2 AM
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -716,11 +811,13 @@ export class MaintenanceJob {
     } else if (job.cronExpression.includes('0 3 * * 0')) {
       // Weekly job - schedule for next Sunday at 3 AM
       const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
-      const nextSunday = new Date(now.getTime() + daysUntilSunday * 24 * 60 * 60 * 1000);
+      const nextSunday = new Date(
+        now.getTime() + daysUntilSunday * 24 * 60 * 60 * 1000,
+      );
       nextSunday.setUTCHours(3, 0, 0, 0);
       return nextSunday;
     }
-    
+
     // Default to next day
     return new Date(now.getTime() + 24 * 60 * 60 * 1000);
   }
@@ -733,10 +830,13 @@ export class MaintenanceJob {
     });
 
     const totalJobs = recentJobs.length;
-    const successfulJobs = recentJobs.filter(job => job.status === JobStatus.COMPLETED).length;
-    const avgExecutionTime = recentJobs.reduce((sum, job) => {
-      return sum + (job.metrics?.avgExecutionTime || 0);
-    }, 0) / totalJobs;
+    const successfulJobs = recentJobs.filter(
+      (job) => job.status === JobStatus.COMPLETED,
+    ).length;
+    const avgExecutionTime =
+      recentJobs.reduce((sum, job) => {
+        return sum + (job.metrics?.avgExecutionTime || 0);
+      }, 0) / totalJobs;
 
     return {
       totalMaintenanceJobs: totalJobs,
@@ -749,7 +849,7 @@ export class MaintenanceJob {
 
   private async getNextScheduledMaintenance(): Promise<Date | null> {
     const nextJob = await this.scheduledJobRepository.findOne({
-      where: { 
+      where: {
         type: 'maintenance' as any,
         status: JobStatus.PENDING,
         isActive: true,

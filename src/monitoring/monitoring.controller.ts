@@ -1,10 +1,15 @@
 import { Controller, Get, Post, Body, Query, Param } from '@nestjs/common';
 import { TransactionMonitorService } from './transaction-monitor.service';
-import { CreateTransactionStatusDto, TransactionStatusQueryDto } from './dto/transaction-status.dto';
+import {
+  CreateTransactionStatusDto,
+  TransactionStatusQueryDto,
+} from './dto/transaction-status.dto';
 
 @Controller('monitoring')
 export class MonitoringController {
-  constructor(private readonly transactionMonitorService: TransactionMonitorService) {}
+  constructor(
+    private readonly transactionMonitorService: TransactionMonitorService,
+  ) {}
 
   @Post('transactions')
   async createTransaction(@Body() createDto: CreateTransactionStatusDto) {
@@ -22,7 +27,9 @@ export class MonitoringController {
   }
 
   @Get('analytics')
-  async getAnalytics(@Query('timeRange') timeRange: 'hour' | 'day' | 'week' | 'month' = 'day') {
+  async getAnalytics(
+    @Query('timeRange') timeRange: 'hour' | 'day' | 'week' | 'month' = 'day',
+  ) {
     return this.transactionMonitorService.getTransactionAnalytics(timeRange);
   }
 

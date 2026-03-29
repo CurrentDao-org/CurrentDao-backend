@@ -24,4 +24,4 @@ import { SchedulerController } from './controllers/scheduler.controller';
   ],
   exports: [SchedulerService, MarketHoursService],
 })
-export class SchedulerModule { }
+export class SchedulerModule {}

@@ -1,4 +1,14 @@
-import { IsString, IsArray, IsOptional, IsBoolean, IsNumber, IsObject, IsUrl, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+  IsObject,
+  IsUrl,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateWebhookDto {

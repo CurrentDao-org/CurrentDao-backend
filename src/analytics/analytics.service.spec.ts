@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AnalyticsService } from './analytics.service';
-import { AnalyticsData, AnalyticsType, AggregationPeriod } from './entities/analytics-data.entity';
+import {
+  AnalyticsData,
+  AnalyticsType,
+  AggregationPeriod,
+} from './entities/analytics-data.entity';
 import { ReportParamsDto } from './dto/report-params.dto';
 import { TradingVolumeReport } from './reports/trading-volume.report';
 import { PriceTrendsReport } from './reports/price-trends.report';
@@ -68,11 +72,17 @@ describe('AnalyticsService', () => {
     }).compile();
 
     service = module.get<AnalyticsService>(AnalyticsService);
-    repository = module.get<Repository<AnalyticsData>>(getRepositoryToken(AnalyticsData));
+    repository = module.get<Repository<AnalyticsData>>(
+      getRepositoryToken(AnalyticsData),
+    );
     tradingVolumeReport = module.get<TradingVolumeReport>(TradingVolumeReport);
     priceTrendsReport = module.get<PriceTrendsReport>(PriceTrendsReport);
-    userPerformanceReport = module.get<UserPerformanceReport>(UserPerformanceReport);
-    marketEfficiencyReport = module.get<MarketEfficiencyReport>(MarketEfficiencyReport);
+    userPerformanceReport = module.get<UserPerformanceReport>(
+      UserPerformanceReport,
+    );
+    marketEfficiencyReport = module.get<MarketEfficiencyReport>(
+      MarketEfficiencyReport,
+    );
   });
 
   it('should be defined', () => {
@@ -109,7 +119,9 @@ describe('AnalyticsService', () => {
       const result = await service.generateTradingVolumeReport(params);
 
       expect(result).toEqual(expectedReport);
-      expect(mockTradingVolumeReport.generateReport).toHaveBeenCalledWith(params);
+      expect(mockTradingVolumeReport.generateReport).toHaveBeenCalledWith(
+        params,
+      );
     });
   });
 
@@ -131,8 +143,8 @@ describe('AnalyticsService', () => {
           priceChange: 2.15,
           priceChangePercent: 4.47,
           volatility: 0.15,
-          averagePrice: 48.50,
-          highestPrice: 52.00,
+          averagePrice: 48.5,
+          highestPrice: 52.0,
           lowestPrice: 45.75,
           trend: 'BULLISH',
         },
@@ -182,12 +194,16 @@ describe('AnalyticsService', () => {
         historicalData: [],
       };
 
-      mockUserPerformanceReport.generateReport.mockResolvedValue(expectedReport);
+      mockUserPerformanceReport.generateReport.mockResolvedValue(
+        expectedReport,
+      );
 
       const result = await service.generateUserPerformanceReport(params);
 
       expect(result).toEqual(expectedReport);
-      expect(mockUserPerformanceReport.generateReport).toHaveBeenCalledWith(params);
+      expect(mockUserPerformanceReport.generateReport).toHaveBeenCalledWith(
+        params,
+      );
     });
   });
 
@@ -215,12 +231,16 @@ describe('AnalyticsService', () => {
         metrics: [],
       };
 
-      mockMarketEfficiencyReport.generateReport.mockResolvedValue(expectedReport);
+      mockMarketEfficiencyReport.generateReport.mockResolvedValue(
+        expectedReport,
+      );
 
       const result = await service.generateMarketEfficiencyReport(params);
 
       expect(result).toEqual(expectedReport);
-      expect(mockMarketEfficiencyReport.generateReport).toHaveBeenCalledWith(params);
+      expect(mockMarketEfficiencyReport.generateReport).toHaveBeenCalledWith(
+        params,
+      );
     });
   });
 
@@ -275,7 +295,9 @@ describe('AnalyticsService', () => {
     it('should throw error for unsupported format', async () => {
       const reportData = { summary: { totalVolume: 1000 } };
 
-      await expect(service.exportReport(reportData, 'xml' as any)).rejects.toThrow('Unsupported format: xml');
+      await expect(
+        service.exportReport(reportData, 'xml' as any),
+      ).rejects.toThrow('Unsupported format: xml');
     });
   });
 });

@@ -1,4 +1,12 @@
-import { IsOptional, IsNumber, IsString, IsEnum, IsBoolean, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsNumber,
+  IsString,
+  IsEnum,
+  IsBoolean,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -6,12 +14,12 @@ export enum LocationSearchSortBy {
   DISTANCE = 'distance',
   PRICE = 'price',
   CREATED_AT = 'createdAt',
-  UPDATED_AT = 'updatedAt'
+  UPDATED_AT = 'updatedAt',
 }
 
 export enum LocationSearchSortOrder {
   ASC = 'asc',
-  DESC = 'desc'
+  DESC = 'desc',
 }
 
 export class LocationSearchDto {
@@ -19,7 +27,7 @@ export class LocationSearchDto {
     description: 'Center latitude for location-based search',
     example: 40.7128,
     minimum: -90,
-    maximum: 90
+    maximum: 90,
   })
   @IsOptional()
   @Type(() => Number)
@@ -30,9 +38,9 @@ export class LocationSearchDto {
 
   @ApiPropertyOptional({
     description: 'Center longitude for location-based search',
-    example: -74.0060,
+    example: -74.006,
     minimum: -180,
-    maximum: 180
+    maximum: 180,
   })
   @IsOptional()
   @Type(() => Number)
@@ -45,7 +53,7 @@ export class LocationSearchDto {
     description: 'Search radius in kilometers',
     example: 10,
     minimum: 0.1,
-    maximum: 1000
+    maximum: 1000,
   })
   @IsOptional()
   @Type(() => Number)
@@ -56,7 +64,7 @@ export class LocationSearchDto {
 
   @ApiPropertyOptional({
     description: 'Grid zone ID to filter by',
-    example: 'zone-123'
+    example: 'zone-123',
   })
   @IsOptional()
   @IsString()
@@ -64,7 +72,7 @@ export class LocationSearchDto {
 
   @ApiPropertyOptional({
     description: 'Country to filter by',
-    example: 'United States'
+    example: 'United States',
   })
   @IsOptional()
   @IsString()
@@ -72,7 +80,7 @@ export class LocationSearchDto {
 
   @ApiPropertyOptional({
     description: 'State/region to filter by',
-    example: 'California'
+    example: 'California',
   })
   @IsOptional()
   @IsString()
@@ -80,7 +88,7 @@ export class LocationSearchDto {
 
   @ApiPropertyOptional({
     description: 'City to filter by',
-    example: 'New York'
+    example: 'New York',
   })
   @IsOptional()
   @IsString()
@@ -89,7 +97,7 @@ export class LocationSearchDto {
   @ApiPropertyOptional({
     description: 'Minimum regional price multiplier',
     example: 0.8,
-    minimum: 0
+    minimum: 0,
   })
   @IsOptional()
   @Type(() => Number)
@@ -100,7 +108,7 @@ export class LocationSearchDto {
   @ApiPropertyOptional({
     description: 'Maximum regional price multiplier',
     example: 1.5,
-    minimum: 0
+    minimum: 0,
   })
   @IsOptional()
   @Type(() => Number)
@@ -110,7 +118,7 @@ export class LocationSearchDto {
 
   @ApiPropertyOptional({
     description: 'Filter by privacy setting',
-    example: true
+    example: true,
   })
   @IsOptional()
   @IsBoolean()
@@ -119,7 +127,7 @@ export class LocationSearchDto {
   @ApiPropertyOptional({
     description: 'Sort results by field',
     enum: LocationSearchSortBy,
-    default: LocationSearchSortBy.DISTANCE
+    default: LocationSearchSortBy.DISTANCE,
   })
   @IsOptional()
   @IsEnum(LocationSearchSortBy)
@@ -128,7 +136,7 @@ export class LocationSearchDto {
   @ApiPropertyOptional({
     description: 'Sort order',
     enum: LocationSearchSortOrder,
-    default: LocationSearchSortOrder.ASC
+    default: LocationSearchSortOrder.ASC,
   })
   @IsOptional()
   @IsEnum(LocationSearchSortOrder)
@@ -138,7 +146,7 @@ export class LocationSearchDto {
     description: 'Page number for pagination',
     example: 1,
     minimum: 1,
-    default: 1
+    default: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -151,7 +159,7 @@ export class LocationSearchDto {
     example: 20,
     minimum: 1,
     maximum: 100,
-    default: 20
+    default: 20,
   })
   @IsOptional()
   @Type(() => Number)
@@ -166,7 +174,7 @@ export class LocationHeatmapDto {
     description: 'Bounding box minimum latitude',
     example: 40.0,
     minimum: -90,
-    maximum: 90
+    maximum: 90,
   })
   @IsOptional()
   @Type(() => Number)
@@ -179,7 +187,7 @@ export class LocationHeatmapDto {
     description: 'Bounding box maximum latitude',
     example: 41.0,
     minimum: -90,
-    maximum: 90
+    maximum: 90,
   })
   @IsOptional()
   @Type(() => Number)
@@ -192,7 +200,7 @@ export class LocationHeatmapDto {
     description: 'Bounding box minimum longitude',
     example: -75.0,
     minimum: -180,
-    maximum: 180
+    maximum: 180,
   })
   @IsOptional()
   @Type(() => Number)
@@ -205,7 +213,7 @@ export class LocationHeatmapDto {
     description: 'Bounding box maximum longitude',
     example: -73.0,
     minimum: -180,
-    maximum: 180
+    maximum: 180,
   })
   @IsOptional()
   @Type(() => Number)
@@ -219,7 +227,7 @@ export class LocationHeatmapDto {
     example: 50,
     minimum: 10,
     maximum: 200,
-    default: 50
+    default: 50,
   })
   @IsOptional()
   @Type(() => Number)

@@ -5,7 +5,13 @@ import { Repository, DataSource, LessThan, MoreThan } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { StellarSdk, Server, Horizon } from '@stellar/stellar-sdk';
 import { Subject, BehaviorSubject, interval, from, lastValueFrom } from 'rxjs';
-import { switchMap, takeWhile, catchError, retry, debounceTime } from 'rxjs/operators';
+import {
+  switchMap,
+  takeWhile,
+  catchError,
+  retry,
+  debounceTime,
+} from 'rxjs/operators';
 import { SyncState, SyncStatus, SyncType } from '../entities/sync-state.entity';
 import { ConflictResolver } from '../resolvers/conflict.resolver';
 import { PartitionHandler } from '../handlers/partition.handler';
@@ -57,10 +63,10 @@ export class SyncService implements OnModuleInit {
   async onModuleInit() {
     const stellarConfig = this.configService.get('stellar');
     this.server = new Server(stellarConfig.horizonUrl);
-    
+
     await this.initializeSyncStates();
     await this.startRealTimeSync();
-    
+
     this.logger.log('Sync service initialized');
   }
 
@@ -92,7 +98,11 @@ export class SyncService implements OnModuleInit {
 
   private async getCurrentLedgerSequence(): Promise<number> {
     try {
-      const latestLedger = await this.server.ledgers().order('desc').limit(1).call();
+      const latestLedger = await this.server
+        .ledgers()
+        .order('desc')
+        .limit(1)
+        .call();
       return latestLedger.records[0]?.sequence || 0;
     } catch (error) {
       this.logger.error('Failed to get current ledger sequence', error);
@@ -102,15 +112,15 @@ export class SyncService implements OnModuleInit {
 
   async startRealTimeSync() {
     this.logger.log('Starting real-time synchronization');
-    
+
     interval(5000) // Poll every 5 seconds for sub-5s latency
       .pipe(
         switchMap(() => from(this.syncLedger())),
         retry(3),
-        catchError(error => {
+        catchError((error) => {
           this.logger.error('Sync error, initiating recovery', error);
           return from(this.handleSyncError(error));
-        })
+        }),
       )
       .subscribe();
 
@@ -118,9 +128,9 @@ export class SyncService implements OnModuleInit {
     interval(30000) // Check every 30 seconds
       .pipe(
         switchMap(() => from(this.detectNetworkPartition())),
-        debounceTime(5000)
+        debounceTime(5000),
       )
-      .subscribe(isPartitioned => {
+      .subscribe((isPartitioned) => {
         if (isPartitioned) {
           this.handleNetworkPartition();
         }
@@ -143,13 +153,16 @@ export class SyncService implements OnModuleInit {
 
       for (const syncState of syncStates) {
         if (syncState.lastLedgerSequence < currentLedger) {
-          await this.processLedgerRange(syncState, syncState.lastLedgerSequence + 1, currentLedger);
+          await this.processLedgerRange(
+            syncState,
+            syncState.lastLedgerSequence + 1,
+            currentLedger,
+          );
         }
       }
 
       const latency = Date.now() - startTime;
       this.updateMetrics(latency);
-      
     } catch (error) {
       this.logger.error('Ledger sync failed', error);
       throw error;
@@ -158,18 +171,27 @@ export class SyncService implements OnModuleInit {
     }
   }
 
-  private async processLedgerRange(syncState: SyncState, startSequence: number, endSequence: number) {
+  private async processLedgerRange(
+    syncState: SyncState,
+    startSequence: number,
+    endSequence: number,
+  ) {
     syncState.status = SyncStatus.SYNCING;
-    syncState.syncType = startSequence === syncState.lastLedgerSequence + 1 ? SyncType.INCREMENTAL : SyncType.FULL;
+    syncState.syncType =
+      startSequence === syncState.lastLedgerSequence + 1
+        ? SyncType.INCREMENTAL
+        : SyncType.FULL;
     await this.syncStateRepository.save(syncState);
 
-    const batchSize = this.performanceOptimizer.calculateOptimalBatchSize(endSequence - startSequence);
+    const batchSize = this.performanceOptimizer.calculateOptimalBatchSize(
+      endSequence - startSequence,
+    );
     const batches = this.createBatches(startSequence, endSequence, batchSize);
 
     for (const batch of batches) {
       try {
         await this.processBatch(syncState, batch.start, batch.end);
-        
+
         syncState.lastLedgerSequence = batch.end;
         syncState.lastSyncAt = new Date();
         syncState.transactionsProcessed += batch.end - batch.start + 1;
@@ -181,7 +203,6 @@ export class SyncService implements OnModuleInit {
           timestamp: new Date(),
           ledgerSequence: batch.end,
         });
-
       } catch (error) {
         await this.handleBatchError(syncState, error, batch);
       }
@@ -203,13 +224,18 @@ export class SyncService implements OnModuleInit {
     return batches;
   }
 
-  private async processBatch(syncState: SyncState, startSequence: number, endSequence: number) {
+  private async processBatch(
+    syncState: SyncState,
+    startSequence: number,
+    endSequence: number,
+  ) {
     const transactions = [];
-    
+
     for (let sequence = startSequence; sequence <= endSequence; sequence++) {
       try {
         const ledger = await this.server.ledgers().ledger(sequence).call();
-        const txs = await this.server.transactions()
+        const txs = await this.server
+          .transactions()
           .forLedger(sequence)
           .order('asc')
           .limit(100)
@@ -231,14 +257,17 @@ export class SyncService implements OnModuleInit {
     await this.performanceOptimizer.optimizeBatchProcessing(transactions);
   }
 
-  private async processTransaction(tx: Horizon.BaseResponse<Horizon.TransactionResponse>, syncState: SyncState) {
+  private async processTransaction(
+    tx: Horizon.BaseResponse<Horizon.TransactionResponse>,
+    syncState: SyncState,
+  ) {
     try {
       // Check for conflicts
       const conflict = await this.conflictResolver.detectConflict(tx);
       if (conflict) {
         syncState.conflictCount++;
         await this.syncStateRepository.save(syncState);
-        
+
         this.syncEvents.next({
           type: 'conflict',
           data: { transaction: tx.id, conflict },
@@ -250,7 +279,7 @@ export class SyncService implements OnModuleInit {
 
       // Process the transaction based on its type
       const processedTx = await this.applyTransaction(tx);
-      
+
       this.syncEvents.next({
         type: 'transaction',
         data: processedTx,
@@ -266,7 +295,9 @@ export class SyncService implements OnModuleInit {
     }
   }
 
-  private async applyTransaction(tx: Horizon.BaseResponse<Horizon.TransactionResponse>) {
+  private async applyTransaction(
+    tx: Horizon.BaseResponse<Horizon.TransactionResponse>,
+  ) {
     // Implementation would depend on specific business logic
     // This is a placeholder for transaction processing
     return {
@@ -277,7 +308,11 @@ export class SyncService implements OnModuleInit {
     };
   }
 
-  private async handleBatchError(syncState: SyncState, error: any, batch: { start: number; end: number }) {
+  private async handleBatchError(
+    syncState: SyncState,
+    error: any,
+    batch: { start: number; end: number },
+  ) {
     syncState.status = SyncStatus.ERROR;
     syncState.errorMessage = error.message;
     syncState.retryCount++;
@@ -299,14 +334,15 @@ export class SyncService implements OnModuleInit {
     try {
       const currentLedger = await this.getCurrentLedgerSequence();
       const syncStates = await this.syncStateRepository.find();
-      
+
       for (const syncState of syncStates) {
         const ledgerGap = currentLedger - syncState.lastLedgerSequence;
-        if (ledgerGap > 100) { // Consider partitioned if gap > 100 ledgers
+        if (ledgerGap > 100) {
+          // Consider partitioned if gap > 100 ledgers
           return true;
         }
       }
-      
+
       return false;
     } catch (error) {
       this.logger.error('Failed to detect network partition', error);
@@ -316,7 +352,7 @@ export class SyncService implements OnModuleInit {
 
   private async handleNetworkPartition() {
     this.logger.warn('Network partition detected');
-    
+
     const syncStates = await this.syncStateRepository.find();
     for (const syncState of syncStates) {
       syncState.status = SyncStatus.PARTITIONED;
@@ -337,9 +373,10 @@ export class SyncService implements OnModuleInit {
     const newMetrics = {
       ...currentMetrics,
       averageLatency: (currentMetrics.averageLatency + latency) / 2,
-      throughput: currentMetrics.processedTransactions > 0 
-        ? (currentMetrics.processedTransactions * 1000) / latency 
-        : 0,
+      throughput:
+        currentMetrics.processedTransactions > 0
+          ? (currentMetrics.processedTransactions * 1000) / latency
+          : 0,
     };
     this.metrics.next(newMetrics);
   }
@@ -364,12 +401,12 @@ export class SyncService implements OnModuleInit {
   }
 
   async triggerFullSync(entityType?: string, entityId?: string) {
-    const whereClause = entityType && entityId 
-      ? { entityType, entityId }
-      : {};
+    const whereClause = entityType && entityId ? { entityType, entityId } : {};
 
-    const syncStates = await this.syncStateRepository.find({ where: whereClause });
-    
+    const syncStates = await this.syncStateRepository.find({
+      where: whereClause,
+    });
+
     for (const syncState of syncStates) {
       syncState.status = SyncStatus.IDLE;
       syncState.lastLedgerSequence = 0; // Force full sync

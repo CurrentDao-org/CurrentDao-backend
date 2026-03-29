@@ -42,7 +42,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exceptionResponse.details && Array.isArray(exceptionResponse.details)) {
       errorResponse.details = exceptionResponse.details.map((detail: any) => ({
         field: detail.property || detail.field,
-        message: detail.constraints ? Object.values(detail.constraints).join(', ') : detail.message,
+        message: detail.constraints
+          ? Object.values(detail.constraints).join(', ')
+          : detail.message,
         value: detail.value,
       }));
     }
@@ -60,7 +62,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json(errorResponse);
   }
 
-  private logError(exception: HttpException, request: Request, errorResponse: any) {
+  private logError(
+    exception: HttpException,
+    request: Request,
+    errorResponse: any,
+  ) {
     const { method, url, ip, headers } = request;
     const userAgent = headers['user-agent'] || 'Unknown';
     const userId = (request as any).user?.id || 'Anonymous';
@@ -78,30 +84,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
     };
 
     if (exception.getStatus() >= 500) {
-      this.logger.error(
-        `Server Error: ${method} ${url}`,
-        {
-          ...logData,
-          stack: exception.stack,
-          response: errorResponse,
-        },
-      );
+      this.logger.error(`Server Error: ${method} ${url}`, {
+        ...logData,
+        stack: exception.stack,
+        response: errorResponse,
+      });
     } else if (exception.getStatus() >= 400) {
-      this.logger.warn(
-        `Client Error: ${method} ${url}`,
-        {
-          ...logData,
-          response: errorResponse,
-        },
-      );
+      this.logger.warn(`Client Error: ${method} ${url}`, {
+        ...logData,
+        response: errorResponse,
+      });
     } else {
-      this.logger.log(
-        `HTTP Exception: ${method} ${url}`,
-        {
-          ...logData,
-          response: errorResponse,
-        },
-      );
+      this.logger.log(`HTTP Exception: ${method} ${url}`, {
+        ...logData,
+        response: errorResponse,
+      });
     }
   }
 }

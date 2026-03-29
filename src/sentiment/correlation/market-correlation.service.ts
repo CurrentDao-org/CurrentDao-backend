@@ -4,13 +4,16 @@ import { Injectable, Logger } from '@nestjs/common';
 export class MarketCorrelationService {
   private readonly logger = new Logger(MarketCorrelationService.name);
 
-  async correlateSentimentWithMarket(sentimentData: any[], marketData: any[]): Promise<any> {
+  async correlateSentimentWithMarket(
+    sentimentData: any[],
+    marketData: any[],
+  ): Promise<any> {
     this.logger.log('Correlating sentiment with market movements');
 
     // Calculate correlation coefficient between sentiment and price movements
     const correlation = this.calculatePearsonCorrelation(
-      sentimentData.map(s => s.sentimentScore),
-      marketData.map(m => m.priceChange),
+      sentimentData.map((s) => s.sentimentScore),
+      marketData.map((m) => m.priceChange),
     );
 
     return {
@@ -20,10 +23,16 @@ export class MarketCorrelationService {
     };
   }
 
-  async generateTradingSignal(sentimentTrend: string, marketContext: any): Promise<'bullish' | 'bearish' | 'neutral'> {
+  async generateTradingSignal(
+    sentimentTrend: string,
+    marketContext: any,
+  ): Promise<'bullish' | 'bearish' | 'neutral'> {
     if (sentimentTrend === 'improving' && marketContext.volatility < 0.3) {
       return 'bullish';
-    } else if (sentimentTrend === 'declining' && marketContext.volatility < 0.3) {
+    } else if (
+      sentimentTrend === 'declining' &&
+      marketContext.volatility < 0.3
+    ) {
       return 'bearish';
     }
     return 'neutral';

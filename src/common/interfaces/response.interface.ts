@@ -1,6 +1,6 @@
 /**
  * API Response Standardization Interfaces
- * 
+ *
  * Provides consistent response structures for all API endpoints.
  * Supports success responses, error responses, pagination, and metadata.
  */

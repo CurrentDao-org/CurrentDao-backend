@@ -65,7 +65,9 @@ describe('PatternRecognitionService', () => {
     it('should sort results by confidence descending', () => {
       const results = service.analyzePatterns(baseTrade);
       for (let i = 0; i < results.length - 1; i++) {
-        expect(results[i].confidence).toBeGreaterThanOrEqual(results[i + 1].confidence);
+        expect(results[i].confidence).toBeGreaterThanOrEqual(
+          results[i + 1].confidence,
+        );
       }
     });
 
@@ -181,7 +183,14 @@ describe('PatternRecognitionService', () => {
   describe('inferFraudTypes', () => {
     it('should infer WASH_TRADING from wash trading patterns', () => {
       const washPatterns = [
-        { patternId: 'WT-001', patternName: 'Self-Trade', category: 'wash_trading', matched: true, confidence: 0.99, evidence: '' },
+        {
+          patternId: 'WT-001',
+          patternName: 'Self-Trade',
+          category: 'wash_trading',
+          matched: true,
+          confidence: 0.99,
+          evidence: '',
+        },
       ];
 
       const types = service.inferFraudTypes(washPatterns);
@@ -190,7 +199,14 @@ describe('PatternRecognitionService', () => {
 
     it('should infer SPOOFING from spoofing patterns', () => {
       const spooferPatterns = [
-        { patternId: 'SP-001', patternName: 'Classic Spoofing', category: 'spoofing', matched: true, confidence: 0.72, evidence: '' },
+        {
+          patternId: 'SP-001',
+          patternName: 'Classic Spoofing',
+          category: 'spoofing',
+          matched: true,
+          confidence: 0.72,
+          evidence: '',
+        },
       ];
 
       const types = service.inferFraudTypes(spooferPatterns);
@@ -204,12 +220,28 @@ describe('PatternRecognitionService', () => {
 
     it('should deduplicate fraud types', () => {
       const patterns = [
-        { patternId: 'WT-001', patternName: 'Self-Trade', category: 'wash_trading', matched: true, confidence: 0.99, evidence: '' },
-        { patternId: 'WT-002', patternName: 'Mirror Order', category: 'wash_trading', matched: true, confidence: 0.85, evidence: '' },
+        {
+          patternId: 'WT-001',
+          patternName: 'Self-Trade',
+          category: 'wash_trading',
+          matched: true,
+          confidence: 0.99,
+          evidence: '',
+        },
+        {
+          patternId: 'WT-002',
+          patternName: 'Mirror Order',
+          category: 'wash_trading',
+          matched: true,
+          confidence: 0.85,
+          evidence: '',
+        },
       ];
 
       const types = service.inferFraudTypes(patterns);
-      const uniqueWashTrading = types.filter((t) => t === FraudType.WASH_TRADING);
+      const uniqueWashTrading = types.filter(
+        (t) => t === FraudType.WASH_TRADING,
+      );
       expect(uniqueWashTrading).toHaveLength(1);
     });
   });

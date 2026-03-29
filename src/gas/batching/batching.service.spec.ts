@@ -63,7 +63,9 @@ describe('BatchingService', () => {
 
       const plan = service.planBatches(ops);
 
-      expect(plan.estimatedBatchedCost).toBeLessThan(plan.estimatedIndividualCost);
+      expect(plan.estimatedBatchedCost).toBeLessThan(
+        plan.estimatedIndividualCost,
+      );
       expect(plan.savingsStroops).toBeGreaterThan(0);
       expect(plan.savingsPercentage).toBeGreaterThan(0);
     });

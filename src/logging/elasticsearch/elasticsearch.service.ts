@@ -1,7 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from '@elastic/elasticsearch';
-import { SearchResponse, SearchHit } from '@elastic/elasticsearch/lib/api/types';
+import {
+  SearchResponse,
+  SearchHit,
+} from '@elastic/elasticsearch/lib/api/types';
 
 export interface LogEntry {
   timestamp: Date;
@@ -45,7 +48,11 @@ export interface LogAggregation {
   error_rate: number;
   average_response_time: number;
   top_errors: Array<{ error_name: string; count: number }>;
-  slow_requests: Array<{ url: string; avg_response_time: number; count: number }>;
+  slow_requests: Array<{
+    url: string;
+    avg_response_time: number;
+    count: number;
+  }>;
 }
 
 export interface IndexMetrics {
@@ -66,10 +73,12 @@ export class ElasticsearchService implements OnModuleInit {
 
   constructor(private configService: ConfigService) {
     this.client = new Client({
-      node: this.configService.get('ELASTICSEARCH_NODE') || 'http://localhost:9200',
+      node:
+        this.configService.get('ELASTICSEARCH_NODE') || 'http://localhost:9200',
       auth: {
         username: this.configService.get('ELASTICSEARCH_USERNAME') || 'elastic',
-        password: this.configService.get('ELASTICSEARCH_PASSWORD') || 'changeme',
+        password:
+          this.configService.get('ELASTICSEARCH_PASSWORD') || 'changeme',
       },
       maxRetries: this.maxRetries,
       requestTimeout: this.requestTimeout,
@@ -78,7 +87,8 @@ export class ElasticsearchService implements OnModuleInit {
       sniffInterval: 300000,
       compression: 'gzip',
       tls: {
-        rejectUnauthorized: this.configService.get('ELASTICSEARCH_VERIFY_CERTS') !== 'false',
+        rejectUnauthorized:
+          this.configService.get('ELASTICSEARCH_VERIFY_CERTS') !== 'false',
       },
     });
   }
@@ -87,13 +97,13 @@ export class ElasticsearchService implements OnModuleInit {
     try {
       await this.client.ping();
       this.logger.log('Elasticsearch connection established');
-      
+
       // Create index template if it doesn't exist
       await this.createIndexTemplate();
-      
+
       // Create ILM policy if it doesn't exist
       await this.createILMPolicy();
-      
+
       this.logger.log('Elasticsearch service initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize Elasticsearch service', error);
@@ -103,7 +113,7 @@ export class ElasticsearchService implements OnModuleInit {
 
   private async createIndexTemplate(): Promise<void> {
     const templateName = 'currentdao-logs-template';
-    
+
     try {
       const exists = await this.client.indices.existsIndexTemplate({
         name: templateName,
@@ -134,7 +144,7 @@ export class ElasticsearchService implements OnModuleInit {
               properties: {
                 '@timestamp': { type: 'date' },
                 timestamp: { type: 'date' },
-                level: { 
+                level: {
                   type: 'keyword',
                   fields: {
                     text: {
@@ -196,7 +206,7 @@ export class ElasticsearchService implements OnModuleInit {
 
   private async createILMPolicy(): Promise<void> {
     const policyName = 'currentdao-logs-policy';
-    
+
     try {
       const exists = await this.client.ilm.lifecycle.get({
         policy: policyName,
@@ -248,7 +258,7 @@ export class ElasticsearchService implements OnModuleInit {
   async indexLog(logEntry: LogEntry): Promise<void> {
     try {
       const indexName = `${this.indexPrefix}-${new Date().toISOString().split('T')[0]}`;
-      
+
       await this.client.index({
         index: indexName,
         body: {
@@ -264,7 +274,7 @@ export class ElasticsearchService implements OnModuleInit {
 
   async indexLogs(logEntries: LogEntry[]): Promise<void> {
     try {
-      const body = logEntries.flatMap(logEntry => [
+      const body = logEntries.flatMap((logEntry) => [
         {
           index: {
             _index: `${this.indexPrefix}-${new Date(logEntry.timestamp).toISOString().split('T')[0]}`,
@@ -297,7 +307,7 @@ export class ElasticsearchService implements OnModuleInit {
   async searchLogs(searchQuery: SearchQuery): Promise<SearchResponse> {
     try {
       const esQuery = this.buildElasticsearchQuery(searchQuery);
-      
+
       const response = await this.client.search({
         index: `${this.indexPrefix}-*`,
         body: esQuery,
@@ -364,7 +374,7 @@ export class ElasticsearchService implements OnModuleInit {
       if (searchQuery.end_time) {
         timeRange.lte = searchQuery.end_time.toISOString();
       }
-      
+
       query.query.bool.filter.push({
         range: { '@timestamp': timeRange },
       });
@@ -378,7 +388,10 @@ export class ElasticsearchService implements OnModuleInit {
     }
 
     // If no query specified, match all
-    if (query.query.bool.must.length === 0 && query.query.bool.filter.length === 0) {
+    if (
+      query.query.bool.must.length === 0 &&
+      query.query.bool.filter.length === 0
+    ) {
       query.query = { match_all: {} };
     }
 
@@ -469,9 +482,13 @@ export class ElasticsearchService implements OnModuleInit {
 
     const totalLogs = response.hits.total?.value || 0;
     const logsByLevel = this.parseTermsAggregation(aggregations.logs_by_level);
-    const logsByService = this.parseTermsAggregation(aggregations.logs_by_service);
-    const logsByHour = this.parseDateHistogramAggregation(aggregations.logs_by_hour);
-    
+    const logsByService = this.parseTermsAggregation(
+      aggregations.logs_by_service,
+    );
+    const logsByHour = this.parseDateHistogramAggregation(
+      aggregations.logs_by_hour,
+    );
+
     const errorBuckets = aggregations.error_rate.buckets;
     const errorCount = errorBuckets.errors.doc_count;
     const errorRate = totalLogs > 0 ? (errorCount / totalLogs) * 100 : 0;
@@ -481,12 +498,14 @@ export class ElasticsearchService implements OnModuleInit {
       error_name: bucket.key,
       count: bucket.doc_count,
     }));
-    
-    const slowRequests = aggregations.slow_requests.buckets.map((bucket: any) => ({
-      url: bucket.key,
-      avg_response_time: bucket.avg_response_time.value,
-      count: bucket.doc_count,
-    }));
+
+    const slowRequests = aggregations.slow_requests.buckets.map(
+      (bucket: any) => ({
+        url: bucket.key,
+        avg_response_time: bucket.avg_response_time.value,
+        count: bucket.doc_count,
+      }),
+    );
 
     return {
       total_logs: totalLogs,

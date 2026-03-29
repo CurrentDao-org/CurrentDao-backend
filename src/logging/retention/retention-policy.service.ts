@@ -67,13 +67,13 @@ export class RetentionPolicyService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log('Initializing retention policy service');
-    
+
     // Create default retention policies
     await this.createDefaultPolicies();
-    
+
     // Initialize metrics
     await this.updateRetentionMetrics();
-    
+
     this.logger.log('Retention policy service initialized');
   }
 
@@ -135,7 +135,10 @@ export class RetentionPolicyService implements OnModuleInit {
       try {
         await this.createRetentionPolicy(policy);
       } catch (error) {
-        this.logger.error(`Failed to create retention policy ${policy.name}`, error);
+        this.logger.error(
+          `Failed to create retention policy ${policy.name}`,
+          error,
+        );
       }
     }
   }
@@ -182,12 +185,17 @@ export class RetentionPolicyService implements OnModuleInit {
 
       this.logger.log(`Retention policy ${policy.name} created successfully`);
     } catch (error) {
-      this.logger.error(`Failed to create retention policy ${policy.name}`, error);
+      this.logger.error(
+        `Failed to create retention policy ${policy.name}`,
+        error,
+      );
       throw error;
     }
   }
 
-  async applyRetentionPolicy(policyName: string): Promise<RetentionPolicyResult> {
+  async applyRetentionPolicy(
+    policyName: string,
+  ): Promise<RetentionPolicyResult> {
     const startTime = Date.now();
     const result: RetentionPolicyResult = {
       policy_name: policyName,
@@ -207,7 +215,7 @@ export class RetentionPolicyService implements OnModuleInit {
 
       // Get indices matching the policy pattern
       const indices = await this.getIndicesByPattern(policy.pattern);
-      
+
       for (const index of indices) {
         try {
           const indexResult = await this.processIndex(index, policy);
@@ -215,24 +223,35 @@ export class RetentionPolicyService implements OnModuleInit {
           result.documents_deleted += indexResult.documents_deleted;
           result.space_freed_mb += indexResult.space_freed_mb;
         } catch (error) {
-          result.errors.push(`Failed to process index ${index}: ${error.message}`);
+          result.errors.push(
+            `Failed to process index ${index}: ${error.message}`,
+          );
         }
       }
 
       result.processing_time_ms = Date.now() - startTime;
-      
-      this.logger.log(`Retention policy ${policyName} applied successfully`, result);
+
+      this.logger.log(
+        `Retention policy ${policyName} applied successfully`,
+        result,
+      );
       return result;
     } catch (error) {
       result.processing_time_ms = Date.now() - startTime;
       result.errors.push(error.message);
-      
-      this.logger.error(`Failed to apply retention policy ${policyName}`, error);
+
+      this.logger.error(
+        `Failed to apply retention policy ${policyName}`,
+        error,
+      );
       return result;
     }
   }
 
-  private async processIndex(indexName: string, policy: RetentionPolicy): Promise<{ documents_deleted: number; space_freed_mb: number }> {
+  private async processIndex(
+    indexName: string,
+    policy: RetentionPolicy,
+  ): Promise<{ documents_deleted: number; space_freed_mb: number }> {
     const startTime = Date.now();
     let documentsDeleted = 0;
     let spaceFreedMb = 0;
@@ -240,19 +259,26 @@ export class RetentionPolicyService implements OnModuleInit {
     try {
       // Get index stats before processing
       const statsBefore = await this.getIndexStats(indexName);
-      
+
       // Apply retention conditions
       if (policy.conditions) {
         for (const condition of policy.conditions) {
-          const deletionResult = await this.applyCondition(indexName, condition);
+          const deletionResult = await this.applyCondition(
+            indexName,
+            condition,
+          );
           documentsDeleted += deletionResult.documents_deleted;
         }
       }
 
       // Check if index should be deleted based on age
       const indexAge = await this.getIndexAge(indexName);
-      const maxAge = policy.hot_phase_days + policy.warm_phase_days + policy.cold_phase_days + policy.delete_phase_days;
-      
+      const maxAge =
+        policy.hot_phase_days +
+        policy.warm_phase_days +
+        policy.cold_phase_days +
+        policy.delete_phase_days;
+
       if (indexAge > maxAge) {
         await this.deleteIndex(indexName);
         documentsDeleted += statsBefore.doc_count;
@@ -264,14 +290,20 @@ export class RetentionPolicyService implements OnModuleInit {
         }
       }
 
-      return { documents_deleted: documentsDeleted, space_freed_mb: spaceFreedMb };
+      return {
+        documents_deleted: documentsDeleted,
+        space_freed_mb: spaceFreedMb,
+      };
     } catch (error) {
       this.logger.error(`Failed to process index ${indexName}`, error);
       throw error;
     }
   }
 
-  private async applyCondition(indexName: string, condition: RetentionCondition): Promise<{ documents_deleted: number }> {
+  private async applyCondition(
+    indexName: string,
+    condition: RetentionCondition,
+  ): Promise<{ documents_deleted: number }> {
     try {
       let query: any = {};
 
@@ -280,7 +312,11 @@ export class RetentionPolicyService implements OnModuleInit {
           query = { term: { [condition.field]: condition.value } };
           break;
         case 'ne':
-          query = { bool: { must_not: { term: { [condition.field]: condition.value } } } };
+          query = {
+            bool: {
+              must_not: { term: { [condition.field]: condition.value } },
+            },
+          };
           break;
         case 'gt':
           query = { range: { [condition.field]: { gt: condition.value } } };
@@ -292,7 +328,9 @@ export class RetentionPolicyService implements OnModuleInit {
           query = { exists: { field: condition.field } };
           break;
         case 'not_exists':
-          query = { bool: { must_not: { exists: { field: condition.field } } } };
+          query = {
+            bool: { must_not: { exists: { field: condition.field } } },
+          };
           break;
       }
 
@@ -311,12 +349,18 @@ export class RetentionPolicyService implements OnModuleInit {
 
       return { documents_deleted: 0 };
     } catch (error) {
-      this.logger.error(`Failed to apply condition on index ${indexName}`, error);
+      this.logger.error(
+        `Failed to apply condition on index ${indexName}`,
+        error,
+      );
       throw error;
     }
   }
 
-  private async deleteByQuery(indexName: string, query: any): Promise<{ deleted: number }> {
+  private async deleteByQuery(
+    indexName: string,
+    query: any,
+  ): Promise<{ deleted: number }> {
     const response = await this.elasticsearchService.getClient().deleteByQuery({
       index: indexName,
       body: { query },
@@ -329,7 +373,7 @@ export class RetentionPolicyService implements OnModuleInit {
   private async archiveDocuments(indexName: string, query: any): Promise<void> {
     // Create archive index name
     const archiveIndex = `${indexName}-archive-${new Date().toISOString().split('T')[0]}`;
-    
+
     // Reindex documents to archive index
     await this.elasticsearchService.getClient().reindex({
       body: {
@@ -342,7 +386,10 @@ export class RetentionPolicyService implements OnModuleInit {
     await this.deleteByQuery(indexName, query);
   }
 
-  private async compressDocuments(indexName: string, query: any): Promise<void> {
+  private async compressDocuments(
+    indexName: string,
+    query: any,
+  ): Promise<void> {
     // Force merge to reduce segments
     await this.elasticsearchService.getClient().indices.forcemerge({
       index: indexName,
@@ -366,10 +413,12 @@ export class RetentionPolicyService implements OnModuleInit {
 
   private async getIndexStats(indexName: string): Promise<any> {
     try {
-      const response = await this.elasticsearchService.getClient().indices.stats({
-        index: indexName,
-      });
-      
+      const response = await this.elasticsearchService
+        .getClient()
+        .indices.stats({
+          index: indexName,
+        });
+
       return response.indices[indexName];
     } catch (error) {
       this.logger.error(`Failed to get stats for index ${indexName}`, error);
@@ -379,13 +428,15 @@ export class RetentionPolicyService implements OnModuleInit {
 
   private async getIndexAge(indexName: string): Promise<number> {
     try {
-      const response = await this.elasticsearchService.getClient().indices.getSettings({
-        index: indexName,
-      });
+      const response = await this.elasticsearchService
+        .getClient()
+        .indices.getSettings({
+          index: indexName,
+        });
 
       const creationDate = response[indexName].settings.index.creation_date;
       const now = Date.now();
-      
+
       return Math.floor((now - creationDate) / (1000 * 60 * 60 * 24)); // days
     } catch (error) {
       this.logger.error(`Failed to get age for index ${indexName}`, error);
@@ -398,7 +449,7 @@ export class RetentionPolicyService implements OnModuleInit {
       await this.elasticsearchService.getClient().indices.delete({
         index: indexName,
       });
-      
+
       this.logger.log(`Index ${indexName} deleted successfully`);
     } catch (error) {
       this.logger.error(`Failed to delete index ${indexName}`, error);
@@ -412,7 +463,7 @@ export class RetentionPolicyService implements OnModuleInit {
         index: indexName,
         max_num_segments: 1,
       });
-      
+
       this.logger.log(`Index ${indexName} optimized successfully`);
     } catch (error) {
       this.logger.error(`Failed to optimize index ${indexName}`, error);
@@ -423,7 +474,7 @@ export class RetentionPolicyService implements OnModuleInit {
   private convertBytesToMB(bytes: string): number {
     const value = parseFloat(bytes.replace(/[^\d.]/g, ''));
     const unit = bytes.replace(/[\d.]/g, '').toLowerCase();
-    
+
     switch (unit) {
       case 'kb':
         return value / 1024;
@@ -439,14 +490,21 @@ export class RetentionPolicyService implements OnModuleInit {
     }
   }
 
-  async getRetentionPolicy(policyName: string): Promise<RetentionPolicy | null> {
+  async getRetentionPolicy(
+    policyName: string,
+  ): Promise<RetentionPolicy | null> {
     try {
-      const response = await this.elasticsearchService.getClient().ilm.lifecycle.get({
-        policy: policyName,
-      });
+      const response = await this.elasticsearchService
+        .getClient()
+        .ilm.lifecycle.get({
+          policy: policyName,
+        });
 
       if (response[policyName]) {
-        return this.parseILMPolicyToRetentionPolicy(policyName, response[policyName]);
+        return this.parseILMPolicyToRetentionPolicy(
+          policyName,
+          response[policyName],
+        );
       }
 
       return null;
@@ -456,9 +514,12 @@ export class RetentionPolicyService implements OnModuleInit {
     }
   }
 
-  private parseILMPolicyToRetentionPolicy(policyName: string, ilmPolicy: any): RetentionPolicy {
+  private parseILMPolicyToRetentionPolicy(
+    policyName: string,
+    ilmPolicy: any,
+  ): RetentionPolicy {
     const phases = ilmPolicy.policy.phases;
-    
+
     return {
       name: policyName,
       pattern: '', // Not stored in ILM policy
@@ -471,7 +532,7 @@ export class RetentionPolicyService implements OnModuleInit {
 
   private extractDaysFromPhase(phase: any): number {
     if (!phase || !phase.min_age) return 0;
-    
+
     const ageStr = phase.min_age;
     const match = ageStr.match(/(\d+)d/);
     return match ? parseInt(match[1]) : 0;
@@ -479,26 +540,26 @@ export class RetentionPolicyService implements OnModuleInit {
 
   async getAllRetentionPolicies(): Promise<RetentionPolicy[]> {
     const policies: RetentionPolicy[] = [];
-    
+
     for (const defaultPolicy of this.defaultPolicies) {
       const policy = await this.getRetentionPolicy(defaultPolicy.name);
       if (policy) {
         policies.push(policy);
       }
     }
-    
+
     return policies;
   }
 
   async updateRetentionMetrics(): Promise<void> {
     try {
       const indices = await this.elasticsearchService.getIndexMetrics();
-      
+
       let totalDocuments = 0;
       let totalStorageGB = 0;
       const indicesByPhase: Record<string, number> = {};
       const storageByPhase: Record<string, number> = {};
-      
+
       let oldestIndex = '';
       let newestIndex = '';
       let oldestDate = new Date();
@@ -507,12 +568,14 @@ export class RetentionPolicyService implements OnModuleInit {
       for (const index of indices) {
         totalDocuments += index.doc_count;
         totalStorageGB += this.convertBytesToGB(index.store_size);
-        
+
         // Determine phase based on index name pattern
         const phase = this.determineIndexPhase(index.index_name);
         indicesByPhase[phase] = (indicesByPhase[phase] || 0) + 1;
-        storageByPhase[phase] = (storageByPhase[phase] || 0) + this.convertBytesToGB(index.store_size);
-        
+        storageByPhase[phase] =
+          (storageByPhase[phase] || 0) +
+          this.convertBytesToGB(index.store_size);
+
         // Track oldest and newest indices
         const indexDate = this.extractDateFromIndexName(index.index_name);
         if (indexDate < oldestDate) {
@@ -571,18 +634,20 @@ export class RetentionPolicyService implements OnModuleInit {
   async getStorageForecast(): Promise<StorageForecast> {
     try {
       const currentMetrics = await this.getRetentionMetrics();
-      
+
       // Get historical data for growth calculation
       const growthRate = await this.calculateGrowthRate();
-      
+
       const currentStorage = currentMetrics.total_storage_gb;
       const projected30Days = currentStorage * (1 + (growthRate / 100) * 30);
       const projected90Days = currentStorage * (1 + (growthRate / 100) * 90);
-      
+
       // Calculate recommended retention days based on storage constraints
       const maxStorageGB = this.configService.get('MAX_LOG_STORAGE_GB') || 1000;
-      const recommendedRetentionDays = Math.floor((maxStorageGB / currentStorage) * 90);
-      
+      const recommendedRetentionDays = Math.floor(
+        (maxStorageGB / currentStorage) * 90,
+      );
+
       // Calculate cost impact (simplified)
       const costPerGB = this.configService.get('STORAGE_COST_PER_GB') || 0.023; // AWS approximate
       const costImpact = (projected90Days - currentStorage) * costPerGB;
@@ -592,7 +657,10 @@ export class RetentionPolicyService implements OnModuleInit {
         projected_30_days: projected30Days,
         projected_90_days: projected90Days,
         growth_rate_percent: growthRate,
-        recommended_retention_days: Math.max(30, Math.min(365, recommendedRetentionDays)),
+        recommended_retention_days: Math.max(
+          30,
+          Math.min(365, recommendedRetentionDays),
+        ),
         cost_impact: costImpact,
       };
     } catch (error) {
@@ -606,9 +674,9 @@ export class RetentionPolicyService implements OnModuleInit {
       // Get storage data for the last 7 days
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
+
       const indices = await this.getIndicesByPattern('currentdao-logs-*');
-      const recentIndices = indices.filter(index => {
+      const recentIndices = indices.filter((index) => {
         const indexDate = this.extractDateFromIndexName(index);
         return indexDate >= sevenDaysAgo;
       });
@@ -619,18 +687,19 @@ export class RetentionPolicyService implements OnModuleInit {
 
       // Calculate growth based on recent indices
       const storageData = await Promise.all(
-        recentIndices.map(async index => {
+        recentIndices.map(async (index) => {
           const stats = await this.getIndexStats(index);
           return this.convertBytesToGB(stats.store_size);
-        })
+        }),
       );
 
       const oldestStorage = storageData[0];
       const newestStorage = storageData[storageData.length - 1];
-      
+
       if (oldestStorage === 0) return 5;
-      
-      const growthRate = ((newestStorage - oldestStorage) / oldestStorage) * 100;
+
+      const growthRate =
+        ((newestStorage - oldestStorage) / oldestStorage) * 100;
       return Math.max(0, growthRate);
     } catch (error) {
       this.logger.error('Failed to calculate growth rate', error);
@@ -642,21 +711,24 @@ export class RetentionPolicyService implements OnModuleInit {
   @Cron(CronExpression.EVERY_HOUR)
   async scheduledCleanup(): Promise<void> {
     this.logger.log('Starting scheduled retention cleanup');
-    
+
     try {
       const policies = await this.getAllRetentionPolicies();
-      
+
       for (const policy of policies) {
         try {
           await this.applyRetentionPolicy(policy.name);
         } catch (error) {
-          this.logger.error(`Failed to apply policy ${policy.name} in scheduled cleanup`, error);
+          this.logger.error(
+            `Failed to apply policy ${policy.name} in scheduled cleanup`,
+            error,
+          );
         }
       }
-      
+
       // Update metrics after cleanup
       await this.updateRetentionMetrics();
-      
+
       this.logger.log('Scheduled retention cleanup completed');
     } catch (error) {
       this.logger.error('Scheduled retention cleanup failed', error);
@@ -673,17 +745,20 @@ export class RetentionPolicyService implements OnModuleInit {
       await this.elasticsearchService.getClient().ilm.lifecycle.delete({
         policy: policyName,
       });
-      
+
       this.logger.log(`Retention policy ${policyName} deleted successfully`);
     } catch (error) {
-      this.logger.error(`Failed to delete retention policy ${policyName}`, error);
+      this.logger.error(
+        `Failed to delete retention policy ${policyName}`,
+        error,
+      );
       throw error;
     }
   }
 
   async forceCleanup(policyName?: string): Promise<RetentionPolicyResult[]> {
     const results: RetentionPolicyResult[] = [];
-    
+
     if (policyName) {
       const result = await this.applyRetentionPolicy(policyName);
       results.push(result);
@@ -694,7 +769,7 @@ export class RetentionPolicyService implements OnModuleInit {
         results.push(result);
       }
     }
-    
+
     return results;
   }
 }

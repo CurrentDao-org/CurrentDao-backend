@@ -228,7 +228,7 @@ export class CustomsService {
       if (!this.customsRules.has(key)) {
         this.customsRules.set(key, []);
       }
-      this.customsRules.get(key)!.push(rule);
+      this.customsRules.get(key).push(rule);
     }
 
     this.logger.log(

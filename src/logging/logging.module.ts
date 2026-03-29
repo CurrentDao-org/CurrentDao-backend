@@ -4,6 +4,7 @@ import { ElasticsearchModule } from './elasticsearch/elasticsearch.module';
 import { LogParserService } from './parsing/log-parser.service';
 import { RetentionPolicyService } from './retention/retention-policy.service';
 import { LogAlertService } from './alerts/log-alert.service';
+import { LoggingService } from './logging.service';
 
 export interface LoggingConfig {
   elasticsearch: {
@@ -26,16 +27,15 @@ export interface LoggingConfig {
 }
 
 @Module({
-  imports: [
-    ConfigModule,
-    ElasticsearchModule,
-  ],
+  imports: [ConfigModule, ElasticsearchModule],
   providers: [
+    LoggingService,
     LogParserService,
     RetentionPolicyService,
     LogAlertService,
   ],
   exports: [
+    LoggingService,
     ElasticsearchModule,
     LogParserService,
     RetentionPolicyService,

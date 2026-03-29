@@ -1,7 +1,11 @@
 import { SetMetadata, UseGuards, UseInterceptors } from '@nestjs/common';
 import { Request } from 'express';
 import { AuditInterceptor } from '../interceptors/audit.interceptor';
-import { AuditAction, AuditResource, AuditSeverity } from '../entities/audit-log.entity';
+import {
+  AuditAction,
+  AuditResource,
+  AuditSeverity,
+} from '../entities/audit-log.entity';
 
 export interface AuditOptions {
   action?: AuditAction;
@@ -19,10 +23,14 @@ export interface AuditOptions {
 }
 
 export const Audit = (options: AuditOptions = {}) => {
-  return (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) => {
+  return (
+    target: any,
+    propertyKey?: string,
+    descriptor?: PropertyDescriptor,
+  ) => {
     const action = options.action || propertyKey || 'unknown';
     const resource = options.resource || target.constructor.name;
-    
+
     SetMetadata('audit', {
       action,
       resource,
@@ -188,9 +196,13 @@ export const AuditComplianceCheck = (options: Partial<AuditOptions> = {}) => {
 };
 
 export function AuditMethod(options: AuditOptions = {}) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) {
     const originalMethod = descriptor.value;
-    
+
     descriptor.value = async function (...args: any[]) {
       const startTime = Date.now();
       let result: any;
@@ -211,7 +223,9 @@ export function AuditMethod(options: AuditOptions = {}) {
             action: options.action || propertyKey,
             resource: options.resource || target.constructor.name,
             severity: options.severity || AuditSeverity.MEDIUM,
-            description: options.description || `${options.action || propertyKey} ${options.resource || target.constructor.name}`,
+            description:
+              options.description ||
+              `${options.action || propertyKey} ${options.resource || target.constructor.name}`,
             executionTime,
             timestamp: new Date(),
             customFields: options.customFields || {},
@@ -229,22 +243,25 @@ export function AuditMethod(options: AuditOptions = {}) {
   };
 }
 
-export function AuditClass(options: {
-  action?: AuditAction;
-  resource?: AuditResource;
-  severity?: AuditSeverity;
-  description?: string;
-  includeRequestBody?: boolean;
-  includeResponseBody?: boolean;
-  includeHeaders?: boolean;
-  includeMetadata?: boolean;
-} = {}) {
-  return function <T extends { new(...args: any[]): T }>(constructor: T) {
+export function AuditClass(
+  options: {
+    action?: AuditAction;
+    resource?: AuditResource;
+    severity?: AuditSeverity;
+    description?: string;
+    includeRequestBody?: boolean;
+    includeResponseBody?: boolean;
+    includeHeaders?: boolean;
+    includeMetadata?: boolean;
+  } = {},
+) {
+  return function <T extends { new (...args: any[]): T }>(constructor: T) {
     const auditOptions = {
       action: options.action || AuditAction.READ,
       resource: options.resource || constructor.name,
       severity: options.severity || AuditSeverity.MEDIUM,
-      description: options.description || `${options.action} ${options.resource}`,
+      description:
+        options.description || `${options.action} ${options.resource}`,
       includeRequestBody: options.includeRequestBody ?? false,
       includeResponseBody: options.includeResponseBody ?? false,
       includeHeaders: options.includeHeaders ?? false,
@@ -256,14 +273,20 @@ export function AuditClass(options: {
   };
 }
 
-export function AuditParam(options: {
-  name?: string;
-  description?: string;
-  redact?: boolean;
-} = {}) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+export function AuditParam(
+  options: {
+    name?: string;
+    description?: string;
+    redact?: boolean;
+  } = {},
+) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) {
     const paramName = options.name || propertyKey;
-    
+
     SetMetadata('audit:param', {
       name: paramName,
       description: options.description,
@@ -274,14 +297,20 @@ export function AuditParam(options: {
   };
 }
 
-export function AuditSensitive(options: {
-  fields?: string[];
-  redactAll?: boolean;
-  classification?: 'public' | 'internal' | 'confidential' | 'restricted';
-} = {}) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+export function AuditSensitive(
+  options: {
+    fields?: string[];
+    redactAll?: boolean;
+    classification?: 'public' | 'internal' | 'confidential' | 'restricted';
+  } = {},
+) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) {
     const fieldName = propertyKey;
-    
+
     SetMetadata('audit:sensitive', {
       field: fieldName,
       redactAll: options.redactAll ?? false,
@@ -294,21 +323,33 @@ export function AuditSensitive(options: {
 }
 
 export function AuditSkipIf(condition: (req: Request) => boolean) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) {
     SetMetadata('audit:skipIf', condition);
     return descriptor;
   };
 }
 
 export function AuditRedact(fields: string[]) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) {
     SetMetadata('audit:redact', fields);
     return descriptor;
   };
 }
 
 export function AuditCustomField(key: string, value: any) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ) {
     SetMetadata(`audit:custom:${key}`, value);
     return descriptor;
   };

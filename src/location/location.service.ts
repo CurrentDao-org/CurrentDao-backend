@@ -1,10 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, LessThan, MoreThan } from 'typeorm';
 import { Location } from './entities/location.entity';
 import { GridZone } from './entities/grid-zone.entity';
-import { LocationSearchDto, LocationHeatmapDto } from './dto/location-search.dto';
-import { DistanceAlgorithm, Coordinates } from './algorithms/distance.algorithm';
+import {
+  LocationSearchDto,
+  LocationHeatmapDto,
+} from './dto/location-search.dto';
+import {
+  DistanceAlgorithm,
+  Coordinates,
+} from './algorithms/distance.algorithm';
 import { ZoneMappingAlgorithm } from './algorithms/zone-mapping.algorithm';
 
 @Injectable()
@@ -26,15 +36,20 @@ export class LocationService {
     }
 
     // Auto-assign grid zone if not provided
-    if (!locationData.gridZoneId && locationData.latitude && locationData.longitude) {
+    if (
+      !locationData.gridZoneId &&
+      locationData.latitude &&
+      locationData.longitude
+    ) {
       const zoneMapping = await this.findZoneForCoordinate({
         latitude: locationData.latitude,
-        longitude: locationData.longitude
+        longitude: locationData.longitude,
       });
-      
+
       if (zoneMapping.zone) {
         locationData.gridZoneId = zoneMapping.zone.id;
-        locationData.regionalPriceMultiplier = zoneMapping.zone.basePriceMultiplier;
+        locationData.regionalPriceMultiplier =
+          zoneMapping.zone.basePriceMultiplier;
       }
     }
 
@@ -45,7 +60,10 @@ export class LocationService {
   /**
    * Update an existing location
    */
-  async updateLocation(id: string, updateData: Partial<Location>): Promise<Location> {
+  async updateLocation(
+    id: string,
+    updateData: Partial<Location>,
+  ): Promise<Location> {
     const location = await this.locationRepository.findOne({ where: { id } });
     if (!location) {
       throw new NotFoundException(`Location with ID ${id} not found`);
@@ -57,17 +75,20 @@ export class LocationService {
     }
 
     // Re-calculate grid zone if coordinates changed
-    if ((updateData.latitude || updateData.longitude) && 
-        (updateData.latitude !== location.latitude || updateData.longitude !== location.longitude)) {
-      
+    if (
+      (updateData.latitude || updateData.longitude) &&
+      (updateData.latitude !== location.latitude ||
+        updateData.longitude !== location.longitude)
+    ) {
       const zoneMapping = await this.findZoneForCoordinate({
         latitude: updateData.latitude || location.latitude,
-        longitude: updateData.longitude || location.longitude
+        longitude: updateData.longitude || location.longitude,
       });
-      
+
       if (zoneMapping.zone) {
         updateData.gridZoneId = zoneMapping.zone.id;
-        updateData.regionalPriceMultiplier = zoneMapping.zone.basePriceMultiplier;
+        updateData.regionalPriceMultiplier =
+          zoneMapping.zone.basePriceMultiplier;
       }
     }
 
@@ -79,11 +100,11 @@ export class LocationService {
    * Get location by ID
    */
   async getLocation(id: string): Promise<Location> {
-    const location = await this.locationRepository.findOne({ 
+    const location = await this.locationRepository.findOne({
       where: { id },
-      relations: ['gridZone']
+      relations: ['gridZone'],
     });
-    
+
     if (!location) {
       throw new NotFoundException(`Location with ID ${id} not found`);
     }
@@ -100,49 +121,56 @@ export class LocationService {
     page: number;
     limit: number;
   }> {
-    const queryBuilder = this.locationRepository.createQueryBuilder('location')
+    const queryBuilder = this.locationRepository
+      .createQueryBuilder('location')
       .leftJoinAndSelect('location.gridZone', 'gridZone');
 
     // Apply filters
     if (searchDto.gridZoneId) {
-      queryBuilder.andWhere('location.gridZoneId = :gridZoneId', { 
-        gridZoneId: searchDto.gridZoneId 
+      queryBuilder.andWhere('location.gridZoneId = :gridZoneId', {
+        gridZoneId: searchDto.gridZoneId,
       });
     }
 
     if (searchDto.country) {
-      queryBuilder.andWhere('location.country = :country', { 
-        country: searchDto.country 
+      queryBuilder.andWhere('location.country = :country', {
+        country: searchDto.country,
       });
     }
 
     if (searchDto.state) {
-      queryBuilder.andWhere('location.state = :state', { 
-        state: searchDto.state 
+      queryBuilder.andWhere('location.state = :state', {
+        state: searchDto.state,
       });
     }
 
     if (searchDto.city) {
-      queryBuilder.andWhere('location.city = :city', { 
-        city: searchDto.city 
+      queryBuilder.andWhere('location.city = :city', {
+        city: searchDto.city,
       });
     }
 
     if (searchDto.minPriceMultiplier !== undefined) {
-      queryBuilder.andWhere('location.regionalPriceMultiplier >= :minPriceMultiplier', {
-        minPriceMultiplier: searchDto.minPriceMultiplier
-      });
+      queryBuilder.andWhere(
+        'location.regionalPriceMultiplier >= :minPriceMultiplier',
+        {
+          minPriceMultiplier: searchDto.minPriceMultiplier,
+        },
+      );
     }
 
     if (searchDto.maxPriceMultiplier !== undefined) {
-      queryBuilder.andWhere('location.regionalPriceMultiplier <= :maxPriceMultiplier', {
-        maxPriceMultiplier: searchDto.maxPriceMultiplier
-      });
+      queryBuilder.andWhere(
+        'location.regionalPriceMultiplier <= :maxPriceMultiplier',
+        {
+          maxPriceMultiplier: searchDto.maxPriceMultiplier,
+        },
+      );
     }
 
     if (searchDto.isPublic !== undefined) {
       queryBuilder.andWhere('location.isPublic = :isPublic', {
-        isPublic: searchDto.isPublic
+        isPublic: searchDto.isPublic,
       });
     }
 
@@ -150,16 +178,18 @@ export class LocationService {
     if (searchDto.latitude && searchDto.longitude && searchDto.radiusKm) {
       const boundingBox = DistanceAlgorithm.getBoundingBox(
         { latitude: searchDto.latitude, longitude: searchDto.longitude },
-        searchDto.radiusKm
+        searchDto.radiusKm,
       );
 
-      queryBuilder.andWhere('location.latitude BETWEEN :minLat AND :maxLat', {
-        minLat: boundingBox.minLat,
-        maxLat: boundingBox.maxLat
-      }).andWhere('location.longitude BETWEEN :minLon AND :maxLon', {
-        minLon: boundingBox.minLon,
-        maxLon: boundingBox.maxLon
-      });
+      queryBuilder
+        .andWhere('location.latitude BETWEEN :minLat AND :maxLat', {
+          minLat: boundingBox.minLat,
+          maxLat: boundingBox.maxLat,
+        })
+        .andWhere('location.longitude BETWEEN :minLon AND :maxLon', {
+          minLon: boundingBox.minLon,
+          maxLon: boundingBox.maxLon,
+        });
     }
 
     // Apply sorting
@@ -172,12 +202,19 @@ export class LocationService {
       const sortedLocations = this.sortByDistance(
         locations,
         { latitude: searchDto.latitude, longitude: searchDto.longitude },
-        sortOrder
+        sortOrder,
       );
 
-      return this.paginateResults(sortedLocations, searchDto.page, searchDto.limit);
+      return this.paginateResults(
+        sortedLocations,
+        searchDto.page,
+        searchDto.limit,
+      );
     } else {
-      queryBuilder.orderBy(`location.${sortBy}`, sortOrder.toUpperCase() as 'ASC' | 'DESC');
+      queryBuilder.orderBy(
+        `location.${sortBy}`,
+        sortOrder.toUpperCase() as 'ASC' | 'DESC',
+      );
     }
 
     // Apply pagination
@@ -193,7 +230,7 @@ export class LocationService {
       locations,
       total,
       page,
-      limit
+      limit,
     };
   }
 
@@ -207,13 +244,13 @@ export class LocationService {
     totalLocations: number;
   }> {
     const resolution = heatmapDto.resolution || 50;
-    
+
     // Get bounding box
     const bounds = {
       minLat: heatmapDto.minLat || -90,
       maxLat: heatmapDto.maxLat || 90,
       minLon: heatmapDto.minLon || -180,
-      maxLon: heatmapDto.maxLon || 180
+      maxLon: heatmapDto.maxLon || 180,
     };
 
     // Get all locations within bounding box
@@ -221,19 +258,34 @@ export class LocationService {
       where: {
         latitude: Between(bounds.minLat, bounds.maxLat),
         longitude: Between(bounds.minLon, bounds.maxLon),
-        isPublic: true
-      }
+        isPublic: true,
+      },
     });
 
     // Initialize grid
-    const grid = Array(resolution).fill(0).map(() => Array(resolution).fill(0));
+    const grid = Array(resolution)
+      .fill(0)
+      .map(() => Array(resolution).fill(0));
 
     // Populate grid with location density
-    locations.forEach(location => {
-      const gridX = Math.floor(((location.longitude - bounds.minLon) / (bounds.maxLon - bounds.minLon)) * resolution);
-      const gridY = Math.floor(((location.latitude - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * resolution);
-      
-      if (gridX >= 0 && gridX < resolution && gridY >= 0 && gridY < resolution) {
+    locations.forEach((location) => {
+      const gridX = Math.floor(
+        ((location.longitude - bounds.minLon) /
+          (bounds.maxLon - bounds.minLon)) *
+          resolution,
+      );
+      const gridY = Math.floor(
+        ((location.latitude - bounds.minLat) /
+          (bounds.maxLat - bounds.minLat)) *
+          resolution,
+      );
+
+      if (
+        gridX >= 0 &&
+        gridX < resolution &&
+        gridY >= 0 &&
+        gridY < resolution
+      ) {
         grid[gridY][gridX]++;
       }
     });
@@ -242,7 +294,7 @@ export class LocationService {
       grid,
       bounds,
       resolution,
-      totalLocations: locations.length
+      totalLocations: locations.length,
     };
   }
 
@@ -250,23 +302,29 @@ export class LocationService {
    * Find grid zone for a coordinate
    */
   async findZoneForCoordinate(coordinate: Coordinates) {
-    const gridZones = await this.gridZoneRepository.find({ where: { isActive: true } });
+    const gridZones = await this.gridZoneRepository.find({
+      where: { isActive: true },
+    });
     return ZoneMappingAlgorithm.findZoneForCoordinate(coordinate, gridZones);
   }
 
   /**
    * Calculate distance between two locations
    */
-  async calculateDistance(locationId1: string, locationId2: string, unit: 'km' | 'miles' = 'km') {
+  async calculateDistance(
+    locationId1: string,
+    locationId2: string,
+    unit: 'km' | 'miles' = 'km',
+  ) {
     const [location1, location2] = await Promise.all([
       this.getLocation(locationId1),
-      this.getLocation(locationId2)
+      this.getLocation(locationId2),
     ]);
 
     return DistanceAlgorithm.calculateDistance(
       { latitude: location1.latitude, longitude: location1.longitude },
       { latitude: location2.latitude, longitude: location2.longitude },
-      unit
+      unit,
     );
   }
 
@@ -296,7 +354,10 @@ export class LocationService {
   /**
    * Update grid zone
    */
-  async updateGridZone(id: string, updateData: Partial<GridZone>): Promise<GridZone> {
+  async updateGridZone(
+    id: string,
+    updateData: Partial<GridZone>,
+  ): Promise<GridZone> {
     const zone = await this.gridZoneRepository.findOne({ where: { id } });
     if (!zone) {
       throw new NotFoundException(`Grid zone with ID ${id} not found`);
@@ -327,27 +388,29 @@ export class LocationService {
   private sortByDistance(
     locations: Location[],
     centerPoint: Coordinates,
-    sortOrder: 'asc' | 'desc'
+    sortOrder: 'asc' | 'desc',
   ): Location[] {
     return locations.sort((a, b) => {
-      const distanceA = DistanceAlgorithm.calculateDistance(
-        centerPoint,
-        { latitude: a.latitude, longitude: a.longitude }
-      ).distance;
+      const distanceA = DistanceAlgorithm.calculateDistance(centerPoint, {
+        latitude: a.latitude,
+        longitude: a.longitude,
+      }).distance;
 
-      const distanceB = DistanceAlgorithm.calculateDistance(
-        centerPoint,
-        { latitude: b.latitude, longitude: b.longitude }
-      ).distance;
+      const distanceB = DistanceAlgorithm.calculateDistance(centerPoint, {
+        latitude: b.latitude,
+        longitude: b.longitude,
+      }).distance;
 
-      return sortOrder === 'asc' ? distanceA - distanceB : distanceB - distanceA;
+      return sortOrder === 'asc'
+        ? distanceA - distanceB
+        : distanceB - distanceA;
     });
   }
 
   private paginateResults(
     locations: Location[],
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
   ): {
     locations: Location[];
     total: number;
@@ -363,7 +426,7 @@ export class LocationService {
       locations: paginatedLocations,
       total,
       page,
-      limit
+      limit,
     };
   }
 }

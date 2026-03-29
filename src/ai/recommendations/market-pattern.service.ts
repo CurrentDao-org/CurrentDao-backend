@@ -19,7 +19,8 @@ export class MarketPatternService {
     const patterns: MarketPattern[] = [];
 
     // Technical analysis patterns
-    const technicalPatterns = await this.analyzeTechnicalIndicators(assetSymbol);
+    const technicalPatterns =
+      await this.analyzeTechnicalIndicators(assetSymbol);
     patterns.push(...technicalPatterns);
 
     // Price action patterns
@@ -33,18 +34,26 @@ export class MarketPatternService {
     return patterns;
   }
 
-  async getMarketTrend(assetSymbol: string): Promise<'bullish' | 'bearish' | 'neutral'> {
+  async getMarketTrend(
+    assetSymbol: string,
+  ): Promise<'bullish' | 'bearish' | 'neutral'> {
     const patterns = await this.detectPatterns(assetSymbol);
-    
-    const bullishCount = patterns.filter(p => p.direction === 'bullish').length;
-    const bearishCount = patterns.filter(p => p.direction === 'bearish').length;
-    
+
+    const bullishCount = patterns.filter(
+      (p) => p.direction === 'bullish',
+    ).length;
+    const bearishCount = patterns.filter(
+      (p) => p.direction === 'bearish',
+    ).length;
+
     if (bullishCount > bearishCount * 1.5) return 'bullish';
     if (bearishCount > bullishCount * 1.5) return 'bearish';
     return 'neutral';
   }
 
-  async getSupportResistanceLevels(assetSymbol: string): Promise<{ support: number[]; resistance: number[] }> {
+  async getSupportResistanceLevels(
+    assetSymbol: string,
+  ): Promise<{ support: number[]; resistance: number[] }> {
     // Calculate support and resistance levels using historical data
     return {
       support: [95, 90, 85], // Placeholder
@@ -52,7 +61,9 @@ export class MarketPatternService {
     };
   }
 
-  private async analyzeTechnicalIndicators(assetSymbol: string): Promise<MarketPattern[]> {
+  private async analyzeTechnicalIndicators(
+    assetSymbol: string,
+  ): Promise<MarketPattern[]> {
     // Analyze RSI, MACD, Moving Averages, etc.
     return [
       {
@@ -66,7 +77,9 @@ export class MarketPatternService {
     ];
   }
 
-  private async analyzePriceAction(assetSymbol: string): Promise<MarketPattern[]> {
+  private async analyzePriceAction(
+    assetSymbol: string,
+  ): Promise<MarketPattern[]> {
     // Detect chart patterns like head & shoulders, triangles, etc.
     return [
       {
@@ -80,14 +93,16 @@ export class MarketPatternService {
     ];
   }
 
-  private async analyzeVolumePatterns(assetSymbol: string): Promise<MarketPattern[]> {
+  private async analyzeVolumePatterns(
+    assetSymbol: string,
+  ): Promise<MarketPattern[]> {
     // Analyze volume trends and anomalies
     return [
       {
         type: 'VOLUME_SPIKE',
         strength: 0.8,
         direction: 'bullish',
-        confidence: 0.70,
+        confidence: 0.7,
         timeFrame: '1h',
         indicators: ['Volume', 'OBV'],
       },

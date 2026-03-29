@@ -14,7 +14,7 @@ export class HmacAuthService {
     const expectedSignature = this.generateSignature(payload, secret);
     return crypto.timingSafeEqual(
       Buffer.from(signature, 'hex'),
-      Buffer.from(expectedSignature, 'hex')
+      Buffer.from(expectedSignature, 'hex'),
     );
   }
 
@@ -27,15 +27,18 @@ export class HmacAuthService {
     return timestamp > now - maxAgeSeconds && timestamp <= now;
   }
 
-  signWebhook(payload: any, secret: string): { signature: string; timestamp: number } {
+  signWebhook(
+    payload: any,
+    secret: string,
+  ): { signature: string; timestamp: number } {
     const payloadString = JSON.stringify(payload);
     const timestamp = this.generateTimestamp();
     const signedPayload = `${payloadString}.${timestamp}`;
     const signature = this.generateSignature(signedPayload, secret);
-    
+
     return {
       signature,
-      timestamp
+      timestamp,
     };
   }
 }

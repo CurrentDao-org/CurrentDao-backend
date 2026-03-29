@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { EnergyListing } from './energy-listing.entity';
 import { Bid } from './bid.entity';
 
@@ -296,13 +304,31 @@ export class Trade {
   @Column({ name: 'dispute_resolution', nullable: true })
   disputeResolution?: string;
 
-  @Column({ name: 'refund_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  @Column({
+    name: 'refund_amount',
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    nullable: true,
+  })
   refundAmount?: number;
 
-  @Column({ name: 'penalty_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  @Column({
+    name: 'penalty_amount',
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    nullable: true,
+  })
   penaltyAmount?: number;
 
-  @Column({ name: 'bonus_amount', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  @Column({
+    name: 'bonus_amount',
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    nullable: true,
+  })
   bonusAmount?: number;
 
   @CreateDateColumn({ name: 'created_at' })
@@ -311,7 +337,9 @@ export class Trade {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => EnergyListing, listing => listing.trades, { onDelete: 'CASCADE' })
+  @ManyToOne(() => EnergyListing, (listing) => listing.trades, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'listing_id' })
   listing: EnergyListing;
 

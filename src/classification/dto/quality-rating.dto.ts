@@ -1,6 +1,6 @@
 /**
  * Quality Rating DTOs
- * 
+ *
  * Data Transfer Objects for energy quality rating operations.
  */
 
@@ -20,7 +20,10 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { QualityRating, QualityTier } from '../entities/energy-quality.entity';
-import { CertificationType, CertificationStatus } from '../entities/certification.entity';
+import {
+  CertificationType,
+  CertificationStatus,
+} from '../entities/certification.entity';
 import { CategoryResponseDto } from './category.dto';
 
 /**
@@ -74,7 +77,10 @@ export class CreateQualityRatingDto {
   @Max(100)
   efficiencyMax: number;
 
-  @ApiPropertyOptional({ example: 99, description: 'Minimum purity percentage' })
+  @ApiPropertyOptional({
+    example: 99,
+    description: 'Minimum purity percentage',
+  })
   @IsNumber()
   @IsOptional()
   @Min(0)
@@ -86,7 +92,10 @@ export class CreateQualityRatingDto {
   @IsOptional()
   isVerified?: boolean;
 
-  @ApiPropertyOptional({ example: 'ISO 50001', description: 'Verification standard' })
+  @ApiPropertyOptional({
+    example: 'ISO 50001',
+    description: 'Verification standard',
+  })
   @IsString()
   @IsOptional()
   verificationStandard?: string;
@@ -98,7 +107,10 @@ export class CreateQualityRatingDto {
   @Max(999)
   sortOrder?: number;
 
-  @ApiPropertyOptional({ example: ['premium', 'high-efficiency'], description: 'Tags' })
+  @ApiPropertyOptional({
+    example: ['premium', 'high-efficiency'],
+    description: 'Tags',
+  })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
@@ -112,7 +124,9 @@ export class CreateQualityRatingDto {
 /**
  * Update quality rating DTO
  */
-export class UpdateQualityRatingDto extends PartialType(CreateQualityRatingDto) {
+export class UpdateQualityRatingDto extends PartialType(
+  CreateQualityRatingDto,
+) {
   @ApiPropertyOptional({ example: true, description: 'Is active' })
   @IsBoolean()
   @IsOptional()
@@ -138,17 +152,26 @@ export class QualityRatingFilterDto {
   @IsOptional()
   categoryId?: string;
 
-  @ApiPropertyOptional({ example: true, description: 'Filter by verified status' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by verified status',
+  })
   @IsBoolean()
   @IsOptional()
   isVerified?: boolean;
 
-  @ApiPropertyOptional({ example: true, description: 'Filter by active status' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by active status',
+  })
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ example: 'premium', description: 'Search by name or description' })
+  @ApiPropertyOptional({
+    example: 'premium',
+    description: 'Search by name or description',
+  })
   @IsString()
   @IsOptional()
   search?: string;
@@ -204,7 +227,10 @@ export class QualityRatingResponseDto {
   @ApiProperty({ example: true, description: 'Is verified' })
   isVerified: boolean;
 
-  @ApiPropertyOptional({ example: 'ISO 50001', description: 'Verification standard' })
+  @ApiPropertyOptional({
+    example: 'ISO 50001',
+    description: 'Verification standard',
+  })
   verificationStandard: string;
 
   @ApiProperty({ example: true, description: 'Is active' })
@@ -235,7 +261,10 @@ export class CreateCertificationDto {
   @IsNotEmpty()
   type: CertificationType;
 
-  @ApiProperty({ example: 'Green Energy Certification', description: 'Certification name' })
+  @ApiProperty({
+    example: 'Green Energy Certification',
+    description: 'Certification name',
+  })
   @IsString()
   @IsNotEmpty()
   @Length(1, 150)
@@ -251,7 +280,10 @@ export class CreateCertificationDto {
   @IsOptional()
   categoryId?: string;
 
-  @ApiProperty({ example: 'Green Energy Standards Board', description: 'Issuing authority' })
+  @ApiProperty({
+    example: 'Green Energy Standards Board',
+    description: 'Issuing authority',
+  })
   @IsString()
   @IsNotEmpty()
   @Length(1, 150)
@@ -268,7 +300,10 @@ export class CreateCertificationDto {
   @IsNotEmpty()
   validFrom: string;
 
-  @ApiPropertyOptional({ example: '2025-12-31', description: 'Valid until date' })
+  @ApiPropertyOptional({
+    example: '2025-12-31',
+    description: 'Valid until date',
+  })
   @IsDateString()
   @IsOptional()
   validUntil?: string;
@@ -284,7 +319,10 @@ export class CreateCertificationDto {
   @Min(1)
   renewalPeriodDays?: number;
 
-  @ApiPropertyOptional({ example: 1.25, description: 'Price adjustment multiplier' })
+  @ApiPropertyOptional({
+    example: 1.25,
+    description: 'Price adjustment multiplier',
+  })
   @IsNumber()
   @IsOptional()
   @Min(0.1)
@@ -296,12 +334,18 @@ export class CreateCertificationDto {
   @IsOptional()
   isVerified?: boolean;
 
-  @ApiPropertyOptional({ example: 'Third-party audit', description: 'Verification method' })
+  @ApiPropertyOptional({
+    example: 'Third-party audit',
+    description: 'Verification method',
+  })
   @IsString()
   @IsOptional()
   verificationMethod?: string;
 
-  @ApiPropertyOptional({ example: '/logos/green-energy.png', description: 'Logo URL' })
+  @ApiPropertyOptional({
+    example: '/logos/green-energy.png',
+    description: 'Logo URL',
+  })
   @IsString()
   @IsOptional()
   logoUrl?: string;
@@ -320,8 +364,13 @@ export class CreateCertificationDto {
 /**
  * Update certification DTO
  */
-export class UpdateCertificationDto extends PartialType(CreateCertificationDto) {
-  @ApiPropertyOptional({ enum: CertificationStatus, description: 'Certification status' })
+export class UpdateCertificationDto extends PartialType(
+  CreateCertificationDto,
+) {
+  @ApiPropertyOptional({
+    enum: CertificationStatus,
+    description: 'Certification status',
+  })
   @IsEnum(CertificationStatus)
   @IsOptional()
   status?: CertificationStatus;
@@ -331,12 +380,18 @@ export class UpdateCertificationDto extends PartialType(CreateCertificationDto) 
  * Certification filter DTO
  */
 export class CertificationFilterDto {
-  @ApiPropertyOptional({ enum: CertificationType, description: 'Filter by type' })
+  @ApiPropertyOptional({
+    enum: CertificationType,
+    description: 'Filter by type',
+  })
   @IsEnum(CertificationType)
   @IsOptional()
   type?: CertificationType;
 
-  @ApiPropertyOptional({ enum: CertificationStatus, description: 'Filter by status' })
+  @ApiPropertyOptional({
+    enum: CertificationStatus,
+    description: 'Filter by status',
+  })
   @IsEnum(CertificationStatus)
   @IsOptional()
   status?: CertificationStatus;
@@ -346,17 +401,26 @@ export class CertificationFilterDto {
   @IsOptional()
   categoryId?: string;
 
-  @ApiPropertyOptional({ example: true, description: 'Filter by verified status' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by verified status',
+  })
   @IsBoolean()
   @IsOptional()
   isVerified?: boolean;
 
-  @ApiPropertyOptional({ example: 'green', description: 'Search by name or description' })
+  @ApiPropertyOptional({
+    example: 'green',
+    description: 'Search by name or description',
+  })
   @IsString()
   @IsOptional()
   search?: string;
 
-  @ApiPropertyOptional({ example: true, description: 'Filter only valid certifications' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter only valid certifications',
+  })
   @IsBoolean()
   @IsOptional()
   validOnly?: boolean;
@@ -400,7 +464,10 @@ export class CertificationResponseDto {
   @ApiProperty({ description: 'Certification code' })
   certificationCode: string;
 
-  @ApiProperty({ enum: CertificationStatus, description: 'Certification status' })
+  @ApiProperty({
+    enum: CertificationStatus,
+    description: 'Certification status',
+  })
   status: CertificationStatus;
 
   @ApiProperty({ description: 'Valid from' })
@@ -421,10 +488,16 @@ export class CertificationResponseDto {
   @ApiProperty({ example: true, description: 'Is verified' })
   isVerified: boolean;
 
-  @ApiPropertyOptional({ example: 'Third-party audit', description: 'Verification method' })
+  @ApiPropertyOptional({
+    example: 'Third-party audit',
+    description: 'Verification method',
+  })
   verificationMethod: string;
 
-  @ApiPropertyOptional({ example: '/logos/green-energy.png', description: 'Logo URL' })
+  @ApiPropertyOptional({
+    example: '/logos/green-energy.png',
+    description: 'Logo URL',
+  })
   logoUrl: string;
 
   @ApiProperty({ example: ['green', 'renewable'], description: 'Tags' })

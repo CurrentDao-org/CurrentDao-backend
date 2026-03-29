@@ -53,7 +53,9 @@ export class AuditService {
     private readonly matchingRuleRepository: Repository<MatchingRule>,
   ) {}
 
-  async logEntry(entry: Omit<AuditEntry, 'id' | 'timestamp'>): Promise<AuditEntry> {
+  async logEntry(
+    entry: Omit<AuditEntry, 'id' | 'timestamp'>,
+  ): Promise<AuditEntry> {
     const auditEntry: AuditEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date(),
@@ -61,17 +63,23 @@ export class AuditService {
     };
 
     this.auditEntries.push(auditEntry);
-    
+
     if (this.auditEntries.length > 10000) {
       this.auditEntries = this.auditEntries.slice(-5000);
     }
 
-    this.logger.debug(`Audit entry logged: ${auditEntry.action} on ${auditEntry.entityType} ${auditEntry.entityId}`);
+    this.logger.debug(
+      `Audit entry logged: ${auditEntry.action} on ${auditEntry.entityType} ${auditEntry.entityId}`,
+    );
 
     return auditEntry;
   }
 
-  async logMatchCreation(match: Match, userId?: string, reason?: string): Promise<AuditEntry> {
+  async logMatchCreation(
+    match: Match,
+    userId?: string,
+    reason?: string,
+  ): Promise<AuditEntry> {
     return this.logEntry({
       entityType: 'match',
       entityId: match.id,
@@ -87,7 +95,12 @@ export class AuditService {
     });
   }
 
-  async logMatchUpdate(match: Match, previousState: Match, userId?: string, reason?: string): Promise<AuditEntry> {
+  async logMatchUpdate(
+    match: Match,
+    previousState: Match,
+    userId?: string,
+    reason?: string,
+  ): Promise<AuditEntry> {
     return this.logEntry({
       entityType: 'match',
       entityId: match.id,
@@ -102,7 +115,11 @@ export class AuditService {
     });
   }
 
-  async logMatchDeletion(match: Match, userId?: string, reason?: string): Promise<AuditEntry> {
+  async logMatchDeletion(
+    match: Match,
+    userId?: string,
+    reason?: string,
+  ): Promise<AuditEntry> {
     return this.logEntry({
       entityType: 'match',
       entityId: match.id,
@@ -113,7 +130,10 @@ export class AuditService {
     });
   }
 
-  async logRuleCreation(rule: MatchingRule, userId?: string): Promise<AuditEntry> {
+  async logRuleCreation(
+    rule: MatchingRule,
+    userId?: string,
+  ): Promise<AuditEntry> {
     return this.logEntry({
       entityType: 'rule',
       entityId: rule.id,
@@ -127,7 +147,11 @@ export class AuditService {
     });
   }
 
-  async logRuleUpdate(rule: MatchingRule, previousState: MatchingRule, userId?: string): Promise<AuditEntry> {
+  async logRuleUpdate(
+    rule: MatchingRule,
+    previousState: MatchingRule,
+    userId?: string,
+  ): Promise<AuditEntry> {
     return this.logEntry({
       entityType: 'rule',
       entityId: rule.id,
@@ -141,7 +165,11 @@ export class AuditService {
     });
   }
 
-  async logRuleDeletion(rule: MatchingRule, userId?: string, reason?: string): Promise<AuditEntry> {
+  async logRuleDeletion(
+    rule: MatchingRule,
+    userId?: string,
+    reason?: string,
+  ): Promise<AuditEntry> {
     return this.logEntry({
       entityType: 'rule',
       entityId: rule.id,
@@ -156,30 +184,44 @@ export class AuditService {
     let filteredEntries = [...this.auditEntries];
 
     if (filter.entityType) {
-      filteredEntries = filteredEntries.filter(entry => entry.entityType === filter.entityType);
+      filteredEntries = filteredEntries.filter(
+        (entry) => entry.entityType === filter.entityType,
+      );
     }
 
     if (filter.entityId) {
-      filteredEntries = filteredEntries.filter(entry => entry.entityId === filter.entityId);
+      filteredEntries = filteredEntries.filter(
+        (entry) => entry.entityId === filter.entityId,
+      );
     }
 
     if (filter.userId) {
-      filteredEntries = filteredEntries.filter(entry => entry.userId === filter.userId);
+      filteredEntries = filteredEntries.filter(
+        (entry) => entry.userId === filter.userId,
+      );
     }
 
     if (filter.action) {
-      filteredEntries = filteredEntries.filter(entry => entry.action === filter.action);
+      filteredEntries = filteredEntries.filter(
+        (entry) => entry.action === filter.action,
+      );
     }
 
     if (filter.startDate) {
-      filteredEntries = filteredEntries.filter(entry => entry.timestamp >= filter.startDate);
+      filteredEntries = filteredEntries.filter(
+        (entry) => entry.timestamp >= filter.startDate,
+      );
     }
 
     if (filter.endDate) {
-      filteredEntries = filteredEntries.filter(entry => entry.timestamp <= filter.endDate);
+      filteredEntries = filteredEntries.filter(
+        (entry) => entry.timestamp <= filter.endDate,
+      );
     }
 
-    filteredEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    filteredEntries.sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+    );
 
     const offset = filter.offset || 0;
     const limit = filter.limit || 100;
@@ -198,25 +240,32 @@ export class AuditService {
     return this.getAuditHistory({
       entityType: 'match',
       entityId: matchId,
-    }).then(report => report.entries);
+    }).then((report) => report.entries);
   }
 
   async getRuleAuditHistory(ruleId: string): Promise<AuditEntry[]> {
     return this.getAuditHistory({
       entityType: 'rule',
       entityId: ruleId,
-    }).then(report => report.entries);
+    }).then((report) => report.entries);
   }
 
-  async getUserActivity(userId: string, startDate?: Date, endDate?: Date): Promise<AuditEntry[]> {
+  async getUserActivity(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<AuditEntry[]> {
     return this.getAuditHistory({
       userId,
       startDate,
       endDate,
-    }).then(report => report.entries);
+    }).then((report) => report.entries);
   }
 
-  async generateAuditReport(startDate: Date, endDate: Date): Promise<AuditReport> {
+  async generateAuditReport(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<AuditReport> {
     return this.getAuditHistory({
       startDate,
       endDate,
@@ -224,7 +273,10 @@ export class AuditService {
     });
   }
 
-  async exportAuditData(filter: AuditFilter, format: 'json' | 'csv' = 'json'): Promise<string> {
+  async exportAuditData(
+    filter: AuditFilter,
+    format: 'json' | 'csv' = 'json',
+  ): Promise<string> {
     const report = await this.getAuditHistory({ ...filter, limit: 10000 });
 
     if (format === 'json') {
@@ -267,7 +319,10 @@ export class AuditService {
     };
   }
 
-  private detectChanges<T>(previous: T, current: T): Record<string, { from: any; to: any }> {
+  private detectChanges<T>(
+    previous: T,
+    current: T,
+  ): Record<string, { from: any; to: any }> {
     const changes: Record<string, { from: any; to: any }> = {};
 
     for (const key in current) {
@@ -292,10 +347,12 @@ export class AuditService {
 
     for (const entry of entries) {
       actionsByType[entry.action] = (actionsByType[entry.action] || 0) + 1;
-      entitiesByType[entry.entityType] = (entitiesByType[entry.entityType] || 0) + 1;
-      
+      entitiesByType[entry.entityType] =
+        (entitiesByType[entry.entityType] || 0) + 1;
+
       if (entry.userId) {
-        usersByActivity[entry.userId] = (usersByActivity[entry.userId] || 0) + 1;
+        usersByActivity[entry.userId] =
+          (usersByActivity[entry.userId] || 0) + 1;
       }
 
       if (entry.timestamp < earliestDate) {
@@ -331,7 +388,7 @@ export class AuditService {
       'Metadata',
     ];
 
-    const rows = entries.map(entry => [
+    const rows = entries.map((entry) => [
       entry.id,
       entry.entityType,
       entry.entityId,
@@ -344,7 +401,7 @@ export class AuditService {
     ]);
 
     const csvContent = [headers, ...rows]
-      .map(row => row.map(field => `"${field}"`).join(','))
+      .map((row) => row.map((field) => `"${field}"`).join(','))
       .join('\n');
 
     return csvContent;
@@ -355,10 +412,14 @@ export class AuditService {
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
     const initialCount = this.auditEntries.length;
-    this.auditEntries = this.auditEntries.filter(entry => entry.timestamp >= cutoffDate);
+    this.auditEntries = this.auditEntries.filter(
+      (entry) => entry.timestamp >= cutoffDate,
+    );
     const deletedCount = initialCount - this.auditEntries.length;
 
-    this.logger.log(`Cleaned up ${deletedCount} old audit entries (older than ${retentionDays} days)`);
+    this.logger.log(
+      `Cleaned up ${deletedCount} old audit entries (older than ${retentionDays} days)`,
+    );
 
     return deletedCount;
   }
@@ -376,9 +437,10 @@ export class AuditService {
     const entriesByUser: Record<string, number> = {};
 
     for (const entry of this.auditEntries) {
-      entriesByType[entry.entityType] = (entriesByType[entry.entityType] || 0) + 1;
+      entriesByType[entry.entityType] =
+        (entriesByType[entry.entityType] || 0) + 1;
       entriesByAction[entry.action] = (entriesByAction[entry.action] || 0) + 1;
-      
+
       if (entry.userId) {
         entriesByUser[entry.userId] = (entriesByUser[entry.userId] || 0) + 1;
       }

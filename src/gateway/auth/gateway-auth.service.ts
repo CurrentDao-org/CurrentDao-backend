@@ -11,14 +11,14 @@ export class GatewayAuthService {
    */
   async validateRequest(token: string): Promise<boolean> {
     this.logger.debug(`Validating request token: ${token}`);
-    
+
     // Placeholder for actual validation logic (e.g. JWT check or API key look up)
     if (!token) {
       throw new UnauthorizedException('Missing authentication token');
     }
-    
+
     // In production, this would involve database lookup or external service call
-    return true; 
+    return true;
   }
 
   /**

@@ -20,26 +20,30 @@ export class DistanceAlgorithm {
   static calculateDistance(
     point1: Coordinates,
     point2: Coordinates,
-    unit: 'km' | 'miles' = 'km'
+    unit: 'km' | 'miles' = 'km',
   ): DistanceResult {
     const lat1Rad = this.toRadians(point1.latitude);
     const lat2Rad = this.toRadians(point2.latitude);
     const deltaLatRad = this.toRadians(point2.latitude - point1.latitude);
     const deltaLonRad = this.toRadians(point2.longitude - point1.longitude);
 
-    const a = Math.sin(deltaLatRad / 2) * Math.sin(deltaLatRad / 2) +
-              Math.cos(lat1Rad) * Math.cos(lat2Rad) *
-              Math.sin(deltaLonRad / 2) * Math.sin(deltaLonRad / 2);
+    const a =
+      Math.sin(deltaLatRad / 2) * Math.sin(deltaLatRad / 2) +
+      Math.cos(lat1Rad) *
+        Math.cos(lat2Rad) *
+        Math.sin(deltaLonRad / 2) *
+        Math.sin(deltaLonRad / 2);
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    const radius = unit === 'km' ? this.EARTH_RADIUS_KM : this.EARTH_RADIUS_MILES;
+    const radius =
+      unit === 'km' ? this.EARTH_RADIUS_KM : this.EARTH_RADIUS_MILES;
     const distance = radius * c;
 
     return {
       distance: Math.round(distance * 100) / 100, // Round to 2 decimal places
       unit,
-      bearing: this.calculateBearing(point1, point2)
+      bearing: this.calculateBearing(point1, point2),
     };
   }
 
@@ -52,8 +56,9 @@ export class DistanceAlgorithm {
     const deltaLonRad = this.toRadians(point2.longitude - point1.longitude);
 
     const y = Math.sin(deltaLonRad) * Math.cos(lat2Rad);
-    const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
-              Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLonRad);
+    const x =
+      Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+      Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLonRad);
 
     const bearing = Math.atan2(y, x);
     return (this.toDegrees(bearing) + 360) % 360;
@@ -65,10 +70,14 @@ export class DistanceAlgorithm {
   static findPointsWithinRadius<T extends Coordinates>(
     centerPoint: Coordinates,
     points: T[],
-    radiusKm: number
+    radiusKm: number,
   ): T[] {
-    return points.filter(point => {
-      const distance = this.calculateDistance(centerPoint, point, 'km').distance;
+    return points.filter((point) => {
+      const distance = this.calculateDistance(
+        centerPoint,
+        point,
+        'km',
+      ).distance;
       return distance <= radiusKm;
     });
   }
@@ -79,22 +88,23 @@ export class DistanceAlgorithm {
    */
   static getBoundingBox(
     centerPoint: Coordinates,
-    radiusKm: number
+    radiusKm: number,
   ): {
     minLat: number;
     maxLat: number;
     minLon: number;
     maxLon: number;
   } {
-    const deltaLat = radiusKm / this.EARTH_RADIUS_KM * (180 / Math.PI);
-    const deltaLon = Math.asin(radiusKm / this.EARTH_RADIUS_KM) * (180 / Math.PI) / 
-                     Math.cos(this.toRadians(centerPoint.latitude));
+    const deltaLat = (radiusKm / this.EARTH_RADIUS_KM) * (180 / Math.PI);
+    const deltaLon =
+      (Math.asin(radiusKm / this.EARTH_RADIUS_KM) * (180 / Math.PI)) /
+      Math.cos(this.toRadians(centerPoint.latitude));
 
     return {
       minLat: centerPoint.latitude - deltaLat,
       maxLat: centerPoint.latitude + deltaLat,
       minLon: centerPoint.longitude - deltaLon,
-      maxLon: centerPoint.longitude + deltaLon
+      maxLon: centerPoint.longitude + deltaLon,
     };
   }
 
@@ -107,12 +117,14 @@ export class DistanceAlgorithm {
     const y = point.latitude;
 
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const xi = polygon[i][0], yi = polygon[i][1];
-      const xj = polygon[j][0], yj = polygon[j][1];
+      const xi = polygon[i][0],
+        yi = polygon[i][1];
+      const xj = polygon[j][0],
+        yj = polygon[j][1];
 
-      const intersect = ((yi > y) !== (yj > y)) &&
-                       (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-      
+      const intersect =
+        yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+
       if (intersect) inside = !inside;
     }
 

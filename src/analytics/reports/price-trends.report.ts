@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AnalyticsData, AnalyticsType, AggregationPeriod } from '../entities/analytics-data.entity';
+import {
+  AnalyticsData,
+  AnalyticsType,
+  AggregationPeriod,
+} from '../entities/analytics-data.entity';
 import { ReportParamsDto } from '../dto/report-params.dto';
 
 export interface PriceDataPoint {
@@ -54,18 +58,24 @@ export class PriceTrendsReport {
   ) {}
 
   async generateReport(params: ReportParamsDto): Promise<PriceTrendsReport> {
-    const startDate = params.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+    const startDate =
+      params.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
     const endDate = params.endDate || new Date();
     const period = params.period || AggregationPeriod.DAILY;
 
     // Fetch price trend data
-    const priceData = await this.fetchPriceData(startDate, endDate, period, params);
+    const priceData = await this.fetchPriceData(
+      startDate,
+      endDate,
+      period,
+      params,
+    );
 
     // Calculate summary statistics
     const summary = this.calculateSummary(priceData);
 
     // Generate technical indicators if requested
-    const technicalIndicators = params.includeTechnicalIndicators 
+    const technicalIndicators = params.includeTechnicalIndicators
       ? this.generateTechnicalIndicators(priceData)
       : undefined;
 
@@ -78,12 +88,12 @@ export class PriceTrendsReport {
       period: {
         start: startDate,
         end: endDate,
-        aggregation: period
+        aggregation: period,
       },
       summary,
       data: priceData,
       technicalIndicators,
-      comparativeAnalysis
+      comparativeAnalysis,
     };
   }
 
@@ -91,7 +101,7 @@ export class PriceTrendsReport {
     startDate: Date,
     endDate: Date,
     period: AggregationPeriod,
-    params: ReportParamsDto
+    params: ReportParamsDto,
   ): Promise<PriceDataPoint[]> {
     const queryBuilder = this.analyticsRepository
       .createQueryBuilder('analytics')
@@ -99,26 +109,32 @@ export class PriceTrendsReport {
       .andWhere('analytics.period = :period', { period })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       });
 
     if (params.userId) {
-      queryBuilder.andWhere('analytics.userId = :userId', { userId: params.userId });
+      queryBuilder.andWhere('analytics.userId = :userId', {
+        userId: params.userId,
+      });
     }
 
     if (params.gridZoneId) {
-      queryBuilder.andWhere('analytics.gridZoneId = :gridZoneId', { gridZoneId: params.gridZoneId });
+      queryBuilder.andWhere('analytics.gridZoneId = :gridZoneId', {
+        gridZoneId: params.gridZoneId,
+      });
     }
 
     if (params.country) {
-      queryBuilder.andWhere('analytics.country = :country', { country: params.country });
+      queryBuilder.andWhere('analytics.country = :country', {
+        country: params.country,
+      });
     }
 
     queryBuilder.orderBy('analytics.timestamp', 'ASC');
 
     const analyticsData = await queryBuilder.getMany();
 
-    return analyticsData.map(data => {
+    return analyticsData.map((data) => {
       const priceData = data.data as any;
       return {
         timestamp: data.timestamp,
@@ -127,7 +143,7 @@ export class PriceTrendsReport {
         high: parseFloat(priceData.high || '0'),
         low: parseFloat(priceData.low || '0'),
         open: parseFloat(priceData.open || '0'),
-        close: parseFloat(priceData.close || '0')
+        close: parseFloat(priceData.close || '0'),
       };
     });
   }
@@ -142,17 +158,19 @@ export class PriceTrendsReport {
         averagePrice: 0,
         highestPrice: 0,
         lowestPrice: 0,
-        trend: 'SIDEWAYS' as const
+        trend: 'SIDEWAYS' as const,
       };
     }
 
     const currentPrice = data[data.length - 1].close;
     const firstPrice = data[0].open;
     const priceChange = currentPrice - firstPrice;
-    const priceChangePercent = firstPrice > 0 ? (priceChange / firstPrice) * 100 : 0;
+    const priceChangePercent =
+      firstPrice > 0 ? (priceChange / firstPrice) * 100 : 0;
 
-    const prices = data.map(d => d.close);
-    const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+    const prices = data.map((d) => d.close);
+    const averagePrice =
+      prices.reduce((sum, price) => sum + price, 0) / prices.length;
     const highestPrice = Math.max(...prices);
     const lowestPrice = Math.min(...prices);
 
@@ -163,7 +181,8 @@ export class PriceTrendsReport {
         returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
       }
     }
-    const volatility = returns.length > 0 ? this.calculateStandardDeviation(returns) * 100 : 0;
+    const volatility =
+      returns.length > 0 ? this.calculateStandardDeviation(returns) * 100 : 0;
 
     // Determine trend
     let trend: 'BULLISH' | 'BEARISH' | 'SIDEWAYS' = 'SIDEWAYS';
@@ -178,20 +197,22 @@ export class PriceTrendsReport {
       averagePrice,
       highestPrice,
       lowestPrice,
-      trend
+      trend,
     };
   }
 
-  private generateTechnicalIndicators(data: PriceDataPoint[]): TechnicalIndicator[] {
+  private generateTechnicalIndicators(
+    data: PriceDataPoint[],
+  ): TechnicalIndicator[] {
     const indicators: TechnicalIndicator[] = [];
-    const prices = data.map(d => d.close);
+    const prices = data.map((d) => d.close);
 
     // Simple Moving Average (SMA) - 20 period
     const sma20 = this.calculateSMA(prices, 20);
     indicators.push({
       name: 'SMA_20',
       values: sma20,
-      signals: this.generateSMASignals(prices, sma20)
+      signals: this.generateSMASignals(prices, sma20),
     });
 
     // Exponential Moving Average (EMA) - 50 period
@@ -199,7 +220,7 @@ export class PriceTrendsReport {
     indicators.push({
       name: 'EMA_50',
       values: ema50,
-      signals: this.generateEMASignals(prices, ema50)
+      signals: this.generateEMASignals(prices, ema50),
     });
 
     // Relative Strength Index (RSI) - 14 period
@@ -207,7 +228,7 @@ export class PriceTrendsReport {
     indicators.push({
       name: 'RSI_14',
       values: rsi,
-      signals: this.generateRSISignals(rsi)
+      signals: this.generateRSISignals(rsi),
     });
 
     // MACD
@@ -215,7 +236,7 @@ export class PriceTrendsReport {
     indicators.push({
       name: 'MACD',
       values: macd.macdLine,
-      signals: this.generateMACDSignals(macd)
+      signals: this.generateMACDSignals(macd),
     });
 
     return indicators;
@@ -224,7 +245,9 @@ export class PriceTrendsReport {
   private calculateSMA(prices: number[], period: number): number[] {
     const sma: number[] = [];
     for (let i = period - 1; i < prices.length; i++) {
-      const sum = prices.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
+      const sum = prices
+        .slice(i - period + 1, i + 1)
+        .reduce((a, b) => a + b, 0);
       sma.push(sum / period);
     }
     return sma;
@@ -233,13 +256,14 @@ export class PriceTrendsReport {
   private calculateEMA(prices: number[], period: number): number[] {
     const ema: number[] = [];
     const multiplier = 2 / (period + 1);
-    
+
     // Start with SMA
     const sma = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
     ema.push(sma);
 
     for (let i = period; i < prices.length; i++) {
-      const currentEMA = (prices[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1];
+      const currentEMA =
+        (prices[i] - ema[ema.length - 1]) * multiplier + ema[ema.length - 1];
       ema.push(currentEMA);
     }
 
@@ -258,33 +282,47 @@ export class PriceTrendsReport {
     }
 
     for (let i = period - 1; i < gains.length; i++) {
-      const avgGain = gains.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
-      const avgLoss = losses.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
-      
+      const avgGain =
+        gains.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
+      const avgLoss =
+        losses.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
+
       const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
-      rsi.push(100 - (100 / (1 + rs)));
+      rsi.push(100 - 100 / (1 + rs));
     }
 
     return rsi;
   }
 
-  private calculateMACD(prices: number[]): { macdLine: number[]; signalLine: number[]; histogram: number[] } {
+  private calculateMACD(prices: number[]): {
+    macdLine: number[];
+    signalLine: number[];
+    histogram: number[];
+  } {
     const ema12 = this.calculateEMA(prices, 12);
     const ema26 = this.calculateEMA(prices, 26);
-    
+
     // MACD line = EMA12 - EMA26
-    const macdLine = ema12.map((val, i) => val - ema26[i + (ema12.length - ema26.length)]);
-    
+    const macdLine = ema12.map(
+      (val, i) => val - ema26[i + (ema12.length - ema26.length)],
+    );
+
     // Signal line = 9-period EMA of MACD line
     const signalLine = this.calculateEMA(macdLine, 9);
-    
+
     // Histogram = MACD line - Signal line
-    const histogram = macdLine.map((val, i) => val - (signalLine[i - (signalLine.length - macdLine.length)] || 0));
+    const histogram = macdLine.map(
+      (val, i) =>
+        val - (signalLine[i - (signalLine.length - macdLine.length)] || 0),
+    );
 
     return { macdLine, signalLine, histogram };
   }
 
-  private generateSMASignals(prices: number[], sma: number[]): ('BUY' | 'SELL' | 'HOLD')[] {
+  private generateSMASignals(
+    prices: number[],
+    sma: number[],
+  ): ('BUY' | 'SELL' | 'HOLD')[] {
     const signals: ('BUY' | 'SELL' | 'HOLD')[] = [];
     for (let i = 0; i < sma.length; i++) {
       const priceIndex = i + (prices.length - sma.length);
@@ -299,22 +337,29 @@ export class PriceTrendsReport {
     return signals;
   }
 
-  private generateEMASignals(prices: number[], ema: number[]): ('BUY' | 'SELL' | 'HOLD')[] {
+  private generateEMASignals(
+    prices: number[],
+    ema: number[],
+  ): ('BUY' | 'SELL' | 'HOLD')[] {
     return this.generateSMASignals(prices, ema);
   }
 
   private generateRSISignals(rsi: number[]): ('BUY' | 'SELL' | 'HOLD')[] {
-    return rsi.map(value => {
+    return rsi.map((value) => {
       if (value < 30) return 'BUY';
       if (value > 70) return 'SELL';
       return 'HOLD';
     });
   }
 
-  private generateMACDSignals(macd: { macdLine: number[]; signalLine: number[]; histogram: number[] }): ('BUY' | 'SELL' | 'HOLD')[] {
+  private generateMACDSignals(macd: {
+    macdLine: number[];
+    signalLine: number[];
+    histogram: number[];
+  }): ('BUY' | 'SELL' | 'HOLD')[] {
     const signals: ('BUY' | 'SELL' | 'HOLD')[] = [];
     const minLength = Math.min(macd.macdLine.length, macd.signalLine.length);
-    
+
     for (let i = 0; i < minLength; i++) {
       if (macd.macdLine[i] > macd.signalLine[i]) {
         signals.push('BUY');
@@ -324,7 +369,7 @@ export class PriceTrendsReport {
         signals.push('HOLD');
       }
     }
-    
+
     return signals;
   }
 
@@ -332,7 +377,7 @@ export class PriceTrendsReport {
     startDate: Date,
     endDate: Date,
     period: AggregationPeriod,
-    params: ReportParamsDto
+    params: ReportParamsDto,
   ) {
     const queryBuilder = this.analyticsRepository
       .createQueryBuilder('analytics')
@@ -342,29 +387,32 @@ export class PriceTrendsReport {
       .andWhere('analytics.period = :period', { period })
       .andWhere('analytics.timestamp BETWEEN :startDate AND :endDate', {
         startDate,
-        endDate
+        endDate,
       })
       .andWhere('analytics.country IS NOT NULL')
       .groupBy('analytics.country');
 
     if (params.userId) {
-      queryBuilder.andWhere('analytics.userId = :userId', { userId: params.userId });
+      queryBuilder.andWhere('analytics.userId = :userId', {
+        userId: params.userId,
+      });
     }
 
     const results = await queryBuilder.getRawMany();
 
-    return results.map(result => ({
+    return results.map((result) => ({
       region: result.region,
       averagePrice: parseFloat(result.averagePrice || '0'),
       priceChange: 0, // Would need historical data for this
-      volatility: 0   // Would need historical data for this
+      volatility: 0, // Would need historical data for this
     }));
   }
 
   private calculateStandardDeviation(values: number[]): number {
     const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-    const squaredDifferences = values.map(value => Math.pow(value - mean, 2));
-    const variance = squaredDifferences.reduce((sum, diff) => sum + diff, 0) / values.length;
+    const squaredDifferences = values.map((value) => Math.pow(value - mean, 2));
+    const variance =
+      squaredDifferences.reduce((sum, diff) => sum + diff, 0) / values.length;
     return Math.sqrt(variance);
   }
 }

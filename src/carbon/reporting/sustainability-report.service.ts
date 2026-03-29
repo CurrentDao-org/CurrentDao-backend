@@ -26,7 +26,7 @@ export class SustainabilityReportService {
     return {
       year,
       totalEmissions: 5200.8,
-      reductionTarget: 0.20,
+      reductionTarget: 0.2,
       actualReduction: 0.22,
       targetAchieved: true,
     };

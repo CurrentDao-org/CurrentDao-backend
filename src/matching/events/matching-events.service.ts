@@ -1,5 +1,11 @@
 import { Injectable, Logger, EventEmitter, OnModuleInit } from '@nestjs/common';
-import { WebSocketGateway, WebSocketServer, SubscribeMessage, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Match, MatchStatus } from '../entities/match.entity';
 import { MatchingService, MatchingEvent } from '../matching.service';
@@ -12,7 +18,12 @@ export interface MatchingEventData {
 }
 
 export interface NotificationPayload {
-  type: 'match_created' | 'match_confirmed' | 'match_rejected' | 'match_expired' | 'conflict_resolved';
+  type:
+    | 'match_created'
+    | 'match_confirmed'
+    | 'match_rejected'
+    | 'match_expired'
+    | 'conflict_resolved';
   title: string;
   message: string;
   data: any;
@@ -32,7 +43,9 @@ export interface NotificationPayload {
   namespace: '/matching',
 })
 @Injectable()
-export class MatchingEventsService implements OnModuleInit, OnGatewayConnection, OnGatewayDisconnect {
+export class MatchingEventsService
+  implements OnModuleInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -55,9 +68,12 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
     this.logger.log(`Client connected: ${client.id}`);
     this.connectedClients.set(client.id, client);
 
-    client.on('authenticate', async (data: { userId: string; token?: string }) => {
-      await this.authenticateClient(client, data.userId);
-    });
+    client.on(
+      'authenticate',
+      async (data: { userId: string; token?: string }) => {
+        await this.authenticateClient(client, data.userId);
+      },
+    );
 
     client.on('subscribe', async (data: { channels: string[] }) => {
       await this.subscribeToChannels(client, data.channels);
@@ -77,7 +93,7 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
   handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
     this.connectedClients.delete(client.id);
-    
+
     for (const [userId, subscriptions] of this.userSubscriptions) {
       if (subscriptions.has(client.id)) {
         subscriptions.delete(client.id);
@@ -89,9 +105,9 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
   async handleSubscribeToOrder(client: Socket, orderId: string) {
     const room = `order_${orderId}`;
     await client.join(room);
-    
+
     this.logger.debug(`Client ${client.id} subscribed to order ${orderId}`);
-    
+
     client.emit('subscribed', { type: 'order', id: orderId });
   }
 
@@ -99,14 +115,14 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
   async handleSubscribeToUser(client: Socket, userId: string) {
     const room = `user_${userId}`;
     await client.join(room);
-    
+
     if (!this.userSubscriptions.has(userId)) {
       this.userSubscriptions.set(userId, new Set());
     }
-    this.userSubscriptions.get(userId)!.add(client.id);
-    
+    this.userSubscriptions.get(userId).add(client.id);
+
     this.logger.debug(`Client ${client.id} subscribed to user ${userId}`);
-    
+
     client.emit('subscribed', { type: 'user', id: userId });
   }
 
@@ -114,9 +130,9 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
   async handleSubscribeToMatches(client: Socket) {
     const room = 'matches';
     await client.join(room);
-    
+
     this.logger.debug(`Client ${client.id} subscribed to all matches`);
-    
+
     client.emit('subscribed', { type: 'matches' });
   }
 
@@ -124,9 +140,9 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
   async handleUnsubscribeFromOrder(client: Socket, orderId: string) {
     const room = `order_${orderId}`;
     await client.leave(room);
-    
+
     this.logger.debug(`Client ${client.id} unsubscribed from order ${orderId}`);
-    
+
     client.emit('unsubscribed', { type: 'order', id: orderId });
   }
 
@@ -135,9 +151,12 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
       await this.handleMatchingEvent(event);
     });
 
-    this.eventEmitter.on('notification', async (notification: NotificationPayload) => {
-      await this.sendNotification(notification);
-    });
+    this.eventEmitter.on(
+      'notification',
+      async (notification: NotificationPayload) => {
+        await this.sendNotification(notification);
+      },
+    );
   }
 
   async handleMatchingEvent(event: MatchingEvent) {
@@ -227,20 +246,26 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
 
   async sendNotification(notification: NotificationPayload) {
     const channels = this.determineNotificationChannels(notification);
-    
+
     for (const channel of channels) {
       this.server.to(channel).emit('notification', notification);
     }
 
     if (notification.userId) {
-      this.server.to(`user_${notification.userId}`).emit('notification', notification);
+      this.server
+        .to(`user_${notification.userId}`)
+        .emit('notification', notification);
     }
 
     if (notification.orderId) {
-      this.server.to(`order_${notification.orderId}`).emit('notification', notification);
+      this.server
+        .to(`order_${notification.orderId}`)
+        .emit('notification', notification);
     }
 
-    this.logger.debug(`Notification sent: ${notification.type} to channels: ${channels.join(', ')}`);
+    this.logger.debug(
+      `Notification sent: ${notification.type} to channels: ${channels.join(', ')}`,
+    );
   }
 
   async broadcastEvent(event: MatchingEvent) {
@@ -248,23 +273,32 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
     this.server.to('matches').emit('matching_event', event);
 
     if (event.data.buyerOrderId) {
-      this.server.to(`order_${event.data.buyerOrderId}`).emit('matching_event', event);
+      this.server
+        .to(`order_${event.data.buyerOrderId}`)
+        .emit('matching_event', event);
     }
 
     if (event.data.sellerOrderId) {
-      this.server.to(`order_${event.data.sellerOrderId}`).emit('matching_event', event);
+      this.server
+        .to(`order_${event.data.sellerOrderId}`)
+        .emit('matching_event', event);
     }
 
     this.logger.debug(`Event broadcasted: ${event.type}`);
   }
 
-  private determineNotificationChannels(notification: NotificationPayload): string[] {
+  private determineNotificationChannels(
+    notification: NotificationPayload,
+  ): string[] {
     const channels: string[] = [];
 
     switch (notification.type) {
       case 'match_created':
         channels.push('matches');
-        if (notification.priority === 'high' || notification.priority === 'urgent') {
+        if (
+          notification.priority === 'high' ||
+          notification.priority === 'urgent'
+        ) {
           channels.push('urgent_matches');
         }
         break;
@@ -290,7 +324,9 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
     return channels;
   }
 
-  async sendCustomNotification(notification: Omit<NotificationPayload, 'timestamp'>) {
+  async sendCustomNotification(
+    notification: Omit<NotificationPayload, 'timestamp'>,
+  ) {
     const fullNotification: NotificationPayload = {
       ...notification,
       timestamp: new Date(),
@@ -317,17 +353,17 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
 
   private async authenticateClient(client: Socket, userId: string) {
     client.data.userId = userId;
-    
+
     const room = `user_${userId}`;
     await client.join(room);
-    
+
     if (!this.userSubscriptions.has(userId)) {
       this.userSubscriptions.set(userId, new Set());
     }
-    this.userSubscriptions.get(userId)!.add(client.id);
-    
+    this.userSubscriptions.get(userId).add(client.id);
+
     this.logger.debug(`Client ${client.id} authenticated as user ${userId}`);
-    
+
     client.emit('authenticated', { userId, timestamp: new Date() });
   }
 
@@ -335,9 +371,11 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
     for (const channel of channels) {
       await client.join(channel);
     }
-    
-    this.logger.debug(`Client ${client.id} subscribed to channels: ${channels.join(', ')}`);
-    
+
+    this.logger.debug(
+      `Client ${client.id} subscribed to channels: ${channels.join(', ')}`,
+    );
+
     client.emit('subscribed', { type: 'channels', channels });
   }
 
@@ -345,9 +383,11 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
     for (const channel of channels) {
       await client.leave(channel);
     }
-    
-    this.logger.debug(`Client ${client.id} unsubscribed from channels: ${channels.join(', ')}`);
-    
+
+    this.logger.debug(
+      `Client ${client.id} unsubscribed from channels: ${channels.join(', ')}`,
+    );
+
     client.emit('unsubscribed', { type: 'channels', channels });
   }
 
@@ -375,7 +415,10 @@ export class MatchingEventsService implements OnModuleInit, OnGatewayConnection,
     return Array.from(channels);
   }
 
-  async sendSystemMessage(message: string, priority: 'info' | 'warning' | 'error' = 'info') {
+  async sendSystemMessage(
+    message: string,
+    priority: 'info' | 'warning' | 'error' = 'info',
+  ) {
     const systemMessage = {
       type: 'system_message',
       message,

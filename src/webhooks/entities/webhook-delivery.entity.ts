@@ -1,11 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Webhook } from './webhook.entity';
 
 export enum DeliveryStatus {
   PENDING = 'pending',
   SUCCESS = 'success',
   FAILED = 'failed',
-  RETRYING = 'retrying'
+  RETRYING = 'retrying',
 }
 
 @Entity('webhook_deliveries')
@@ -13,7 +20,7 @@ export class WebhookDelivery {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Webhook, webhook => webhook.deliveries)
+  @ManyToOne(() => Webhook, (webhook) => webhook.deliveries)
   @JoinColumn({ name: 'webhook_id' })
   webhook: Webhook;
 
@@ -29,7 +36,7 @@ export class WebhookDelivery {
   @Column({
     type: 'enum',
     enum: DeliveryStatus,
-    default: DeliveryStatus.PENDING
+    default: DeliveryStatus.PENDING,
   })
   status: DeliveryStatus;
 

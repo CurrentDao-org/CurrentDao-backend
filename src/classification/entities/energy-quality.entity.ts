@@ -1,6 +1,6 @@
 /**
  * Energy Quality Entity
- * 
+ *
  * Defines quality ratings for different energy sources.
  */
 
@@ -65,11 +65,9 @@ export class EnergyQuality {
   @Column({ name: 'category_id' })
   categoryId: string;
 
-  @ManyToOne(
-    () => EnergyCategory,
-    (category) => category.qualities,
-    { onDelete: 'CASCADE' },
-  )
+  @ManyToOne(() => EnergyCategory, (category) => category.qualities, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'category_id' })
   category: EnergyCategory;
 
@@ -82,7 +80,13 @@ export class EnergyQuality {
   @Column({ name: 'efficiency_max', type: 'decimal', precision: 5, scale: 2 })
   efficiencyMax: number;
 
-  @Column({ name: 'min_purity', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({
+    name: 'min_purity',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
   minPurity: number;
 
   @Column({ name: 'is_verified', default: false })
@@ -176,8 +180,10 @@ export const DEFAULT_QUALITY_RATINGS = [
 /**
  * Helper function to get quality by rating
  */
-export const getQualityByRating = (rating: QualityRating): typeof DEFAULT_QUALITY_RATINGS[0] | undefined => {
-  return DEFAULT_QUALITY_RATINGS.find(q => q.rating === rating);
+export const getQualityByRating = (
+  rating: QualityRating,
+): (typeof DEFAULT_QUALITY_RATINGS)[0] | undefined => {
+  return DEFAULT_QUALITY_RATINGS.find((q) => q.rating === rating);
 };
 
 /**
@@ -189,7 +195,7 @@ export const calculateAdjustedPrice = (
 ): number => {
   const quality = getQualityByRating(qualityRating);
   if (!quality) return basePrice;
-  
+
   return basePrice * Number(quality.priceMultiplier);
 };
 
@@ -203,7 +209,7 @@ export const meetsQualityRequirements = (
 ): boolean => {
   const quality = getQualityByRating(rating);
   if (!quality) return false;
-  
+
   return (
     efficiency >= quality.efficiencyMin &&
     (quality.minPurity === null || purity >= quality.minPurity)

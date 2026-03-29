@@ -1,5 +1,18 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { SecurityMonitorService } from './monitoring/security-monitor.service';
 import { IncidentResponseService } from './response/incident-response.service';
 import { SecurityEvent } from './entities/security-event.entity';
@@ -15,13 +28,18 @@ export class SecurityController {
   @Get('events')
   @ApiOperation({ summary: 'Get recent security events' })
   @ApiResponse({ status: 200, description: 'Returns recent security events' })
-  async getRecentEvents(@Query('limit') limit: number = 50): Promise<SecurityEvent[]> {
+  async getRecentEvents(
+    @Query('limit') limit: number = 50,
+  ): Promise<SecurityEvent[]> {
     return this.securityMonitor.getRecentEvents(limit);
   }
 
   @Get('events/unresolved')
   @ApiOperation({ summary: 'Get unresolved security events' })
-  @ApiResponse({ status: 200, description: 'Returns unresolved security events' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns unresolved security events',
+  })
   async getUnresolvedEvents(): Promise<SecurityEvent[]> {
     return this.securityMonitor.getUnresolvedEvents();
   }
@@ -66,7 +84,9 @@ export class SecurityController {
   @Post('incidents/create-from-event')
   @ApiOperation({ summary: 'Create incident from security event' })
   @ApiResponse({ status: 200, description: 'Incident created successfully' })
-  async createIncidentFromEvent(@Body('eventId') eventId: string): Promise<any> {
+  async createIncidentFromEvent(
+    @Body('eventId') eventId: string,
+  ): Promise<any> {
     // In production, fetch the actual event
     const event = new SecurityEvent();
     event.id = eventId;
@@ -75,7 +95,10 @@ export class SecurityController {
 
   @Post('monitor/transaction')
   @ApiOperation({ summary: 'Monitor a transaction for suspicious activity' })
-  @ApiResponse({ status: 200, description: 'Transaction monitored successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Transaction monitored successfully',
+  })
   async monitorTransaction(@Body() transactionData: any): Promise<void> {
     await this.securityMonitor.monitorTransaction(transactionData);
   }

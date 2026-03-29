@@ -346,11 +346,11 @@ export class CurrencyService {
     const usdToKey = `USD-${toCurrency}`;
 
     if (this.exchangeRates.has(directKey)) {
-      return this.exchangeRates.get(directKey)!.rate;
+      return this.exchangeRates.get(directKey).rate;
     }
 
     if (this.exchangeRates.has(reverseKey)) {
-      const reverseRate = this.exchangeRates.get(reverseKey)!.rate;
+      const reverseRate = this.exchangeRates.get(reverseKey).rate;
       return 1 / reverseRate;
     }
 
@@ -358,8 +358,8 @@ export class CurrencyService {
       this.exchangeRates.has(usdFromKey) &&
       this.exchangeRates.has(usdToKey)
     ) {
-      const fromRate = this.exchangeRates.get(usdFromKey)!.rate;
-      const toRate = this.exchangeRates.get(usdToKey)!.rate;
+      const fromRate = this.exchangeRates.get(usdFromKey).rate;
+      const toRate = this.exchangeRates.get(usdToKey).rate;
       return toRate / fromRate;
     }
 
@@ -399,7 +399,7 @@ export class CurrencyService {
     const key = `${fromCurrency}-${toCurrency}`;
 
     if (this.exchangeRates.has(key)) {
-      rates.push(this.exchangeRates.get(key)!);
+      rates.push(this.exchangeRates.get(key));
     }
 
     return rates;
@@ -430,7 +430,7 @@ export class CurrencyService {
   validateCurrencyCode(code: string): boolean {
     return (
       this.supportedCurrencies.has(code) &&
-      this.supportedCurrencies.get(code)!.isActive
+      this.supportedCurrencies.get(code).isActive
     );
   }
 

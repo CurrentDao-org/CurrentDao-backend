@@ -507,7 +507,7 @@ export class EnsembleMethodsService {
       // Use provided weights
       const weights: Record<string, number> = {};
       forecasts.forEach((forecast, i) => {
-        weights[forecast.model] = config.weights![i];
+        weights[forecast.model] = config.weights[i];
       });
       return weights;
     }

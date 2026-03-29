@@ -1,6 +1,6 @@
 /**
  * HTTP Exception Filter
- * 
+ *
  * Standardizes error responses across the application.
  * Transforms all exceptions to {error, code, details} format.
  */
@@ -100,8 +100,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const { status, error, code, details } = this.parseException(exception);
 
     // Get request ID
-    const requestId = request.headers['x-request-id'] as string || 
-      this.generateRequestId();
+    const requestId =
+      (request.headers['x-request-id'] as string) || this.generateRequestId();
 
     // Get API version
     const apiVersion = this.config.apiVersion || DEFAULT_API_VERSION;
@@ -143,7 +143,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     // Handle validation errors (from class-validator)
-    if (Array.isArray(exception) && exception.every(e => e instanceof ValidationError)) {
+    if (
+      Array.isArray(exception) &&
+      exception.every((e) => e instanceof ValidationError)
+    ) {
       return this.parseValidationErrors(exception as ValidationError[]);
     }
 
@@ -152,9 +155,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       error: this.getErrorMessage(ApiResponseCode.INTERNAL_ERROR),
       code: ApiResponseCode.INTERNAL_ERROR,
-      details: this.config.includeStackTrace ? [{
-        message: exception instanceof Error ? exception.message : 'Unknown error',
-      }] : undefined,
+      details: this.config.includeStackTrace
+        ? [
+            {
+              message:
+                exception instanceof Error
+                  ? exception.message
+                  : 'Unknown error',
+            },
+          ]
+        : undefined,
     };
   }
 
@@ -184,7 +194,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (typeof response === 'object') {
       const responseObj = response as Record<string, any>;
-      
+
       // Handle validation errors
       if (Array.isArray(responseObj.message)) {
         return {
@@ -198,7 +208,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       // Handle object response
       return {
         status,
-        error: responseObj.message || responseObj.error || this.getErrorMessage(code),
+        error:
+          responseObj.message ||
+          responseObj.error ||
+          this.getErrorMessage(code),
         code,
         details: responseObj.details,
       };
@@ -221,8 +234,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     details: { field?: string; message: string }[];
   } {
     const details = errors
-      .filter(error => error.constraints)
-      .map(error => ({
+      .filter((error) => error.constraints)
+      .map((error) => ({
         field: error.property,
         message: Object.values(error.constraints || {}).join(', '),
       }));
@@ -300,9 +313,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
    */
   private logError(exception: unknown, request: Request, status: number): void {
     const message = `${request.method} ${request.url} - ${status}`;
-    
+
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(message, exception instanceof Error ? exception.stack : undefined);
+      this.logger.error(
+        message,
+        exception instanceof Error ? exception.stack : undefined,
+      );
     } else if (status >= HttpStatus.BAD_REQUEST) {
       this.logger.warn(message);
     } else {
@@ -314,7 +330,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 /**
  * Helper function to throw standardized HTTP exceptions
  */
-export const throwBadRequest = (message: string, details?: { field?: string; message: string }[]) => {
+export const throwBadRequest = (
+  message: string,
+  details?: { field?: string; message: string }[],
+) => {
   throw new BadRequestException({
     message,
     code: ApiResponseCode.BAD_REQUEST,

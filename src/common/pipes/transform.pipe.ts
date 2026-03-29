@@ -1,6 +1,6 @@
 /**
  * Transform Pipe
- * 
+ *
  * Transform and filter sensitive data from request/response.
  * Used for data sanitization and filtering.
  */
@@ -96,12 +96,12 @@ export class TransformPipe implements PipeTransform {
    */
   private filterSensitiveData(data: any): any {
     if (Array.isArray(data)) {
-      return data.map(item => this.filterSensitiveData(item));
+      return data.map((item) => this.filterSensitiveData(item));
     }
 
     if (typeof data === 'object' && data !== null) {
       const filtered: any = {};
-      
+
       for (const [key, value] of Object.entries(data)) {
         if (this.isSensitiveField(key)) {
           // Apply mask or removal
@@ -109,7 +109,11 @@ export class TransformPipe implements PipeTransform {
             filtered[key] = this.maskValue(value);
           }
           // Skip sensitive fields (don't include them)
-        } else if (this.config.recursive && typeof value === 'object' && value !== null) {
+        } else if (
+          this.config.recursive &&
+          typeof value === 'object' &&
+          value !== null
+        ) {
           filtered[key] = this.filterSensitiveData(value);
         } else {
           filtered[key] = value;
@@ -127,19 +131,17 @@ export class TransformPipe implements PipeTransform {
    */
   private isSensitiveField(key: string): boolean {
     const lowerKey = key.toLowerCase();
-    
+
     // Check if include list is provided
     if (this.config.include && this.config.include.length > 0) {
-      return this.config.include.some(field => 
-        field.toLowerCase() === lowerKey
+      return this.config.include.some(
+        (field) => field.toLowerCase() === lowerKey,
       );
     }
 
     // Check exclude list
     const excludeList = this.config.exclude || DEFAULT_SENSITIVE_FIELDS;
-    return excludeList.some(field => 
-      field.toLowerCase() === lowerKey
-    );
+    return excludeList.some((field) => field.toLowerCase() === lowerKey);
   }
 
   /**
@@ -149,7 +151,11 @@ export class TransformPipe implements PipeTransform {
     const maskChar = this.config.maskChar || '*';
     if (typeof value === 'string' && value.length > 0) {
       // Keep first and last character, mask middle
-      return value[0] + maskChar.repeat(Math.min(value.length - 2, 8)) + value[value.length - 1];
+      return (
+        value[0] +
+        maskChar.repeat(Math.min(value.length - 2, 8)) +
+        value[value.length - 1]
+      );
     }
     return maskChar.repeat(8);
   }
@@ -160,9 +166,14 @@ export class TransformPipe implements PipeTransform {
  */
 export const Sensitive = (fieldName: string) => {
   return (target: any, key: string) => {
-    const sensitiveFields = Reflect.getMetadata('sensitive_fields', target.constructor) || [];
+    const sensitiveFields =
+      Reflect.getMetadata('sensitive_fields', target.constructor) || [];
     sensitiveFields.push(fieldName);
-    Reflect.defineMetadata('sensitive_fields', sensitiveFields, target.constructor);
+    Reflect.defineMetadata(
+      'sensitive_fields',
+      sensitiveFields,
+      target.constructor,
+    );
   };
 };
 
@@ -178,12 +189,12 @@ export const createSensitiveDataFilter = (
     maskInsteadOfRemove,
     recursive: true,
   });
-  
+
   return (data: any) => {
     if (!data || typeof data !== 'object') {
       return data;
     }
-    
+
     return filter.transform(data, { type: 'body' } as ArgumentMetadata);
   };
 };
@@ -220,7 +231,7 @@ export const toFilteredArray = <T extends Record<string, any>>(
     maskInsteadOfRemove?: boolean;
   },
 ): T[] => {
-  return data.map(item => toFilteredResponse(item, options));
+  return data.map((item) => toFilteredResponse(item, options));
 };
 
 /**

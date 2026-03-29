@@ -12,7 +12,7 @@ export class RequestTransformerService {
    */
   transformRequest(body: any, rule: string): any {
     this.logger.debug(`Transforming request body with rule: ${rule}`);
-    
+
     switch (rule) {
       case 'transformEnergyRequest':
         return this.energyRequestTransformation(body);
@@ -29,7 +29,7 @@ export class RequestTransformerService {
    */
   transformResponse(body: any, rule: string): any {
     this.logger.debug(`Transforming response body with rule: ${rule}`);
-    
+
     switch (rule) {
       case 'transformEnergyResponse':
         return this.energyResponseTransformation(body);

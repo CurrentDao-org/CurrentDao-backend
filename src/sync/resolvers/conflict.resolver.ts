@@ -5,7 +5,11 @@ import { Horizon } from '@stellar/stellar-sdk';
 import { SyncState, SyncStatus } from '../entities/sync-state.entity';
 
 export interface Conflict {
-  type: 'double_spend' | 'state_mismatch' | 'sequence_conflict' | 'balance_mismatch';
+  type:
+    | 'double_spend'
+    | 'state_mismatch'
+    | 'sequence_conflict'
+    | 'balance_mismatch';
   severity: 'low' | 'medium' | 'high' | 'critical';
   description: string;
   onChainData: any;
@@ -28,7 +32,7 @@ export enum ConflictResolutionStrategy {
   MERGE = 'merge',
   MANUAL_REVIEW = 'manual_review',
   ROLLBACK = 'rollback',
-  IGNORE = 'ignore'
+  IGNORE = 'ignore',
 }
 
 @Injectable()
@@ -43,10 +47,12 @@ export class ConflictResolver {
     private dataSource: DataSource,
   ) {}
 
-  async detectConflict(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>): Promise<Conflict | null> {
+  async detectConflict(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+  ): Promise<Conflict | null> {
     try {
       const txHash = transaction.hash;
-      
+
       // Check cache first
       if (this.conflictCache.has(txHash)) {
         return this.conflictCache.get(txHash);
@@ -60,8 +66,8 @@ export class ConflictResolver {
         this.detectBalanceMismatch(transaction),
       ]);
 
-      const conflict = conflicts.find(c => c !== null);
-      
+      const conflict = conflicts.find((c) => c !== null);
+
       if (conflict) {
         this.conflictCache.set(txHash, conflict);
         await this.logConflict(conflict);
@@ -69,29 +75,40 @@ export class ConflictResolver {
 
       return conflict;
     } catch (error) {
-      this.logger.error(`Error detecting conflict for transaction ${transaction.hash}`, error);
+      this.logger.error(
+        `Error detecting conflict for transaction ${transaction.hash}`,
+        error,
+      );
       return null;
     }
   }
 
-  private async detectDoubleSpend(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>): Promise<Conflict | null> {
+  private async detectDoubleSpend(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+  ): Promise<Conflict | null> {
     const operations = transaction.operations;
-    
+
     for (const op of operations) {
       if (op.type === 'payment' || op.type === 'path_payment') {
         const sourceAccount = op.source || transaction.source_account;
-        
+
         // Check if this account has other unconfirmed transactions
         const pendingTxs = await this.findPendingTransactions(sourceAccount);
-        
+
         for (const pendingTx of pendingTxs) {
           if (this.hasOverlappingOperations(op, pendingTx.operations)) {
             return {
               type: 'double_spend',
               severity: 'critical',
               description: `Double spend detected between transactions ${transaction.hash} and ${pendingTx.hash}`,
-              onChainData: { hash: transaction.hash, operations: operations.length },
-              offChainData: { hash: pendingTx.hash, operations: pendingTx.operations.length },
+              onChainData: {
+                hash: transaction.hash,
+                operations: operations.length,
+              },
+              offChainData: {
+                hash: pendingTx.hash,
+                operations: pendingTx.operations.length,
+              },
               affectedAccounts: [sourceAccount],
               resolutionStrategy: ConflictResolutionStrategy.PREFER_ON_CHAIN,
             };
@@ -103,26 +120,36 @@ export class ConflictResolver {
     return null;
   }
 
-  private async detectStateMismatch(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>): Promise<Conflict | null> {
+  private async detectStateMismatch(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+  ): Promise<Conflict | null> {
     try {
       // Check if the on-chain state matches our off-chain state
       const sourceAccount = transaction.source_account;
-      
+
       const onChainAccount = await this.getOnChainAccount(sourceAccount);
       const offChainAccount = await this.getOffChainAccount(sourceAccount);
 
       if (onChainAccount && offChainAccount) {
-        const balanceMismatch = Math.abs(
-          parseFloat(onChainAccount.balance) - parseFloat(offChainAccount.balance)
-        ) > 0.0000001; // Account for Stellar precision
+        const balanceMismatch =
+          Math.abs(
+            parseFloat(onChainAccount.balance) -
+              parseFloat(offChainAccount.balance),
+          ) > 0.0000001; // Account for Stellar precision
 
         if (balanceMismatch) {
           return {
             type: 'state_mismatch',
             severity: 'high',
             description: `Balance mismatch for account ${sourceAccount}: on-chain=${onChainAccount.balance}, off-chain=${offChainAccount.balance}`,
-            onChainData: { balance: onChainAccount.balance, sequence: onChainAccount.sequence },
-            offChainData: { balance: offChainAccount.balance, sequence: offChainAccount.sequence },
+            onChainData: {
+              balance: onChainAccount.balance,
+              sequence: onChainAccount.sequence,
+            },
+            offChainData: {
+              balance: offChainAccount.balance,
+              sequence: offChainAccount.sequence,
+            },
             affectedAccounts: [sourceAccount],
             resolutionStrategy: ConflictResolutionStrategy.PREFER_ON_CHAIN,
           };
@@ -135,7 +162,9 @@ export class ConflictResolver {
     return null;
   }
 
-  private async detectSequenceConflict(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>): Promise<Conflict | null> {
+  private async detectSequenceConflict(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+  ): Promise<Conflict | null> {
     try {
       const sourceAccount = transaction.source_account;
       const txSequence = transaction.source_account_sequence;
@@ -167,26 +196,35 @@ export class ConflictResolver {
     return null;
   }
 
-  private async detectBalanceMismatch(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>): Promise<Conflict | null> {
+  private async detectBalanceMismatch(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+  ): Promise<Conflict | null> {
     try {
       const operations = transaction.operations;
-      
+
       for (const op of operations) {
         if (op.type === 'payment') {
           const destination = op.destination;
           const amount = parseFloat(op.amount);
 
           // Verify the payment can be processed
-          const onChainAccount = await this.getOnChainAccount(transaction.source_account);
+          const onChainAccount = await this.getOnChainAccount(
+            transaction.source_account,
+          );
           if (onChainAccount) {
-            const availableBalance = parseFloat(onChainAccount.balance) - parseFloat(onChainAccount.selling_liabilities);
-            
+            const availableBalance =
+              parseFloat(onChainAccount.balance) -
+              parseFloat(onChainAccount.selling_liabilities);
+
             if (availableBalance < amount) {
               return {
                 type: 'balance_mismatch',
                 severity: 'high',
                 description: `Insufficient balance for payment: available=${availableBalance}, required=${amount}`,
-                onChainData: { balance: onChainAccount.balance, liabilities: onChainAccount.selling_liabilities },
+                onChainData: {
+                  balance: onChainAccount.balance,
+                  liabilities: onChainAccount.selling_liabilities,
+                },
                 offChainData: { payment_amount: amount },
                 affectedAccounts: [transaction.source_account, destination],
                 resolutionStrategy: ConflictResolutionStrategy.IGNORE,
@@ -202,9 +240,12 @@ export class ConflictResolver {
     return null;
   }
 
-  async resolveConflict(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>, conflict: Conflict): Promise<any> {
+  async resolveConflict(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+    conflict: Conflict,
+  ): Promise<any> {
     const resolutionId = `${transaction.hash}_${Date.now()}`;
-    
+
     try {
       let resolution: any;
       let resolvedBy: 'automatic' | 'manual' = 'automatic';
@@ -236,12 +277,14 @@ export class ConflictResolver {
           break;
 
         default:
-          throw new Error(`Unknown resolution strategy: ${conflict.resolutionStrategy}`);
+          throw new Error(
+            `Unknown resolution strategy: ${conflict.resolutionStrategy}`,
+          );
       }
 
       const conflictResolution: ConflictResolution = {
         conflictId: resolutionId,
-        strategy: conflict.resolutionStrategy!,
+        strategy: conflict.resolutionStrategy,
         resolution,
         timestamp: new Date(),
         resolvedBy,
@@ -255,12 +298,18 @@ export class ConflictResolver {
 
       return resolution;
     } catch (error) {
-      this.logger.error(`Error resolving conflict for transaction ${transaction.hash}`, error);
+      this.logger.error(
+        `Error resolving conflict for transaction ${transaction.hash}`,
+        error,
+      );
       throw error;
     }
   }
 
-  private async resolvePreferOnChain(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>, conflict: Conflict): Promise<any> {
+  private async resolvePreferOnChain(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+    conflict: Conflict,
+  ): Promise<any> {
     // Update off-chain state to match on-chain state
     for (const account of conflict.affectedAccounts) {
       const onChainAccount = await this.getOnChainAccount(account);
@@ -279,7 +328,10 @@ export class ConflictResolver {
     };
   }
 
-  private async resolvePreferOffChain(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>, conflict: Conflict): Promise<any> {
+  private async resolvePreferOffChain(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+    conflict: Conflict,
+  ): Promise<any> {
     // In this case, we might need to create a corrective transaction
     // For now, we'll just log and continue with off-chain state
     return {
@@ -289,10 +341,13 @@ export class ConflictResolver {
     };
   }
 
-  private async resolveMerge(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>, conflict: Conflict): Promise<any> {
+  private async resolveMerge(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+    conflict: Conflict,
+  ): Promise<any> {
     // Attempt to merge states by applying only non-conflicting operations
     const validOperations = [];
-    
+
     for (const op of transaction.operations) {
       if (await this.isOperationValid(op, conflict)) {
         validOperations.push(op);
@@ -307,7 +362,10 @@ export class ConflictResolver {
     };
   }
 
-  private async resolveRollback(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>, conflict: Conflict): Promise<any> {
+  private async resolveRollback(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+    conflict: Conflict,
+  ): Promise<any> {
     // Rollback any changes made by this transaction
     return {
       action: 'rolled_back',
@@ -316,7 +374,10 @@ export class ConflictResolver {
     };
   }
 
-  private async resolveIgnore(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>, conflict: Conflict): Promise<any> {
+  private async resolveIgnore(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+    conflict: Conflict,
+  ): Promise<any> {
     // Simply ignore the conflict and continue
     return {
       action: 'ignored',
@@ -325,10 +386,13 @@ export class ConflictResolver {
     };
   }
 
-  private async resolveManualReview(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>, conflict: Conflict): Promise<any> {
+  private async resolveManualReview(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+    conflict: Conflict,
+  ): Promise<any> {
     // Flag for manual review
     await this.flagForManualReview(transaction, conflict);
-    
+
     return {
       action: 'flagged_for_manual_review',
       transaction: transaction.hash,
@@ -337,12 +401,15 @@ export class ConflictResolver {
     };
   }
 
-  private async isOperationValid(operation: any, conflict: Conflict): Promise<boolean> {
+  private async isOperationValid(
+    operation: any,
+    conflict: Conflict,
+  ): Promise<boolean> {
     // Check if operation doesn't conflict with current state
     if (conflict.type === 'balance_mismatch' && operation.type === 'payment') {
       return false;
     }
-    
+
     return true;
   }
 
@@ -355,7 +422,10 @@ export class ConflictResolver {
   private hasOverlappingOperations(op1: any, ops2: any[]): boolean {
     // Check if operations overlap (e.g., same source account)
     for (const op2 of ops2) {
-      if ((op1.source || op1.source_account) === (op2.source || op2.source_account)) {
+      if (
+        (op1.source || op1.source_account) ===
+        (op2.source || op2.source_account)
+      ) {
         return true;
       }
     }
@@ -380,22 +450,32 @@ export class ConflictResolver {
     }
   }
 
-  private async updateOffChainAccount(accountId: string, updates: any): Promise<void> {
+  private async updateOffChainAccount(
+    accountId: string,
+    updates: any,
+  ): Promise<void> {
     // Update account in your database
     // Implementation depends on your schema
   }
 
   private async logConflict(conflict: Conflict): Promise<void> {
     // Log conflict for monitoring and analysis
-    this.logger.warn(`Conflict detected: ${conflict.type} - ${conflict.description}`);
+    this.logger.warn(
+      `Conflict detected: ${conflict.type} - ${conflict.description}`,
+    );
   }
 
   private async logResolution(resolution: ConflictResolution): Promise<void> {
     // Log resolution for monitoring and analysis
-    this.logger.log(`Conflict resolved: ${resolution.conflictId} using ${resolution.strategy}`);
+    this.logger.log(
+      `Conflict resolved: ${resolution.conflictId} using ${resolution.strategy}`,
+    );
   }
 
-  private async flagForManualReview(transaction: Horizon.BaseResponse<Horizon.TransactionResponse>, conflict: Conflict): Promise<void> {
+  private async flagForManualReview(
+    transaction: Horizon.BaseResponse<Horizon.TransactionResponse>,
+    conflict: Conflict,
+  ): Promise<void> {
     // Flag transaction for manual review
     // This could create a ticket, send notification, etc.
   }

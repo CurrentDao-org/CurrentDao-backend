@@ -5,7 +5,11 @@ import { PatternRecognitionService } from '../patterns/pattern-recognition.servi
 import { SuspiciousActivityService } from '../reporting/suspicious-activity.service';
 import { FraudPreventionService } from '../prevention/fraud-prevention.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { FraudCaseEntity, FraudCaseStatus, FraudSeverity } from '../entities/fraud-case.entity';
+import {
+  FraudCaseEntity,
+  FraudCaseStatus,
+  FraudSeverity,
+} from '../entities/fraud-case.entity';
 import { AnalyzeTradeDto } from '../dto/fraud-alert.dto';
 
 describe('RealTimeMonitorService', () => {
@@ -16,7 +20,9 @@ describe('RealTimeMonitorService', () => {
     findOne: jest.fn().mockResolvedValue(null),
     findAndCount: jest.fn().mockResolvedValue([[], 0]),
     create: jest.fn().mockImplementation((d) => d),
-    save: jest.fn().mockImplementation((d) => Promise.resolve({ ...d, id: 'case-id-1' })),
+    save: jest
+      .fn()
+      .mockImplementation((d) => Promise.resolve({ ...d, id: 'case-id-1' })),
     update: jest.fn().mockResolvedValue({ affected: 1 }),
     count: jest.fn().mockResolvedValue(0),
   };
@@ -53,7 +59,12 @@ describe('RealTimeMonitorService', () => {
   };
 
   const mockPreventionService = {
-    preTradeCheck: jest.fn().mockResolvedValue({ allowed: true, riskScore: 0, reasons: [], recommendedAction: 'allow' }),
+    preTradeCheck: jest.fn().mockResolvedValue({
+      allowed: true,
+      riskScore: 0,
+      reasons: [],
+      recommendedAction: 'allow',
+    }),
     blockTrader: jest.fn(),
     unblockTrader: jest.fn().mockReturnValue(true),
     isTraderBlocked: jest.fn().mockReturnValue(false),
@@ -81,7 +92,10 @@ describe('RealTimeMonitorService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RealTimeMonitorService,
-        { provide: getRepositoryToken(FraudCaseEntity), useValue: mockRepository },
+        {
+          provide: getRepositoryToken(FraudCaseEntity),
+          useValue: mockRepository,
+        },
         { provide: FraudMlService, useValue: mockMlService },
         { provide: PatternRecognitionService, useValue: mockPatternService },
         { provide: SuspiciousActivityService, useValue: mockReportingService },
@@ -150,12 +164,26 @@ describe('RealTimeMonitorService', () => {
         severity: FraudSeverity.CRITICAL,
         features: {},
         topContributors: ['roundTripScore'],
-        evidence: [{ type: 'self_trade', description: 'Test', value: 1, timestamp: new Date() }],
+        evidence: [
+          {
+            type: 'self_trade',
+            description: 'Test',
+            value: 1,
+            timestamp: new Date(),
+          },
+        ],
         processingTimeMs: 5,
       });
 
       mockPatternService.analyzePatterns.mockReturnValueOnce([
-        { patternId: 'WT-001', patternName: 'Self-Trade', category: 'wash_trading', matched: true, confidence: 0.99, evidence: '' },
+        {
+          patternId: 'WT-001',
+          patternName: 'Self-Trade',
+          category: 'wash_trading',
+          matched: true,
+          confidence: 0.99,
+          evidence: '',
+        },
       ]);
       mockPatternService.inferFraudTypes.mockReturnValueOnce(['wash_trading']);
 
@@ -193,7 +221,9 @@ describe('RealTimeMonitorService', () => {
       service.startTraderMonitoring('trader-dup');
       service.startTraderMonitoring('trader-dup');
       const status = service.getMonitoringStatus() as any;
-      const count = status.monitoredTraders.filter((t: string) => t === 'trader-dup').length;
+      const count = status.monitoredTraders.filter(
+        (t: string) => t === 'trader-dup',
+      ).length;
       expect(count).toBe(1);
     });
   });

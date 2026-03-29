@@ -1,6 +1,6 @@
 /**
  * Response Interceptor
- * 
+ *
  * Transforms all API responses to standardized format.
  * Adds metadata, pagination, and version headers.
  */
@@ -23,7 +23,10 @@ import {
   PaginationLinks,
   DEFAULT_API_VERSION,
 } from '../interfaces/response.interface';
-import { getPaginationMeta, getPaginationLinks } from '../utils/pagination.util';
+import {
+  getPaginationMeta,
+  getPaginationLinks,
+} from '../utils/pagination.util';
 
 /**
  * Configuration for the response interceptor
@@ -81,12 +84,12 @@ export class ResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse();
-    
+
     this.startTime = Date.now();
 
     // Get request ID from headers or generate one
-    const requestId = request.headers['x-request-id'] as string || 
-      this.generateRequestId();
+    const requestId =
+      (request.headers['x-request-id'] as string) || this.generateRequestId();
 
     // Get API version from controller or endpoint
     const apiVersion = this.getApiVersion(context);
@@ -105,7 +108,7 @@ export class ResponseInterceptor implements NestInterceptor {
       map((data) => {
         // Check if this is a paginated response
         const isPaginated = this.isPaginatedResponse(data);
-        
+
         if (isPaginated) {
           return this.formatPaginatedResponse(
             data,
@@ -210,7 +213,7 @@ export class ResponseInterceptor implements NestInterceptor {
   ): void {
     // Set API version header
     response.setHeader('X-API-Version', apiVersion);
-    
+
     // Set request ID header
     if (this.config.includeRequestId) {
       response.setHeader('X-Request-Id', requestId);
@@ -230,13 +233,19 @@ export class ResponseInterceptor implements NestInterceptor {
     // Check handler for version metadata
     const handlerVersion = Reflect.getMetadata('api_version', handler);
     if (handlerVersion) {
-      return handlerVersion.version || this.config.apiVersion || DEFAULT_API_VERSION;
+      return (
+        handlerVersion.version || this.config.apiVersion || DEFAULT_API_VERSION
+      );
     }
 
     // Check controller for version metadata
     const controllerVersion = Reflect.getMetadata('api_version', controller);
     if (controllerVersion) {
-      return controllerVersion.version || this.config.apiVersion || DEFAULT_API_VERSION;
+      return (
+        controllerVersion.version ||
+        this.config.apiVersion ||
+        DEFAULT_API_VERSION
+      );
     }
 
     return this.config.apiVersion || DEFAULT_API_VERSION;

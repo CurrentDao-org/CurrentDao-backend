@@ -1,4 +1,16 @@
-import { IsString, IsArray, IsNumber, IsEnum, IsOptional, IsJSON, Min, Max, Length, ValidateNested, IsDecimal } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+  IsJSON,
+  Min,
+  Max,
+  Length,
+  ValidateNested,
+  IsDecimal,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { WalletStatus } from '../entities/multisig-wallet.entity';
 import { TransactionType, SignatureStatus } from '../entities/signature.entity';

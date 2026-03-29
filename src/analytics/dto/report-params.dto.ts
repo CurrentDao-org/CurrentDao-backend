@@ -1,18 +1,29 @@
-import { IsOptional, IsString, IsEnum, IsDate, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsDate,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { AnalyticsType, AggregationPeriod } from '../entities/analytics-data.entity';
+import {
+  AnalyticsType,
+  AggregationPeriod,
+} from '../entities/analytics-data.entity';
 
 export enum ReportFormat {
   JSON = 'json',
   CSV = 'csv',
-  PDF = 'pdf'
+  PDF = 'pdf',
 }
 
 export class ReportParamsDto {
   @ApiPropertyOptional({
     description: 'Type of analytics report',
-    enum: AnalyticsType
+    enum: AnalyticsType,
   })
   @IsOptional()
   @IsEnum(AnalyticsType)
@@ -20,7 +31,7 @@ export class ReportParamsDto {
 
   @ApiPropertyOptional({
     description: 'Aggregation period for the data',
-    enum: AggregationPeriod
+    enum: AggregationPeriod,
   })
   @IsOptional()
   @IsEnum(AggregationPeriod)
@@ -29,7 +40,7 @@ export class ReportParamsDto {
   @ApiPropertyOptional({
     description: 'Start date for the report period',
     type: Date,
-    example: '2024-01-01'
+    example: '2024-01-01',
   })
   @IsOptional()
   @IsDate()
@@ -39,7 +50,7 @@ export class ReportParamsDto {
   @ApiPropertyOptional({
     description: 'End date for the report period',
     type: Date,
-    example: '2024-12-31'
+    example: '2024-12-31',
   })
   @IsOptional()
   @IsDate()
@@ -48,7 +59,7 @@ export class ReportParamsDto {
 
   @ApiPropertyOptional({
     description: 'User ID to filter data for specific user',
-    example: 'user-123'
+    example: 'user-123',
   })
   @IsOptional()
   @IsString()
@@ -56,7 +67,7 @@ export class ReportParamsDto {
 
   @ApiPropertyOptional({
     description: 'Grid zone ID to filter data for specific zone',
-    example: 'zone-456'
+    example: 'zone-456',
   })
   @IsOptional()
   @IsString()
@@ -64,7 +75,7 @@ export class ReportParamsDto {
 
   @ApiPropertyOptional({
     description: 'Country to filter data',
-    example: 'United States'
+    example: 'United States',
   })
   @IsOptional()
   @IsString()
@@ -73,7 +84,7 @@ export class ReportParamsDto {
   @ApiPropertyOptional({
     description: 'Report output format',
     enum: ReportFormat,
-    default: ReportFormat.JSON
+    default: ReportFormat.JSON,
   })
   @IsOptional()
   @IsEnum(ReportFormat)
@@ -81,14 +92,14 @@ export class ReportParamsDto {
 
   @ApiPropertyOptional({
     description: 'Include technical indicators in price trend reports',
-    default: true
+    default: true,
   })
   @IsOptional()
   includeTechnicalIndicators?: boolean = true;
 
   @ApiPropertyOptional({
     description: 'Include comparative analysis',
-    default: true
+    default: true,
   })
   @IsOptional()
   includeComparativeAnalysis?: boolean = true;
@@ -97,7 +108,7 @@ export class ReportParamsDto {
     description: 'Number of top performers to include in leaderboards',
     example: 10,
     minimum: 1,
-    maximum: 100
+    maximum: 100,
   })
   @IsOptional()
   @Type(() => Number)
@@ -108,7 +119,7 @@ export class ReportParamsDto {
 
   @ApiPropertyOptional({
     description: 'Enable real-time data refresh',
-    default: false
+    default: false,
   })
   @IsOptional()
   realTime?: boolean = false;
@@ -119,7 +130,7 @@ export class DashboardMetricsDto {
     description: 'Time window for dashboard metrics (in hours)',
     example: 24,
     minimum: 1,
-    maximum: 8760
+    maximum: 8760,
   })
   @IsOptional()
   @Type(() => Number)
@@ -130,21 +141,21 @@ export class DashboardMetricsDto {
 
   @ApiPropertyOptional({
     description: 'Include geographic breakdown',
-    default: true
+    default: true,
   })
   @IsOptional()
   includeGeographicBreakdown?: boolean = true;
 
   @ApiPropertyOptional({
     description: 'Include renewable energy metrics',
-    default: true
+    default: true,
   })
   @IsOptional()
   includeRenewableMetrics?: boolean = true;
 
   @ApiPropertyOptional({
     description: 'Include market efficiency indicators',
-    default: true
+    default: true,
   })
   @IsOptional()
   includeMarketEfficiency?: boolean = true;

@@ -7,7 +7,11 @@ export class AssetVersionService {
 
   generateVersionHash(buffer: Buffer): string {
     this.logger.debug('Generating version hash for asset');
-    return crypto.createHash('md5').update(buffer).digest('hex').substring(0, 8);
+    return crypto
+      .createHash('md5')
+      .update(buffer)
+      .digest('hex')
+      .substring(0, 8);
   }
 
   appendVersionToFilename(filename: string, hash: string): string {

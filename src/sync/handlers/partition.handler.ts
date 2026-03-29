@@ -8,7 +8,11 @@ import { takeWhile, switchMap, catchError } from 'rxjs/operators';
 import { SyncState, SyncStatus } from '../entities/sync-state.entity';
 
 export interface PartitionEvent {
-  type: 'partition_detected' | 'partition_resolved' | 'recovery_started' | 'recovery_completed';
+  type:
+    | 'partition_detected'
+    | 'partition_resolved'
+    | 'recovery_started'
+    | 'recovery_completed';
   timestamp: Date;
   duration?: number;
   affectedEntities: string[];
@@ -113,12 +117,12 @@ export class PartitionHandler {
       .pipe(
         takeWhile(() => this.isPartitioned.value),
         switchMap(() => this.checkNetworkRecovery()),
-        catchError(error => {
+        catchError((error) => {
           this.logger.error('Error during recovery monitoring', error);
           return [];
-        })
+        }),
       )
-      .subscribe(isRecovered => {
+      .subscribe((isRecovered) => {
         if (isRecovered) {
           this.initiateRecovery();
         } else {
@@ -134,8 +138,12 @@ export class PartitionHandler {
   private async checkNetworkRecovery(): Promise<boolean> {
     try {
       // Check if we can reach the Stellar network
-      const latestLedger = await this.server.ledgers().order('desc').limit(1).call();
-      
+      const latestLedger = await this.server
+        .ledgers()
+        .order('desc')
+        .limit(1)
+        .call();
+
       if (!latestLedger.records || latestLedger.records.length === 0) {
         return false;
       }
@@ -143,7 +151,7 @@ export class PartitionHandler {
       // Check if ledger progression is normal
       const currentLedger = latestLedger.records[0].sequence;
       const syncStates = await this.syncStateRepository.find();
-      
+
       let maxGap = 0;
       for (const syncState of syncStates) {
         const gap = currentLedger - syncState.lastLedgerSequence;
@@ -160,7 +168,7 @@ export class PartitionHandler {
 
   private async initiateRecovery(): Promise<void> {
     this.logger.log('Network recovered, initiating recovery process');
-    
+
     this.partitionEvents.next({
       type: 'recovery_started',
       timestamp: new Date(),
@@ -206,19 +214,27 @@ export class PartitionHandler {
     this.logger.log('Validating data integrity after partition');
 
     const syncStates = await this.syncStateRepository.find();
-    
+
     for (const syncState of syncStates) {
       try {
         // Validate that the last synced ledger is still valid
-        const ledger = await this.server.ledgers().ledger(syncState.lastLedgerSequence).call();
-        
+        const ledger = await this.server
+          .ledgers()
+          .ledger(syncState.lastLedgerSequence)
+          .call();
+
         if (!ledger) {
-          this.logger.warn(`Invalid ledger sequence ${syncState.lastLedgerSequence} for ${syncState.entityType}`);
+          this.logger.warn(
+            `Invalid ledger sequence ${syncState.lastLedgerSequence} for ${syncState.entityType}`,
+          );
           syncState.lastLedgerSequence = await this.getSafeStartingPoint();
           await this.syncStateRepository.save(syncState);
         }
       } catch (error) {
-        this.logger.error(`Error validating integrity for ${syncState.entityType}`, error);
+        this.logger.error(
+          `Error validating integrity for ${syncState.entityType}`,
+          error,
+        );
         syncState.lastLedgerSequence = await this.getSafeStartingPoint();
         await this.syncStateRepository.save(syncState);
       }
@@ -245,10 +261,12 @@ export class PartitionHandler {
 
     for (const syncState of syncStates) {
       const missedLedgers = currentLedger - syncState.lastLedgerSequence;
-      
+
       if (missedLedgers > 0) {
-        this.logger.log(`Catching up ${missedLedgers} missed ledgers for ${syncState.entityType}`);
-        
+        this.logger.log(
+          `Catching up ${missedLedgers} missed ledgers for ${syncState.entityType}`,
+        );
+
         // Update target ledger to trigger catch-up sync
         syncState.targetLedgerSequence = currentLedger;
         syncState.status = SyncStatus.RECOVERING;
@@ -262,16 +280,19 @@ export class PartitionHandler {
     this.logger.log('Exited quarantine mode');
   }
 
-  private async updateRecoveryMetrics(recoveryStartTime: number): Promise<void> {
+  private async updateRecoveryMetrics(
+    recoveryStartTime: number,
+  ): Promise<void> {
     const recoveryDuration = Date.now() - recoveryStartTime;
     const partitionDuration = recoveryStartTime - this.partitionStartTime;
-    
+
     const currentMetrics = this.metrics.value;
     const newMetrics = {
       ...currentMetrics,
       partitionCount: currentMetrics.partitionCount + 1,
       totalPartitionTime: currentMetrics.totalPartitionTime + partitionDuration,
-      averageRecoveryTime: (currentMetrics.averageRecoveryTime + recoveryDuration) / 2,
+      averageRecoveryTime:
+        (currentMetrics.averageRecoveryTime + recoveryDuration) / 2,
       entitiesAffected: await this.getAffectedEntityCount(),
     };
 
@@ -280,7 +301,7 @@ export class PartitionHandler {
 
   private async handleRecoveryFailure(error: any): Promise<void> {
     this.logger.error('Recovery failed, implementing fallback strategy', error);
-    
+
     // Fallback strategy: reset to a known good state
     const safeStartingPoint = await this.getSafeStartingPoint();
     const syncStates = await this.syncStateRepository.find();
@@ -293,21 +314,25 @@ export class PartitionHandler {
     }
 
     // If retry count is too high, mark as data loss scenario
-    const hasHighRetryCount = syncStates.some(state => state.retryCount > 3);
+    const hasHighRetryCount = syncStates.some((state) => state.retryCount > 3);
     if (hasHighRetryCount) {
       const currentMetrics = this.metrics.value;
       this.metrics.next({
         ...currentMetrics,
         dataLoss: true,
       });
-      
-      this.logger.error('Data loss scenario detected, manual intervention required');
+
+      this.logger.error(
+        'Data loss scenario detected, manual intervention required',
+      );
     }
   }
 
   private async escalatePartition(): Promise<void> {
-    this.logger.error('Partition escalation triggered - manual intervention required');
-    
+    this.logger.error(
+      'Partition escalation triggered - manual intervention required',
+    );
+
     // Send alerts, create tickets, etc.
     // This would integrate with your monitoring/alerting system
   }
@@ -324,7 +349,11 @@ export class PartitionHandler {
 
   private async getCurrentLedgerSequence(): Promise<number> {
     try {
-      const latestLedger = await this.server.ledgers().order('desc').limit(1).call();
+      const latestLedger = await this.server
+        .ledgers()
+        .order('desc')
+        .limit(1)
+        .call();
       return latestLedger.records[0]?.sequence || 0;
     } catch (error) {
       this.logger.error('Failed to get current ledger sequence', error);
@@ -347,15 +376,15 @@ export class PartitionHandler {
     const syncStates = await this.syncStateRepository.find({
       where: { status: SyncStatus.PARTITIONED },
     });
-    
-    return syncStates.map(state => `${state.entityType}:${state.entityId}`);
+
+    return syncStates.map((state) => `${state.entityType}:${state.entityId}`);
   }
 
   private async getAffectedEntityCount(): Promise<number> {
     const syncStates = await this.syncStateRepository.find({
       where: { status: SyncStatus.PARTITIONED },
     });
-    
+
     return syncStates.length;
   }
 
@@ -388,10 +417,10 @@ export class PartitionHandler {
 
   async testPartitionRecovery(): Promise<void> {
     this.logger.log('Testing partition recovery procedures');
-    
+
     // Simulate partition detection and recovery
     await this.handlePartition();
-    
+
     // Wait a bit then simulate recovery
     setTimeout(async () => {
       await this.initiateRecovery();

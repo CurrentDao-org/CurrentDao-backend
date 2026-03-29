@@ -35,18 +35,35 @@ export class TextProcessorService {
 
   private tokenize(text: string): string[] {
     // Simple tokenization - in production use proper NLP libraries
-    return text.toLowerCase().split(/\W+/).filter(word => word.length > 2);
+    return text
+      .toLowerCase()
+      .split(/\W+/)
+      .filter((word) => word.length > 2);
   }
 
   private extractKeywords(tokens: string[]): string[] {
     // Remove stop words and extract meaningful keywords
-    const stopWords = ['the', 'and', 'is', 'in', 'at', 'of', 'to', 'for', 'on', 'with'];
-    const keywordCounts = tokens.reduce((acc, token) => {
-      if (!stopWords.includes(token)) {
-        acc[token] = (acc[token] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    const stopWords = [
+      'the',
+      'and',
+      'is',
+      'in',
+      'at',
+      'of',
+      'to',
+      'for',
+      'on',
+      'with',
+    ];
+    const keywordCounts = tokens.reduce(
+      (acc, token) => {
+        if (!stopWords.includes(token)) {
+          acc[token] = (acc[token] || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return Object.entries(keywordCounts)
       .sort((a, b) => b[1] - a[1])
@@ -67,21 +84,36 @@ export class TextProcessorService {
 
   private checkRelevance(keywords: string[], entities: string[]): boolean {
     // Check if content is relevant to energy/markets
-    const relevantTerms = ['energy', 'power', 'electricity', 'renewable', 'solar', 'wind', 
-                          'market', 'price', 'trading', 'grid', 'consumption'];
-    
-    const hasRelevantKeyword = keywords.some(k => relevantTerms.includes(k.toLowerCase()));
-    const hasRelevantEntity = entities.some(e => e.toLowerCase().includes('energy'));
-    
+    const relevantTerms = [
+      'energy',
+      'power',
+      'electricity',
+      'renewable',
+      'solar',
+      'wind',
+      'market',
+      'price',
+      'trading',
+      'grid',
+      'consumption',
+    ];
+
+    const hasRelevantKeyword = keywords.some((k) =>
+      relevantTerms.includes(k.toLowerCase()),
+    );
+    const hasRelevantEntity = entities.some((e) =>
+      e.toLowerCase().includes('energy'),
+    );
+
     return hasRelevantKeyword || hasRelevantEntity;
   }
 
   async batchProcess(texts: string[]): Promise<ProcessedText[]> {
     this.logger.log(`Batch processing ${texts.length} texts`);
-    
+
     // Process in parallel for performance
-    const results = await Promise.all(texts.map(text => this.process(text)));
-    
-    return results.filter(result => result.isRelevant);
+    const results = await Promise.all(texts.map((text) => this.process(text)));
+
+    return results.filter((result) => result.isRelevant);
   }
 }

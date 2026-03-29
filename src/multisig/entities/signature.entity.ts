@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { MultisigWallet } from './multisig-wallet.entity';
 
 export enum SignatureStatus {
@@ -6,7 +14,7 @@ export enum SignatureStatus {
   COLLECTED = 'collected',
   EXPIRED = 'expired',
   REVOKED = 'revoked',
-  EXECUTED = 'executed'
+  EXECUTED = 'executed',
 }
 
 export enum TransactionType {
@@ -14,7 +22,7 @@ export enum TransactionType {
   CONTRACT_CALL = 'contract_call',
   DAO_VOTE = 'dao_vote',
   ENERGY_TRADE = 'energy_trade',
-  EMERGENCY_RECOVERY = 'emergency_recovery'
+  EMERGENCY_RECOVERY = 'emergency_recovery',
 }
 
 @Entity('multisig_signatures')
@@ -29,7 +37,9 @@ export class Signature {
   @Column()
   walletId: string;
 
-  @ManyToOne(() => MultisigWallet, wallet => wallet.signatures, { onDelete: 'CASCADE' })
+  @ManyToOne(() => MultisigWallet, (wallet) => wallet.signatures, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'walletId' })
   wallet: MultisigWallet;
 
@@ -45,13 +55,13 @@ export class Signature {
   @Column({
     type: 'enum',
     enum: SignatureStatus,
-    default: SignatureStatus.PENDING
+    default: SignatureStatus.PENDING,
   })
   status: SignatureStatus;
 
   @Column({
     type: 'enum',
-    enum: TransactionType
+    enum: TransactionType,
   })
   transactionType: TransactionType;
 

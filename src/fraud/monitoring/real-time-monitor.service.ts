@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
-import { FraudCaseEntity, FraudCaseStatus, FraudSeverity } from '../entities/fraud-case.entity';
+import {
+  FraudCaseEntity,
+  FraudCaseStatus,
+  FraudSeverity,
+} from '../entities/fraud-case.entity';
 import { FraudMlService } from '../ml/fraud-ml.service';
 import { PatternRecognitionService } from '../patterns/pattern-recognition.service';
 import { SuspiciousActivityService } from '../reporting/suspicious-activity.service';
@@ -54,7 +58,9 @@ export class RealTimeMonitorService {
    * Primary entry point: analyse a trade through the full pipeline.
    * Target: <100ms processing time.
    */
-  async analyzeIncomingTrade(tradeDto: AnalyzeTradeDto): Promise<FraudAnalysisResult> {
+  async analyzeIncomingTrade(
+    tradeDto: AnalyzeTradeDto,
+  ): Promise<FraudAnalysisResult> {
     const startTime = Date.now();
     this.logger.debug(`Analyzing incoming trade: ${tradeDto.tradeId}`);
 
@@ -70,7 +76,9 @@ export class RealTimeMonitorService {
 
     // 2. Pattern matching
     const patterns = this.patternService.analyzePatterns(tradeDto, {
-      recentTrades: context.recentTrades.filter((t) => t.tradeId !== tradeDto.tradeId),
+      recentTrades: context.recentTrades.filter(
+        (t) => t.tradeId !== tradeDto.tradeId,
+      ),
     });
     const matchedPatterns = patterns.filter((p) => p.matched);
 
@@ -187,9 +195,12 @@ export class RealTimeMonitorService {
   /** Scheduled every 15s — fulfils the <30s flagging requirement */
   @Cron('*/15 * * * * *')
   async processMonitoringCycle(): Promise<void> {
-    if (this.pendingTrades.length === 0 && this.monitoredTraders.size === 0) return;
+    if (this.pendingTrades.length === 0 && this.monitoredTraders.size === 0)
+      return;
 
-    this.logger.debug(`Monitoring cycle: ${this.pendingTrades.length} queued trades`);
+    this.logger.debug(
+      `Monitoring cycle: ${this.pendingTrades.length} queued trades`,
+    );
 
     // Drain the batch queue — these are trades submitted for async monitoring
     const batch = this.pendingTrades.splice(0, 100);
@@ -233,13 +244,18 @@ export class RealTimeMonitorService {
       await this.fraudCaseRepository.update(c.id, {
         status: FraudCaseStatus.ESCALATED,
       });
-      this.logger.warn(`CRITICAL case escalated: ${c.caseId} — trader ${c.traderId}`);
+      this.logger.warn(
+        `CRITICAL case escalated: ${c.caseId} — trader ${c.traderId}`,
+      );
     }
   }
 
   // ─── Private Helpers ─────────────────────────────────────────────────────
 
-  private async sweepTrader(traderId: string, session: MonitoredTrader): Promise<void> {
+  private async sweepTrader(
+    traderId: string,
+    session: MonitoredTrader,
+  ): Promise<void> {
     const timeSinceCheck = Date.now() - session.lastChecked.getTime();
     if (timeSinceCheck < this.MONITORING_INTERVAL_MS) return;
 
@@ -266,7 +282,7 @@ export class RealTimeMonitorService {
       this.startTraderMonitoring(tradeDto.traderId);
     }
 
-    const session = this.monitoredTraders.get(tradeDto.traderId)!;
+    const session = this.monitoredTraders.get(tradeDto.traderId);
     session.recentTrades.push(tradeDto);
 
     // Sliding window — trim oldest
@@ -282,20 +298,26 @@ export class RealTimeMonitorService {
   }
 
   private getTraderContext(traderId: string): MonitoredTrader {
-    return this.monitoredTraders.get(traderId) ?? {
-      traderId,
-      startedAt: new Date(),
-      recentTrades: [],
-      alertCount: 0,
-      lastChecked: new Date(),
-    };
+    return (
+      this.monitoredTraders.get(traderId) ?? {
+        traderId,
+        startedAt: new Date(),
+        recentTrades: [],
+        alertCount: 0,
+        lastChecked: new Date(),
+      }
+    );
   }
 
-  private combineScores(mlScore: number, matchedPatterns: { confidence: number }[]): number {
+  private combineScores(
+    mlScore: number,
+    matchedPatterns: { confidence: number }[],
+  ): number {
     if (matchedPatterns.length === 0) return mlScore;
 
     const avgPatternScore =
-      matchedPatterns.reduce((s, p) => s + p.confidence, 0) / matchedPatterns.length;
+      matchedPatterns.reduce((s, p) => s + p.confidence, 0) /
+      matchedPatterns.length;
 
     // Weighted ensemble: 60% ML, 40% patterns
     const combined = mlScore * 0.6 + avgPatternScore * 0.4;
@@ -309,12 +331,12 @@ export class RealTimeMonitorService {
   private scoreToSeverity(score: number): FraudSeverity {
     if (score >= 0.85) return FraudSeverity.CRITICAL;
     if (score >= 0.65) return FraudSeverity.HIGH;
-    if (score >= 0.40) return FraudSeverity.MEDIUM;
+    if (score >= 0.4) return FraudSeverity.MEDIUM;
     return FraudSeverity.LOW;
   }
 
   private getRecommendedAction(severity: FraudSeverity, score: number): string {
-    if (severity === FraudSeverity.CRITICAL || score >= 0.90) {
+    if (severity === FraudSeverity.CRITICAL || score >= 0.9) {
       return 'BLOCK_TRADE: Immediate block and escalate to compliance';
     }
     if (severity === FraudSeverity.HIGH) {
@@ -365,13 +387,17 @@ export class RealTimeMonitorService {
       tradeValue: tradeDto.tradeValue,
       regulatoryReported: false,
       preventionApplied: severity === FraudSeverity.CRITICAL,
-      preventionAction: severity === FraudSeverity.CRITICAL ? 'auto_block' : null,
+      preventionAction:
+        severity === FraudSeverity.CRITICAL ? 'auto_block' : null,
     });
 
     const saved = await this.fraudCaseRepository.save(fraudCase);
 
     // Auto-generate SAR for HIGH/CRITICAL
-    if (severity === FraudSeverity.HIGH || severity === FraudSeverity.CRITICAL) {
+    if (
+      severity === FraudSeverity.HIGH ||
+      severity === FraudSeverity.CRITICAL
+    ) {
       await this.reportingService.generateSAR(saved);
     }
 

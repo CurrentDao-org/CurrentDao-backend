@@ -9,7 +9,9 @@ describe('AdvancedRateLimiterService', () => {
       providers: [AdvancedRateLimiterService],
     }).compile();
 
-    service = module.get<AdvancedRateLimiterService>(AdvancedRateLimiterService);
+    service = module.get<AdvancedRateLimiterService>(
+      AdvancedRateLimiterService,
+    );
   });
 
   it('should be defined', () => {
