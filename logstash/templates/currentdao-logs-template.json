@@ -1,0 +1,186 @@
+{
+  "index_patterns": ["currentdao-logs-*"],
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "index.refresh_interval": "5s",
+    "index.translog.flush_threshold_size": "512mb",
+    "index.mapping.total_fields.limit": 2000,
+    "analysis": {
+      "analyzer": {
+        "currentdao_log_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stop"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "@timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "level": {
+        "type": "keyword",
+        "fields": {
+          "text": {
+            "type": "text",
+            "analyzer": "currentdao_log_analyzer"
+          }
+        }
+      },
+      "log_level": {
+        "type": "keyword"
+      },
+      "message": {
+        "type": "text",
+        "analyzer": "currentdao_log_analyzer",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "service_name": {
+        "type": "keyword"
+      },
+      "environment": {
+        "type": "keyword"
+      },
+      "request_id": {
+        "type": "keyword"
+      },
+      "request_method": {
+        "type": "keyword"
+      },
+      "request_url": {
+        "type": "keyword",
+        "fields": {
+          "text": {
+            "type": "text",
+            "analyzer": "currentdao_log_analyzer"
+          }
+        }
+      },
+      "request_user_agent": {
+        "type": "text",
+        "analyzer": "currentdao_log_analyzer",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "error_name": {
+        "type": "keyword"
+      },
+      "error_message": {
+        "type": "text",
+        "analyzer": "currentdao_log_analyzer"
+      },
+      "error_stack": {
+        "type": "text",
+        "analyzer": "currentdao_log_analyzer"
+      },
+      "response_time": {
+        "type": "float"
+      },
+      "response_time_ms": {
+        "type": "integer"
+      },
+      "memory_usage": {
+        "type": "float"
+      },
+      "cpu_usage": {
+        "type": "float"
+      },
+      "database_query": {
+        "type": "text",
+        "analyzer": "currentdao_log_analyzer"
+      },
+      "database_duration": {
+        "type": "float"
+      },
+      "tx_hash": {
+        "type": "keyword"
+      },
+      "tx_type": {
+        "type": "keyword"
+      },
+      "tx_status": {
+        "type": "keyword"
+      },
+      "ledger_sequence": {
+        "type": "long"
+      },
+      "contract_id": {
+        "type": "keyword"
+      },
+      "contract_type": {
+        "type": "keyword"
+      },
+      "clientip": {
+        "type": "ip"
+      },
+      "geoip": {
+        "properties": {
+          "location": {
+            "type": "geo_point"
+          },
+          "country_name": {
+            "type": "keyword"
+          },
+          "city_name": {
+            "type": "keyword"
+          }
+        }
+      },
+      "user_agent": {
+        "properties": {
+          "name": {
+            "type": "keyword"
+          },
+          "os": {
+            "type": "keyword"
+          },
+          "device": {
+            "type": "keyword"
+          }
+        }
+      },
+      "log_hour": {
+        "type": "integer"
+      },
+      "log_date": {
+        "type": "keyword"
+      },
+      "tags": {
+        "type": "keyword"
+      },
+      "fields": {
+        "properties": {
+          "service": {
+            "type": "keyword"
+          },
+          "environment": {
+            "type": "keyword"
+          },
+          "logtype": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  },
+  "aliases": {
+    "currentdao-logs": {}
+  }
+}
