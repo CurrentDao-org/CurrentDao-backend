@@ -22,6 +22,7 @@ import { SentimentModule } from './sentiment/sentiment.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { FraudDetectionModule } from './fraud/fraud-detection.module';
+import { PredictiveBalancingModule } from './balancing/predictive-balancing.module';
 import { SyncModule } from './sync/sync.module';
 import { LoggingModule } from './logging/logging.module';
 
@@ -44,6 +45,7 @@ import { LoggingModule } from './logging/logging.module';
     MonitoringModule,
     SentimentModule,
     FraudDetectionModule,
+    PredictiveBalancingModule,
     SyncModule,
     LoggingModule,
   ],
