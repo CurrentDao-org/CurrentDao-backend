@@ -5,6 +5,9 @@ import { MultisigWallet } from '../multisig/entities/multisig-wallet.entity';
 import { Signature } from '../multisig/entities/signature.entity';
 import { MarketSetting } from '../settings/entities/market-setting.entity';
 import { UserPreference } from '../settings/entities/user-preference.entity';
+import { PriceHistory } from '../pricing/entities/price-history.entity';
+import { MarketDataSource } from '../pricing/entities/market-data-source.entity';
+import { PriceForecast } from '../pricing/entities/price-forecast.entity';
 
 export default registerAs(
   'database',
@@ -21,6 +24,9 @@ export default registerAs(
       Signature,
       MarketSetting,
       UserPreference,
+      PriceHistory,
+      MarketDataSource,
+      PriceForecast,
     ],
     synchronize: process.env.NODE_ENV !== 'production',
     logging: process.env.NODE_ENV === 'development',
