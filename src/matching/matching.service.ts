@@ -25,6 +25,11 @@ import {
   PartialFulfillmentAlgorithm,
   PartialFulfillmentResult,
 } from './algorithms/partial-fulfillment.algorithm';
+import { FIFOAlgorithmService } from './algorithms/fifo-algorithm.service';
+import { ProRataAlgorithmService } from './algorithms/pro-rata-algorithm.service';
+import { LiquidityOptimizerService } from './liquidity/liquidity-optimizer.service';
+import { PriorityQueueService } from './queues/priority-queue.service';
+import { MatchingAnalyticsService } from './monitoring/matching-analytics.service';
 
 export interface MatchingEvent {
   type:
@@ -84,6 +89,11 @@ export class MatchingService implements OnModuleInit {
     private readonly priorityAlgorithm: PriorityMatchingAlgorithm,
     private readonly geographicAlgorithm: GeographicMatchingAlgorithm,
     private readonly partialFulfillmentAlgorithm: PartialFulfillmentAlgorithm,
+    private readonly fifoAlgorithm: FIFOAlgorithmService,
+    private readonly proRataAlgorithm: ProRataAlgorithmService,
+    private readonly liquidityOptimizer: LiquidityOptimizerService,
+    private readonly priorityQueue: PriorityQueueService,
+    private readonly analyticsService: MatchingAnalyticsService,
   ) {}
 
   async onModuleInit() {
@@ -650,5 +660,260 @@ export class MatchingService implements OnModuleInit {
     }
 
     return await this.saveMatches(results.matches);
+  }
+
+  /**
+   * High-frequency matching using FIFO algorithm
+   * Processes orders with microsecond latency
+   */
+  async highFrequencyFIFOMatching(
+    buyOrders: Order[],
+    sellOrders: Order[],
+    preferences?: MatchingPreferencesDto,
+  ): Promise<{ matches: Match[]; processingTime: number }> {
+    const startTime = process.hrtime.bigint();
+    const matchingPreferences = preferences || this.getDefaultPreferences();
+
+    // Optimize liquidity first
+    const optimizationResult = await this.liquidityOptimizer.optimizeLiquidity(
+      buyOrders,
+      sellOrders,
+      matchingPreferences,
+    );
+
+    // Run FIFO matching on optimized orders
+    const fifoResult = await this.fifoAlgorithm.findMatches(
+      optimizationResult.optimizedBuyOrders,
+      optimizationResult.optimizedSellOrders,
+      this.activeRules,
+      matchingPreferences,
+    );
+
+    const endTime = process.hrtime.bigint();
+    const processingTime = Number(endTime - startTime) / 1000; // microseconds
+
+    // Record analytics
+    this.analyticsService.recordMatching(
+      fifoResult.totalOrdersProcessed,
+      fifoResult.matches.length,
+      processingTime,
+      'FIFO',
+      fifoResult.matches,
+    );
+
+    // Save matches
+    const savedMatches = await this.saveMatches(fifoResult.matches);
+    await this.updateOrderStatuses(savedMatches);
+    await this.emitMatchingEvents(savedMatches);
+
+    this.logger.log(
+      `High-frequency FIFO matching: ${fifoResult.matches.length} matches in ${processingTime.toFixed(2)}μs`
+    );
+
+    return { matches: savedMatches, processingTime };
+  }
+
+  /**
+   * High-frequency matching using Pro-Rata algorithm
+   * Ensures fair distribution with low latency
+   */
+  async highFrequencyProRataMatching(
+    buyOrders: Order[],
+    sellOrders: Order[],
+    preferences?: MatchingPreferencesDto,
+  ): Promise<{ matches: Match[]; processingTime: number; allocationDetails: any[] }> {
+    const startTime = process.hrtime.bigint();
+    const matchingPreferences = preferences || this.getDefaultPreferences();
+
+    // Optimize liquidity first
+    const optimizationResult = await this.liquidityOptimizer.optimizeLiquidity(
+      buyOrders,
+      sellOrders,
+      matchingPreferences,
+    );
+
+    // Run Pro-Rata matching on optimized orders
+    const proRataResult = await this.proRataAlgorithm.findMatches(
+      optimizationResult.optimizedBuyOrders,
+      optimizationResult.optimizedSellOrders,
+      this.activeRules,
+      matchingPreferences,
+    );
+
+    const endTime = process.hrtime.bigint();
+    const processingTime = Number(endTime - startTime) / 1000; // microseconds
+
+    // Record analytics
+    this.analyticsService.recordMatching(
+      proRataResult.totalOrdersProcessed,
+      proRataResult.matches.length,
+      processingTime,
+      'PRO_RATA',
+      proRataResult.matches,
+    );
+
+    // Save matches
+    const savedMatches = await this.saveMatches(proRataResult.matches);
+    await this.updateOrderStatuses(savedMatches);
+    await this.emitMatchingEvents(savedMatches);
+
+    this.logger.log(
+      `High-frequency Pro-Rata matching: ${proRataResult.matches.length} matches in ${processingTime.toFixed(2)}μs`
+    );
+
+    return {
+      matches: savedMatches,
+      processingTime,
+      allocationDetails: proRataResult.allocationDetails,
+    };
+  }
+
+  /**
+   * Process orders through priority queue for high-frequency matching
+   */
+  async processPriorityQueue(algorithm: 'FIFO' | 'PRO_RATA' = 'FIFO'): Promise<Match[]> {
+    const startTime = process.hrtime.bigint();
+    const allMatches: Match[] = [];
+
+    // Dequeue orders in batches
+    const batchSize = 100;
+    let processedCount = 0;
+
+    while (!this.priorityQueue.isEmpty()) {
+      const buyOrders = this.priorityQueue.dequeueBatch(batchSize, 'buy');
+      const sellOrders = this.priorityQueue.dequeueBatch(batchSize, 'sell');
+
+      if (buyOrders.length === 0 && sellOrders.length === 0) {
+        break;
+      }
+
+      let result;
+      if (algorithm === 'FIFO') {
+        result = await this.highFrequencyFIFOMatching(buyOrders, sellOrders);
+      } else {
+        result = await this.highFrequencyProRataMatching(buyOrders, sellOrders);
+      }
+
+      allMatches.push(...result.matches);
+      processedCount += buyOrders.length + sellOrders.length;
+
+      // Check for manipulation
+      for (const order of [...buyOrders, ...sellOrders]) {
+        const detection = this.priorityQueue.detectManipulation(order.userId);
+        if (detection.isSuspicious) {
+          this.logger.warn(
+            `Suspicious activity detected for user ${order.userId}: ${detection.reasons.join(', ')}`
+          );
+        }
+      }
+    }
+
+    const endTime = process.hrtime.bigint();
+    const processingTime = Number(endTime - startTime) / 1000; // microseconds
+
+    this.logger.log(
+      `Priority queue processing: ${allMatches.length} matches from ${processedCount} orders in ${processingTime.toFixed(2)}μs`
+    );
+
+    return allMatches;
+  }
+
+  /**
+   * Add order to priority queue for high-frequency processing
+   */
+  addToPriorityQueue(order: Order, priority: number = 0): boolean {
+    const success = this.priorityQueue.enqueue(order, priority);
+    
+    if (success) {
+      this.analyticsService.recordOrder(order);
+      
+      // Trigger immediate processing if queue depth is high
+      if (this.priorityQueue.getCurrentDepth() > 1000) {
+        setImmediate(() => this.processPriorityQueue());
+      }
+    }
+
+    return success;
+  }
+
+  /**
+   * Get real-time matching performance metrics
+   */
+  async getRealTimeMetrics(): Promise<{
+    currentMetrics: any;
+    efficiency: any;
+    queueMetrics: any;
+    algorithmPerformance: any;
+  }> {
+    const currentMetrics = this.analyticsService.getCurrentMetrics();
+    const efficiency = this.analyticsService.getEfficiencyMetrics();
+    const queueMetrics = this.priorityQueue.getMetrics();
+    const algorithmPerformance = {
+      fifo: this.fifoAlgorithm.getStatistics(),
+      proRata: this.proRataAlgorithm.getStatistics(),
+    };
+
+    return {
+      currentMetrics,
+      efficiency,
+      queueMetrics,
+      algorithmPerformance,
+    };
+  }
+
+  /**
+   * Get comprehensive matching report
+   */
+  async getMatchingReport(startTime: number, endTime: number): Promise<any> {
+    return this.analyticsService.generateReport(startTime, endTime);
+  }
+
+  /**
+   * Check system health and performance
+   */
+  async checkSystemHealth(): Promise<{
+    healthy: boolean;
+    issues: string[];
+    metrics: any;
+  }> {
+    const issues: string[] = [];
+    const metrics = await this.getRealTimeMetrics();
+
+    // Check latency
+    if (metrics.currentMetrics.p95Latency > 100) {
+      issues.push(`P95 latency exceeds 100μs: ${metrics.currentMetrics.p95Latency.toFixed(2)}μs`);
+    }
+
+    // Check throughput
+    if (metrics.currentMetrics.throughput < 50000) {
+      issues.push(`Throughput below 50,000 orders/s: ${metrics.currentMetrics.throughput.toFixed(0)} orders/s`);
+    }
+
+    // Check fill rate
+    if (metrics.currentMetrics.fillRate < 0.5) {
+      issues.push(`Fill rate below 50%: ${(metrics.currentMetrics.fillRate * 100).toFixed(2)}%`);
+    }
+
+    // Check queue depth
+    if (metrics.queueMetrics.queueDepth > 50000) {
+      issues.push(`Queue depth too high: ${metrics.queueMetrics.queueDepth} orders`);
+    }
+
+    // Check error rate
+    if (metrics.currentMetrics.algorithmPerformance) {
+      const avgSuccessRate = Object.values(metrics.currentMetrics.algorithmPerformance)
+        .reduce((sum: number, alg: any) => sum + (alg.successRate || 0), 0) / 
+        Object.keys(metrics.currentMetrics.algorithmPerformance).length;
+      
+      if (avgSuccessRate < 0.8) {
+        issues.push(`Average algorithm success rate below 80%: ${(avgSuccessRate * 100).toFixed(2)}%`);
+      }
+    }
+
+    return {
+      healthy: issues.length === 0,
+      issues,
+      metrics,
+    };
   }
 }
