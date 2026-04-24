@@ -35,6 +35,7 @@ import { ErrorHandlingModule } from './error-handling/error-handling.module';
 import { ComplianceModule } from './compliance/compliance.module';
 import { CacheModule } from './cache/cache.module';
 import { MarketSimulationModule } from './market-simulation/market-simulation.module';
+import { PricingModule } from './pricing/pricing.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { MarketSimulationModule } from './market-simulation/market-simulation.mo
     SyncModule,
     LoggingModule,
     SettingsModule,
+    PricingModule,
     CurrencyModule,
   ],
   controllers: [AppController, HealthController],
