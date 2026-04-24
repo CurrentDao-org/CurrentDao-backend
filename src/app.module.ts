@@ -30,6 +30,8 @@ import { FraudDetectionModule } from './fraud/fraud-detection.module';
 import { PredictiveBalancingModule } from './balancing/predictive-balancing.module';
 import { SyncModule } from './sync/sync.module';
 import { LoggingModule } from './logging/logging.module';
+import { CurrencyModule } from './currency/currency.module';
+import { BIModule } from './bi/bi.module';
 import { SettingsModule } from './settings/settings.module';
 import { ErrorHandlingModule } from './error-handling/error-handling.module';
 import { ComplianceModule } from './compliance/compliance.module';
@@ -63,6 +65,8 @@ import { MarketSimulationModule } from './market-simulation/market-simulation.mo
     PredictiveBalancingModule,
     SyncModule,
     LoggingModule,
+    CurrencyModule,
+    BIModule,
     SettingsModule,
     CurrencyModule,
   ],
