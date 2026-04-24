@@ -26,6 +26,11 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation.filter';
 import { ValidationPipe } from './common/pipes/validation.pipe';
+import { LoggingInterceptor, SecurityLoggingInterceptor, PerformanceLoggingInterceptor } from './logging/interceptors/logging.interceptor';
+import { CorrelationService, CorrelationMiddleware } from './logging/utils/correlation-id';
+import { PerformanceMonitor } from './logging/monitors/performance.monitor';
+import { SecurityMonitor } from './logging/monitors/security.monitor';
+import { AlertingService } from './logging/alerts/alerting.service';
 import { FraudDetectionModule } from './fraud/fraud-detection.module';
 import { PredictiveBalancingModule } from './balancing/predictive-balancing.module';
 import { SyncModule } from './sync/sync.module';
@@ -77,6 +82,38 @@ import { AdvancedPredictiveModule } from './advanced-predictive/advanced-predict
     CurrencyModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService, ResponseInterceptor, HttpExceptionFilter],
+  providers: [
+    AppService, 
+    ResponseInterceptor, 
+    HttpExceptionFilter,
+    ValidationExceptionFilter,
+    ValidationPipe,
+    CorrelationService,
+    PerformanceMonitor,
+    SecurityMonitor,
+    AlertingService,
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: LoggingInterceptor,
+    },
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: SecurityLoggingInterceptor,
+    },
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: PerformanceLoggingInterceptor,
+    },
+  ],
 })
-export class AppModule { }
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(CorrelationMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+      
+    consumer
+      .apply(SecurityMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}

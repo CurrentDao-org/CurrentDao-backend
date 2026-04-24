@@ -37,3 +37,104 @@ indices.fielddata.cache.size: 40%
 
 # Log retention settings
 xpack.monitoring.collection.enabled: true
+
+# Index template settings for high-performance logging
+index_templates:
+  - name: "currentdao-logs-template"
+    pattern: "currentdao-logs-*"
+    settings:
+      number_of_shards: 3
+      number_of_replicas: 1
+      index.refresh_interval: "5s"
+      index.max_result_window: 50000
+      "index.mapping.total_fields.limit": 2000
+      "index.codec": "best_compression"
+    mappings:
+      properties:
+        timestamp:
+          type: date
+          format: "strict_date_optional_time||epoch_millis"
+        level:
+          type: keyword
+        message:
+          type: text
+          analyzer: standard
+          fields:
+            keyword:
+              type: keyword
+              ignore_above: 256
+        service_name:
+          type: keyword
+        environment:
+          type: keyword
+        request_id:
+          type: keyword
+        user_id:
+          type: keyword
+        session_id:
+          type: keyword
+        ip_address:
+          type: ip
+        user_agent:
+          type: text
+          analyzer: standard
+          fields:
+            keyword:
+              type: keyword
+              ignore_above: 256
+        component:
+          type: keyword
+        function:
+          type: keyword
+        tags:
+          type: keyword
+        metadata:
+          type: object
+          dynamic: true
+        response_time:
+          type: long
+        memory_usage:
+          type: float
+        cpu_usage:
+          type: float
+        tx_hash:
+          type: keyword
+        tx_type:
+          type: keyword
+        tx_status:
+          type: keyword
+        gas_used:
+          type: long
+        error_name:
+          type: keyword
+        error_message:
+          type: text
+          analyzer: standard
+        error_stack:
+          type: text
+          analyzer: standard
+        security_event:
+          type: keyword
+        security_severity:
+          type: keyword
+        parsed_fields:
+          type: object
+          dynamic: true
+        extracted_tags:
+          type: keyword
+        severity_score:
+          type: integer
+        categorized_as:
+          type: keyword
+
+# Performance optimizations for 1M+ logs/day
+indices.memory.index_buffer_size: 20%
+indices.queries.cache.size: 5%
+indices.fielddata.cache.size: 40%
+indices.query.bool.max_clause_count: 4096
+
+# Bulk indexing settings
+bulk:
+  max_concurrent_requests: 32
+  max_size_mb: 100
+  flush_interval: 5s
