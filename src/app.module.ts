@@ -37,6 +37,9 @@ import { ErrorHandlingModule } from './error-handling/error-handling.module';
 import { ComplianceModule } from './compliance/compliance.module';
 import { CacheModule } from './cache/cache.module';
 import { MarketSimulationModule } from './market-simulation/market-simulation.module';
+import { MarketDataModule } from './market-data/market-data.module';
+import { ResearchPlatformModule } from './research/research-platform.module';
+import { AdvancedPredictiveModule } from './advanced-predictive/advanced-predictive.module';
 
 @Module({
   imports: [
@@ -50,6 +53,9 @@ import { MarketSimulationModule } from './market-simulation/market-simulation.mo
     CacheModule,
     ComplianceModule,
     MarketSimulationModule,
+    MarketDataModule,
+    ResearchPlatformModule,
+    AdvancedPredictiveModule,
     SecurityModule,
     ApmModule,
     TracingModule,
