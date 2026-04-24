@@ -26,16 +26,25 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ValidationExceptionFilter } from './common/filters/validation.filter';
 import { ValidationPipe } from './common/pipes/validation.pipe';
+import { LoggingInterceptor, SecurityLoggingInterceptor, PerformanceLoggingInterceptor } from './logging/interceptors/logging.interceptor';
+import { CorrelationService, CorrelationMiddleware } from './logging/utils/correlation-id';
+import { PerformanceMonitor } from './logging/monitors/performance.monitor';
+import { SecurityMonitor } from './logging/monitors/security.monitor';
+import { AlertingService } from './logging/alerts/alerting.service';
 import { FraudDetectionModule } from './fraud/fraud-detection.module';
 import { PredictiveBalancingModule } from './balancing/predictive-balancing.module';
 import { SyncModule } from './sync/sync.module';
 import { LoggingModule } from './logging/logging.module';
+import { CurrencyModule } from './currency/currency.module';
+import { BIModule } from './bi/bi.module';
 import { SettingsModule } from './settings/settings.module';
 import { ErrorHandlingModule } from './error-handling/error-handling.module';
 import { ComplianceModule } from './compliance/compliance.module';
 import { CacheModule } from './cache/cache.module';
 import { MarketSimulationModule } from './market-simulation/market-simulation.module';
-import { PricingModule } from './pricing/pricing.module';
+import { MarketDataModule } from './market-data/market-data.module';
+import { ResearchPlatformModule } from './research/research-platform.module';
+import { AdvancedPredictiveModule } from './advanced-predictive/advanced-predictive.module';
 
 @Module({
   imports: [
@@ -49,6 +58,9 @@ import { PricingModule } from './pricing/pricing.module';
     CacheModule,
     ComplianceModule,
     MarketSimulationModule,
+    MarketDataModule,
+    ResearchPlatformModule,
+    AdvancedPredictiveModule,
     SecurityModule,
     ApmModule,
     TracingModule,
@@ -64,11 +76,45 @@ import { PricingModule } from './pricing/pricing.module';
     PredictiveBalancingModule,
     SyncModule,
     LoggingModule,
+    CurrencyModule,
+    BIModule,
     SettingsModule,
     PricingModule,
     CurrencyModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService, ResponseInterceptor, HttpExceptionFilter],
+  providers: [
+    AppService, 
+    ResponseInterceptor, 
+    HttpExceptionFilter,
+    ValidationExceptionFilter,
+    ValidationPipe,
+    CorrelationService,
+    PerformanceMonitor,
+    SecurityMonitor,
+    AlertingService,
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: LoggingInterceptor,
+    },
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: SecurityLoggingInterceptor,
+    },
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: PerformanceLoggingInterceptor,
+    },
+  ],
 })
-export class AppModule { }
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(CorrelationMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+      
+    consumer
+      .apply(SecurityMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}
