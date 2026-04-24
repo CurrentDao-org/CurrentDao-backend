@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import databaseConfig from './config/database.config';
 import stellarConfig from './config/stellar.config';
+import rateLimitConfig from './config/rate-limit.config';
 import { AppController } from './app.controller';
 import { HealthController } from './health.controller';
 import { AppService } from './app.service';
@@ -28,6 +29,7 @@ import { ValidationExceptionFilter } from './common/filters/validation.filter';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { LoggingInterceptor, SecurityLoggingInterceptor, PerformanceLoggingInterceptor } from './logging/interceptors/logging.interceptor';
 import { CorrelationService, CorrelationMiddleware } from './logging/utils/correlation-id';
+import { GlobalRateLimitMiddleware } from './rate-limiting/middleware/global-rate-limit.middleware';
 import { PerformanceMonitor } from './logging/monitors/performance.monitor';
 import { SecurityMonitor } from './logging/monitors/security.monitor';
 import { AlertingService } from './logging/alerts/alerting.service';
@@ -45,13 +47,14 @@ import { MarketSimulationModule } from './market-simulation/market-simulation.mo
 import { MarketDataModule } from './market-data/market-data.module';
 import { ResearchPlatformModule } from './research/research-platform.module';
 import { AdvancedPredictiveModule } from './advanced-predictive/advanced-predictive.module';
+import { RateLimitModule } from './rate-limiting/rate-limit.module';
 
 @Module({
   imports: [
     AssetModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, stellarConfig],
+      load: [databaseConfig, stellarConfig, rateLimitConfig],
     }),
     ScheduleModule.forRoot(),
     ErrorHandlingModule,
@@ -80,6 +83,7 @@ import { AdvancedPredictiveModule } from './advanced-predictive/advanced-predict
     BIModule,
     SettingsModule,
     CurrencyModule,
+    RateLimitModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
@@ -114,6 +118,10 @@ export class AppModule {
       
     consumer
       .apply(SecurityMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+      
+    consumer
+      .apply(GlobalRateLimitMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }
