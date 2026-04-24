@@ -1,0 +1,70 @@
+# ============================================================================
+# Sentinel Security Policies
+# ============================================================================
+# These policies ensure security compliance for Terraform resources
+
+# =============================================================================
+# Policy: Require Encryption at Rest
+# =============================================================================
+# This policy ensures all storage resources have encryption at rest enabled
+
+# Import: tfplan/v2
+import "tfplan/v2" as tfplan
+
+# Get all AWS resources
+aws_resources = filter tfplan.resource_changes as rc {
+  rc.provider_name is "aws"
+}
+
+# Main rule
+main = rule {
+  all aws_resources as r {
+    # Check for S3 buckets
+    if r.type is "aws_s3_bucket" {
+      all r.change.after as _, value {
+        value.server_side_encryption_configuration is not null
+      }
+    }
+    # Check for RDS instances
+    else if r.type is "aws_db_instance" {
+      r.change.after.storage_encrypted is true
+    }
+    # Check for ElastiCache
+    else if r.type is "aws_elasticache_replication_group" {
+      r.change.after.at_rest_encryption_enabled is true
+    }
+    # Other resources pass
+    else {
+      true
+    }
+  }
+}
+
+# =============================================================================
+# Policy: Require Tags on All Resources
+# =============================================================================
+# This policy ensures all resources have required tags
+
+main = rule {
+  all aws_resources as r {
+    # Check if tags are present
+    r.change.after.tags is not null and
+    length(r.change.after.tags) > 0
+  }
+}
+
+# =============================================================================
+# Policy: Require Private Subnets for Databases
+# =============================================================================
+# This policy ensures databases are only deployed in private subnets
+
+main = rule {
+  all aws_resources as r {
+    if r.type is "aws_db_instance" {
+      r.change.after.db_subnet_group_name is not null
+    }
+    else {
+      true
+    }
+  }
+}

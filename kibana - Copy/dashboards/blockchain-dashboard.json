@@ -1,0 +1,153 @@
+{
+  "version": "7.15.0",
+  "objects": [
+    {
+      "id": "currentdao-blockchain-dashboard",
+      "type": "dashboard",
+      "attributes": {
+        "title": "CurrentDAO - Blockchain Dashboard",
+        "hits": 0,
+        "description": "Blockchain monitoring dashboard for CurrentDAO application",
+        "panelsJSON": "[{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{},\"panelRefName\":\"panel_1\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{},\"panelRefName\":\"panel_2\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":15,\"w\":48,\"h\":15,\"i\":\"3\"},\"panelIndex\":\"3\",\"embeddableConfig\":{},\"panelRefName\":\"panel_3\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":30,\"w\":16,\"h\":15,\"i\":\"4\"},\"panelIndex\":\"4\",\"embeddableConfig\":{},\"panelRefName\":\"panel_4\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":16,\"y\":30,\"w\":16,\"h\":15,\"i\":\"5\"},\"panelIndex\":\"5\",\"embeddableConfig\":{},\"panelRefName\":\"panel_5\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":32,\"y\":30,\"w\":16,\"h\":15,\"i\":\"6\"},\"panelIndex\":\"6\",\"embeddableConfig\":{},\"panelRefName\":\"panel_6\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":45,\"w\":48,\"h\":15,\"i\":\"7\"},\"panelIndex\":\"7\",\"embeddableConfig\":{},\"panelRefName\":\"panel_7\"}]",
+        "timeRestore": false,
+        "timeTo": "now",
+        "timeFrom": "now-24h",
+        "refreshInterval": {
+          "pause": false,
+          "value": 30000
+        },
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"query\":{\"match_all\":{}},\"filter\":[]}"
+        }
+      },
+      "references": [
+        {
+          "name": "panel_1",
+          "type": "visualization",
+          "id": "transaction-status"
+        },
+        {
+          "name": "panel_2",
+          "type": "visualization",
+          "id": "gas-usage"
+        },
+        {
+          "name": "panel_3",
+          "type": "visualization",
+          "id": "transaction-volume"
+        },
+        {
+          "name": "panel_4",
+          "type": "visualization",
+          "id": "failed-transactions"
+        },
+        {
+          "name": "panel_5",
+          "type": "visualization",
+          "id": "contract-interactions"
+        },
+        {
+          "name": "panel_6",
+          "type": "visualization",
+          "id": "sync-status"
+        },
+        {
+          "name": "panel_7",
+          "type": "visualization",
+          "id": "blockchain-errors"
+        }
+      ]
+    },
+    {
+      "id": "transaction-status",
+      "type": "visualization",
+      "attributes": {
+        "title": "Transaction Status Distribution",
+        "visState": "{\"title\":\"Transaction Status Distribution\",\"type\":\"pie\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"tx_status\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"tx_status\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "gas-usage",
+      "type": "visualization",
+      "attributes": {
+        "title": "Average Gas Usage",
+        "visState": "{\"title\":\"Average Gas Usage\",\"type\":\"metric\",\"aggs\":[{\"id\":\"1\",\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"parsed_fields.gas_used\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"parsed_fields.gas_used\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "transaction-volume",
+      "type": "visualization",
+      "attributes": {
+        "title": "Transaction Volume Over Time",
+        "visState": "{\"title\":\"Transaction Volume Over Time\",\"type\":\"line\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"min_doc_count\":1}},{\"id\":\"3\",\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"tx_type\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"tx_hash\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "failed-transactions",
+      "type": "visualization",
+      "attributes": {
+        "title": "Failed Transactions",
+        "visState": "{\"title\":\"Failed Transactions\",\"type\":\"table\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"tx_type\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}},{\"id\":\"3\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"error_name\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"term\":{\"tx_status\":\"failed\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "contract-interactions",
+      "type": "visualization",
+      "attributes": {
+        "title": "Contract Interactions",
+        "visState": "{\"title\":\"Contract Interactions\",\"type\":\"table\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"parsed_fields.contract_address\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"parsed_fields.contract_address\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "sync-status",
+      "type": "visualization",
+      "attributes": {
+        "title": "Blockchain Sync Status",
+        "visState": "{\"title\":\"Blockchain Sync Status\",\"type\":\"pie\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"categorized_as\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"bool\":{\"must\":[{\"term\":{\"categorized_as\":\"blockchain\"}},{\"exists\":{\"field\":\"ledger_sequence\"}}]}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "blockchain-errors",
+      "type": "visualization",
+      "attributes": {
+        "title": "Blockchain Errors",
+        "visState": "{\"title\":\"Blockchain Errors\",\"type\":\"table\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"error_name\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}},{\"id\":\"3\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"message.keyword\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"bool\":{\"must\":[{\"term\":{\"categorized_as\":\"blockchain\"}},{\"term\":{\"level\":\"error\"}}]}},\"filter\":[]}"
+        }
+      }
+    }
+  ]
+}

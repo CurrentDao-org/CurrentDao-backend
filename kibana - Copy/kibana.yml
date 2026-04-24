@@ -1,0 +1,72 @@
+server.name: "currentdao-kibana"
+server.host: "0.0.0.0"
+server.port: 5601
+
+# Elasticsearch configuration
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.username: "${KIBANA_ELASTICSEARCH_USER:}"
+elasticsearch.password: "${KIBANA_ELASTICSEARCH_PASSWORD:}"
+
+# Security settings
+xpack.security.enabled: false
+xpack.encryptedSavedObjects.encryptionKey: "${KIBANA_ENCRYPTION_KEY:some-encryption-key-for-development}"
+
+# Logging configuration
+logging.appenders.file.type: file
+logging.appenders.file.fileName: /usr/share/kibana/logs/kibana.log
+logging.appenders.file.layout.type: json
+logging.root.appenders: [default, file]
+
+# Performance settings for high-volume dashboards
+server.maxPayloadBytes: 1048576
+server.compression: true
+server.compression.threshold: 1024
+
+# Search settings
+search.maxBuckets: 10000
+search.timeout: 60000
+
+# Dashboard and visualization settings
+dashboard.defaultDarkTheme: true
+dashboard.sampleSize: 100
+
+# Index pattern management
+kibana.index: ".kibana"
+kibana.defaultAppId: "discover"
+
+# Time settings
+dateFormat:tz: "UTC"
+dateFormat:dow: "ddd MMM D YYYY HH:mm:ss.SSS"
+
+# Advanced settings
+monitoring.ui.container.elasticsearch.enabled: true
+monitoring.ui.container.logstash.enabled: true
+monitoring.ui.container.kibana.enabled: true
+
+# Index lifecycle management
+xpack.ilm.enabled: true
+
+# Saved objects management
+savedObjects.maxImportPayloadBytes: 26214400
+savedObjects.maxImportSizeBytes: 10485760
+
+# Performance optimization for real-time dashboards
+elasticsearch.pingTimeout: 1500
+elasticsearch.requestTimeout: 30000
+elasticsearch.shardTimeout: 30000
+elasticsearch.startupTimeout: 5000
+
+# Caching settings
+server.csp.enabled: true
+server.csp.strict: false
+server.xsrf.whitelist: ["/api/saved_objects/_import"]
+
+# UI settings
+uiSettings.enabled: true
+uiSettings.overrides:
+  "dateFormat:tz": "UTC"
+  "defaultIndex": "currentdao-logs-*"
+  "search:queryLanguage": "kuery"
+  "discover:sampleSize": 100
+  "histogram:barTarget": 50
+  "visualization:visualize:legend:open": true

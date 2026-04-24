@@ -1,0 +1,78 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: energy-service
+    url: http://energy-service:3001
+    routes:
+      - name: energy-data-route
+        paths:
+          - /api/v1/energy-data
+        methods:
+          - GET
+    plugins:
+      - name: rate-limiting
+        config:
+          second: 100
+          policy: local
+      - name: jwt
+        config:
+          uri_param_names:
+            - jwt
+          cookie_names:
+            - jwt
+          key_claim_name: iss
+          claims_to_verify:
+            - exp
+
+  - name: forecasting-service
+    url: http://forecasting-service:3002
+    routes:
+      - name: forecasting-route
+        paths:
+          - /api/v1/forecasting
+        methods:
+          - POST
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 50
+          policy: local
+      - name: prometheus
+        config:
+          per_consumer: true
+          status_code_metrics: true
+          latency_metrics: true
+          bandwidth_metrics: true
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - X-Api-Version
+        - Authorization
+      exposed_headers:
+        - X-Auth-Token
+      credentials: true
+      max_age: 3600
+
+  - name: request-transformer
+    config:
+      add:
+        headers:
+          - x-gateway-version:1.0.0

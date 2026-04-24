@@ -1,0 +1,343 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: currentdao-backend-metrics
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend
+    environment: production
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: currentdao-backend
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    honorLabels: true
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: currentdao-backend-custom-metrics
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend
+    environment: production
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: currentdao-backend
+  endpoints:
+  - port: http
+    path: /custom-metrics
+    interval: 15s
+    scrapeTimeout: 5s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: currentdao-backend-alerts
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend
+    environment: production
+    release: prometheus
+spec:
+  groups:
+  - name: currentdao-backend.rules
+    rules:
+    - alert: CurrentDaoBackendDown
+      expr: up{job="currentdao-backend"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: currentdao-backend
+      annotations:
+        summary: "CurrentDao Backend is down"
+        description: "CurrentDao Backend has been down for more than 1 minute."
+        
+    - alert: CurrentDaoBackendHighErrorRate
+      expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        service: currentdao-backend
+      annotations:
+        summary: "High error rate detected"
+        description: "Error rate is {{ $value | humanizePercentage }} for CurrentDao Backend."
+        
+    - alert: CurrentDaoBackendHighLatency
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        service: currentdao-backend
+      annotations:
+        summary: "High latency detected"
+        description: "95th percentile latency is {{ $value }}s for CurrentDao Backend."
+        
+    - alert: CurrentDaoBackendHighMemoryUsage
+      expr: container_memory_usage_bytes{pod=~"currentdao-backend-.*"} / container_spec_memory_limit_bytes > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        service: currentdao-backend
+      annotations:
+        summary: "High memory usage detected"
+        description: "Memory usage is {{ $value | humanizePercentage }} for CurrentDao Backend."
+        
+    - alert: CurrentDaoBackendHighCPUUsage
+      expr: rate(container_cpu_usage_seconds_total{pod=~"currentdao-backend-.*"}[5m]) / container_spec_cpu_quota * 100 > 80
+      for: 5m
+      labels:
+        severity: warning
+        service: currentdao-backend
+      annotations:
+        summary: "High CPU usage detected"
+        description: "CPU usage is {{ $value }}% for CurrentDao Backend."
+        
+    - alert: CurrentDaoBackendPodRestart
+      expr: rate(kube_pod_container_status_restarts_total{pod=~"currentdao-backend-.*"}[15m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+        service: currentdao-backend
+      annotations:
+        summary: "Pod restart detected"
+        description: "CurrentDao Backend pod has restarted {{ $value }} times in the last 15 minutes."
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: currentdao-grafana-dashboard
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend
+    environment: production
+    grafana_dashboard: "1"
+  annotations:
+    k8s-sidecar-target-directory: "/tmp/dashboards"
+data:
+  currentdao-backend-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "CurrentDao Backend",
+        "tags": ["currentdao", "backend"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "Request Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=\"currentdao-backend\"}[5m])",
+                "legendFormat": "{{method}} {{status}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "reqps"
+              }
+            }
+          },
+          {
+            "title": "Response Time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"currentdao-backend\"}[5m]))",
+                "legendFormat": "95th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"currentdao-backend\"}[5m]))",
+                "legendFormat": "50th percentile"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s"
+              }
+            }
+          },
+          {
+            "title": "Error Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=\"currentdao-backend\",status=~\"5..\"}[5m]) / rate(http_requests_total{job=\"currentdao-backend\"}[5m])",
+                "legendFormat": "Error Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit"
+              }
+            }
+          },
+          {
+            "title": "Memory Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{pod=~\"currentdao-backend-.*\"}",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "bytes"
+              }
+            }
+          },
+          {
+            "title": "CPU Usage",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"currentdao-backend-.*\"}[5m])",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "cores"
+              }
+            }
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currentdao-backend-log-collector
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend-log-collector
+    environment: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: currentdao-backend-log-collector
+  template:
+    metadata:
+      labels:
+        app: currentdao-backend-log-collector
+        environment: production
+    spec:
+      containers:
+      - name: fluent-bit
+        image: fluent/fluent-bit:2.2
+        ports:
+        - containerPort: 2020
+          name: http
+          protocol: TCP
+        env:
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "elasticsearch.logging.svc.cluster.local"
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        - name: FLUENT_ELASTICSEARCH_INDEX
+          value: "currentdao-backend"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /fluent-bit/etc/
+        - name: logs-volume
+          mountPath: /var/log/containers
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      volumes:
+      - name: config-volume
+        configMap:
+          name: fluent-bit-config
+      - name: logs-volume
+        hostPath:
+          path: /var/log/containers
+          type: Directory
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend-log-collector
+    environment: production
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         1
+        Log_Level     info
+        Daemon        off
+        Parsers_File  parsers.conf
+        HTTP_Server   On
+        HTTP_Listen   0.0.0.0
+        HTTP_Port     2020
+    
+    [INPUT]
+        Name              tail
+        Path              /var/log/containers/*currentdao-backend*.log
+        Parser            docker
+        Tag               kube.*
+        Refresh_Interval  5
+        Mem_Buf_Limit     50MB
+        Skip_Long_Lines   On
+    
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix     kube.var.log.containers.
+        Merge_Log           On
+        Keep_Log            Off
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude On
+        Labels              On
+    
+    [OUTPUT]
+        Name  es
+        Match *
+        Host  ${FLUENT_ELASTICSEARCH_HOST}
+        Port  ${FLUENT_ELASTICSEARCH_PORT}
+        Index ${FLUENT_ELASTICSEARCH_INDEX}
+        Type  _doc
+        Logstash_Format On
+        Logstash_Prefix currentdao-backend
+        Retry_Limit False
+    
+    [OUTPUT]
+        Name  stdout
+        Match *
+        Format json_lines
+  
+  parsers.conf: |
+    [PARSER]
+        Name   docker
+        Format json
+        Time_Key time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+        # Command      |  Decoder | Field(s) | Output Encoder
+        # Decode field as JSON
+        Decode_Field_As json log
+        Decode_Field_As json stream

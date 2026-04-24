@@ -1,0 +1,22 @@
+{
+  "rules": [
+    {
+      "description": "Aggressively cache static assets at the Edge",
+      "expression": "(http.request.uri.path.extension in {\"jpg\" \"jpeg\" \"png\" \"webp\" \"css\" \"js\" \"ico\"})",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": true,
+        "edge_ttl": {
+          "mode": "override_origin",
+          "default": 31536000
+        },
+        "browser_ttl": {
+          "mode": "respect_origin"
+        },
+        "serve_stale": {
+          "disable_stale_while_updating": false
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,323 @@
+# CurrentDao Backend Helm Chart Values
+
+# Global configuration
+global:
+  imageRegistry: ghcr.io
+  imagePullSecrets: []
+  storageClass: "gp3"
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: currentdao/backend
+  pullPolicy: Always
+  tag: "latest"
+  pullSecrets: []
+
+# Replica configuration
+replicaCount: 3
+
+# Deployment strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 2
+
+# Pod configuration
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3000"
+  prometheus.io/path: "/metrics"
+  sidecar.istio.io/inject: "true"
+
+podLabels:
+  app: currentdao-backend
+  environment: production
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Security context for containers
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 3000
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+    prometheus.io/path: "/metrics"
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://currentdao.org,https://api.currentdao.org"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+  hosts:
+    - host: api.currentdao.org
+      paths:
+        - path: /api
+          pathType: Prefix
+    - host: staging.api.currentdao.org
+      paths:
+        - path: /api
+          pathType: Prefix
+  tls:
+    - secretName: currentdao-tls
+      hosts:
+        - api.currentdao.org
+        - staging.api.currentdao.org
+
+# Resource configuration
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Auto-scaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 50
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+
+# Vertical Pod Autoscaler
+vpa:
+  enabled: true
+  updateMode: "Auto"
+  minAllowed:
+    cpu: 100m
+    memory: 128Mi
+  maxAllowed:
+    cpu: 2
+    memory: 2Gi
+
+# Health checks
+healthChecks:
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: 3000
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Environment variables
+env:
+  NODE_ENV: "production"
+  PORT: "3000"
+  STELLAR_NETWORK: "public"
+
+# Secret references
+secrets:
+  databaseUrl:
+    name: currentdao-secrets
+    key: database-url
+  jwtSecret:
+    name: currentdao-secrets
+    key: jwt-secret
+
+# ConfigMap configuration
+configMap:
+  name: currentdao-config
+  mountPath: /app/config
+
+# Volume configuration
+volumes:
+  - name: config-volume
+    configMap:
+      name: currentdao-config
+  - name: logs-volume
+    emptyDir: {}
+
+volumeMounts:
+  - name: config-volume
+    mountPath: /app/config
+  - name: logs-volume
+    mountPath: /app/logs
+
+# Node selector and affinity
+nodeSelector:
+  node-type: application
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - currentdao-backend
+        topologyKey: kubernetes.io/hostname
+
+tolerations:
+  - key: "application"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Network policy
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: database
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: cache
+      ports:
+        - protocol: TCP
+          port: 6379
+
+# Service mesh configuration
+istio:
+  enabled: true
+  namespace: currentdao-prod
+  injection: enabled
+
+# Monitoring configuration
+monitoring:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      path: /metrics
+      port: http
+  grafana:
+    enabled: true
+    dashboard:
+      enabled: true
+  jaeger:
+    enabled: true
+    sampling: 100
+
+# Logging configuration
+logging:
+  level: info
+  format: json
+  fluentd:
+    enabled: true
+    elasticsearch:
+      host: elasticsearch.logging.svc.cluster.local
+      port: 9200
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+  maxUnavailable: ""
+
+# Backup configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"
+  retention: "7d"
+
+# Environment-specific overrides
+production:
+  replicaCount: 5
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  autoscaling:
+    minReplicas: 5
+    maxReplicas: 100
+
+staging:
+  replicaCount: 2
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 10
+
+development:
+  replicaCount: 1
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+  autoscaling:
+    enabled: false

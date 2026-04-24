@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: currentdao-config
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend
+    environment: production
+data:
+  app-config.json: |
+    {
+      "server": {
+        "port": 3000,
+        "host": "0.0.0.0",
+        "cors": {
+          "origin": ["https://currentdao.org", "https://api.currentdao.org"],
+          "credentials": true
+        },
+        "helmet": {
+          "contentSecurityPolicy": {
+            "directives": {
+              "defaultSrc": ["'self'"],
+              "styleSrc": ["'self'", "'unsafe-inline'"],
+              "scriptSrc": ["'self'"],
+              "imgSrc": ["'self'", "data:", "https:"]
+            }
+          }
+        }
+      },
+      "database": {
+        "host": "${DATABASE_HOST}",
+        "port": 5432,
+        "name": "${DATABASE_NAME}",
+        "ssl": true,
+        "pool": {
+          "min": 5,
+          "max": 20,
+          "idleTimeoutMillis": 30000,
+          "connectionTimeoutMillis": 2000
+        }
+      },
+      "redis": {
+        "host": "${REDIS_HOST}",
+        "port": 6379,
+        "ttl": 3600,
+        "maxRetriesPerRequest": 3
+      },
+      "stellar": {
+        "network": "public",
+        "horizonUrl": "https://horizon.stellar.org",
+        "sorobanRpcUrl": "https://rpc.mainnet.stellar.org"
+      },
+      "logging": {
+        "level": "info",
+        "format": "json",
+        "datePattern": "YYYY-MM-DD",
+        "maxFiles": "14d",
+        "maxSize": "20m"
+      },
+      "monitoring": {
+        "metrics": {
+          "enabled": true,
+          "path": "/metrics",
+          "port": 9090
+        },
+        "health": {
+          "enabled": true,
+          "path": "/health"
+        },
+        "readiness": {
+          "enabled": true,
+          "path": "/ready"
+        }
+      },
+      "security": {
+        "rateLimit": {
+          "windowMs": 900000,
+          "max": 100,
+          "message": "Too many requests from this IP"
+        },
+        "jwt": {
+          "expiresIn": "24h",
+          "refreshExpiresIn": "7d"
+        }
+      },
+      "cache": {
+        "ttl": 300,
+        "maxEntries": 1000
+      }
+    }
+  nginx.conf: |
+    upstream currentdao_backend {
+        server currentdao-backend-internal:3000;
+        keepalive 32;
+    }
+    
+    server {
+        listen 80;
+        server_name api.currentdao.org;
+        
+        location / {
+            proxy_pass http://currentdao_backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+        }
+        
+        location /health {
+            proxy_pass http://currentdao_backend/health;
+            access_log off;
+        }
+        
+        location /metrics {
+            proxy_pass http://currentdao_backend/metrics;
+            allow 10.0.0.0/8;
+            allow 172.16.0.0/12;
+            allow 192.168.0.0/16;
+            deny all;
+        }
+    }

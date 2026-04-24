@@ -1,0 +1,40 @@
+{
+  "version": "1.0.0",
+  "gateway": {
+    "name": "CurrentDao API Gateway",
+    "timeout": 30000,
+    "maxPayloadSize": "10mb"
+  },
+  "routes": [
+    {
+      "path": "/api/v1/energy-data",
+      "target": "http://energy-service:3001",
+      "methods": ["GET"],
+      "rateLimit": {
+        "requests": 100,
+        "period": "1m"
+      },
+      "transformation": {
+        "request": "transformEnergyRequest",
+        "response": "transformEnergyResponse"
+      },
+      "auth": true,
+      "circuitBreaker": true
+    },
+    {
+      "path": "/api/v1/forecasting",
+      "target": "http://forecasting-service:3002",
+      "methods": ["POST"],
+      "rateLimit": {
+        "requests": 50,
+        "period": "1m"
+      },
+      "auth": true,
+      "circuitBreaker": true
+    }
+  ],
+  "globalRateLimit": {
+    "requests": 10000,
+    "period": "1s"
+  }
+}

@@ -1,0 +1,4 @@
+# pack-refs with: peeled fully-peeled sorted 
+fedbd9f53dafe2d30181d237d9dd0fd2f2306fd2 refs/remotes/origin/feature/comprehensive-logging-monitoring
+bcf1245ce24c16f98215e14adf42aa7e3282cac5 refs/remotes/origin/feature/microgrid-management-system
+016cba2ca60ef5f2eb2693cbb6c4dcf219c560e8 refs/remotes/origin/main

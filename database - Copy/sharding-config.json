@@ -1,0 +1,30 @@
+{
+  "sharding_strategy": "HASH_BASED",
+  "shard_key": "user_id",
+  "nodes": [
+    {
+      "shard_id": 1,
+      "host": "localhost",
+      "port": 5433,
+      "database": "currentdao_shard_1",
+      "weight": 50
+    },
+    {
+      "shard_id": 2,
+      "host": "localhost",
+      "port": 5434,
+      "database": "currentdao_shard_2",
+      "weight": 50
+    }
+  ],
+  "replication": {
+    "factor": 1,
+    "strategy": "ASYNC"
+  },
+  "partitioning": {
+    "enabled": true,
+    "strategy": "TIME_BASED",
+    "table": "transactions",
+    "interval": "MONTHLY"
+  }
+}

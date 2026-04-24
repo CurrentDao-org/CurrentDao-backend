@@ -1,0 +1,176 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: currentdao-elasticsearch
+    environment:
+      - node.name=currentdao-node-1
+      - cluster.name=currentdao-logging
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - xpack.security.enabled=false
+      - xpack.monitoring.collection.enabled=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - elasticsearch_logs:/usr/share/elasticsearch/logs
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: currentdao-logstash
+    environment:
+      - "ELASTICSEARCH_HOST=elasticsearch:9200"
+      - "ELK_ENVIRONMENT=production"
+      - "ELASTICSEARCH_USER="
+      - "ELASTICSEARCH_PASSWORD="
+      - "ELASTICSEARCH_SSL=false"
+      - "ELASTICSEARCH_SSL_VERIFICATION=false"
+    volumes:
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./logstash/templates:/usr/share/logstash/templates:ro
+      - logstash_logs:/usr/share/logstash/logs
+    ports:
+      - "5000:5000/tcp"
+      - "5001:5001/udp"
+      - "5044:5044"
+    networks:
+      - logging
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9600 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: currentdao-kibana
+    environment:
+      - "KIBANA_ELASTICSEARCH_USER="
+      - "KIBANA_ELASTICSEARCH_PASSWORD="
+      - "KIBANA_ENCRYPTION_KEY=currentdao-kibana-encryption-key-for-development"
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - kibana_data:/usr/share/kibana/data
+    ports:
+      - "5601:5601"
+    networks:
+      - logging
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Filebeat for log collection
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: currentdao-filebeat
+    user: root
+    environment:
+      - "ELASTICSEARCH_HOST=elasticsearch:9200"
+      - "KIBANA_HOST=kibana:5601"
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./logs:/var/log/currentdao:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - logging
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "filebeat test config || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Metricbeat for metrics collection
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:8.11.0
+    container_name: currentdao-metricbeat
+    user: root
+    environment:
+      - "ELASTICSEARCH_HOST=elasticsearch:9200"
+      - "KIBANA_HOST=kibana:5601"
+    volumes:
+      - ./metricbeat/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys/fs/cgroup:/hostfs/sys/fs/cgroup:ro
+      - /proc:/hostfs/proc:ro
+      - /:/hostfs:ro
+    networks:
+      - logging
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "metricbeat test config || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Heartbeat for uptime monitoring
+  heartbeat:
+    image: docker.elastic.co/beats/heartbeat:8.11.0
+    container_name: currentdao-heartbeat
+    user: root
+    environment:
+      - "ELASTICSEARCH_HOST=elasticsearch:9200"
+    volumes:
+      - ./heartbeat/heartbeat.yml:/usr/share/heartbeat/heartbeat.yml:ro
+    networks:
+      - logging
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "heartbeat test config || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  elasticsearch_data:
+    driver: local
+  elasticsearch_logs:
+    driver: local
+  logstash_logs:
+    driver: local
+  kibana_data:
+    driver: local
+
+networks:
+  logging:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

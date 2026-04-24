@@ -1,0 +1,287 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: currentdao-backend-backup
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend-backup
+    environment: production
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: currentdao-backend-backup
+            environment: production
+        spec:
+          containers:
+          - name: backup
+            image: postgres:15-alpine
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+              BACKUP_FILE="currentdao_backup_${TIMESTAMP}.sql"
+              
+              # Create database backup
+              pg_dump $DATABASE_URL > /backup/${BACKUP_FILE}
+              
+              # Compress backup
+              gzip /backup/${BACKUP_FILE}
+              
+              # Upload to S3
+              aws s3 cp /backup/${BACKUP_FILE}.gz s3://currentdao-backups/database/
+              
+              # Clean up local files
+              rm /backup/${BACKUP_FILE}.gz
+              
+              # Clean up old backups (keep last 7 days)
+              aws s3 ls s3://currentdao-backups/database/ | \
+              awk '$1 < "'$(date -d '7 days ago' '+%Y-%m-%d')'" {print $4}' | \
+              xargs -I {} aws s3 rm s3://currentdao-backups/database/{}
+              
+              echo "Backup completed successfully: ${BACKUP_FILE}.gz"
+            env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: currentdao-secrets
+                  key: database-url
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: secret-access-key
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+          volumes:
+          - name: backup-storage
+            emptyDir: {}
+          restartPolicy: OnFailure
+      backoffLimit: 3
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: currentdao-backend-restore
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend-restore
+    environment: production
+spec:
+  template:
+    metadata:
+      labels:
+        app: currentdao-backend-restore
+        environment: production
+    spec:
+      containers:
+      - name: restore
+        image: postgres:15-alpine
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          BACKUP_FILE=${BACKUP_FILE:-"latest"}
+          
+          if [ "$BACKUP_FILE" = "latest" ]; then
+            BACKUP_FILE=$(aws s3 ls s3://currentdao-backups/database/ --recursive | sort | tail -n 1 | awk '{print $4}')
+          fi
+          
+          echo "Restoring from backup: $BACKUP_FILE"
+          
+          # Download backup from S3
+          aws s3 cp s3://currentdao-backups/database/${BACKUP_FILE} /backup/backup.sql.gz
+          
+          # Decompress backup
+          gunzip /backup/backup.sql.gz
+          
+          # Restore database
+          psql $DATABASE_URL < /backup/backup.sql
+          
+          echo "Database restore completed successfully"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: currentdao-secrets
+              key: database-url
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-credentials
+              key: secret-access-key
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        - name: BACKUP_FILE
+          value: ""
+        volumeMounts:
+        - name: backup-storage
+          mountPath: /backup
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: backup-storage
+        emptyDir: {}
+      restartPolicy: Never
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disaster-recovery-scripts
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend
+    environment: production
+data:
+  failover.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Starting disaster recovery failover..."
+    
+    # Scale down production deployment
+    kubectl scale deployment currentdao-backend --replicas=0 -n currentdao-prod
+    
+    # Wait for pods to terminate
+    kubectl wait --for=delete pod -l app=currentdao-backend -n currentdao-prod --timeout=300s
+    
+    # Switch to disaster recovery region
+    kubectl apply -f k8s/disaster-recovery/ -n currentdao-dr
+    
+    # Update DNS to point to DR region
+    aws route53 change-resource-record-sets \
+      --hosted-zone-id $HOSTED_ZONE_ID \
+      --change-batch file://dns-failover.json
+    
+    echo "Failover completed successfully"
+  
+  recovery.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Starting disaster recovery recovery..."
+    
+    # Scale down DR deployment
+    kubectl scale deployment currentdao-backend --replicas=0 -n currentdao-dr
+    
+    # Wait for pods to terminate
+    kubectl wait --for=delete pod -l app=currentdao-backend -n currentdao-dr --timeout=300s
+    
+    # Restore production deployment
+    kubectl apply -f k8s/ -n currentdao-prod
+    kubectl scale deployment currentdao-backend --replicas=5 -n currentdao-prod
+    
+    # Wait for pods to be ready
+    kubectl wait --for=condition=ready pod -l app=currentdao-backend -n currentdao-prod --timeout=300s
+    
+    # Update DNS to point back to production
+    aws route53 change-resource-record-sets \
+      --hosted-zone-id $HOSTED_ZONE_ID \
+      --change-batch file://dns-recovery.json
+    
+    echo "Recovery completed successfully"
+  
+  health-check.sh: |
+    #!/bin/bash
+    
+    echo "Performing health checks..."
+    
+    # Check if pods are running
+    POD_COUNT=$(kubectl get pods -l app=currentdao-backend -n currentdao-prod --no-headers | wc -l)
+    if [ $POD_COUNT -lt 3 ]; then
+      echo "CRITICAL: Less than 3 pods are running"
+      exit 1
+    fi
+    
+    # Check if pods are ready
+    READY_PODS=$(kubectl get pods -l app=currentdao-backend -n currentdao-prod -o jsonpath='{.items[*].status.containerStatuses[0].ready}' | tr ' ' '\n' | grep -c true)
+    if [ $READY_PODS -lt 3 ]; then
+      echo "CRITICAL: Less than 3 pods are ready"
+      exit 1
+    fi
+    
+    # Check application health endpoint
+    HEALTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" http://currentdao-backend-service/health)
+    if [ $HEALTH_CHECK -ne 200 ]; then
+      echo "CRITICAL: Health check failed with status $HEALTH_CHECK"
+      exit 1
+    fi
+    
+    echo "All health checks passed"
+    exit 0
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: disaster-recovery-role
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend
+    environment: production
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: disaster-recovery-binding
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend
+    environment: production
+subjects:
+- kind: ServiceAccount
+  name: disaster-recovery-sa
+  namespace: currentdao-prod
+roleRef:
+  kind: Role
+  name: disaster-recovery-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: disaster-recovery-sa
+  namespace: currentdao-prod
+  labels:
+    app: currentdao-backend
+    environment: production

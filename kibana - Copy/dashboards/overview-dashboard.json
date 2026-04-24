@@ -1,0 +1,135 @@
+{
+  "version": "7.15.0",
+  "objects": [
+    {
+      "id": "currentdao-overview-dashboard",
+      "type": "dashboard",
+      "attributes": {
+        "title": "CurrentDAO - Overview Dashboard",
+        "hits": 0,
+        "description": "Main overview dashboard for CurrentDAO application logs",
+        "panelsJSON": "[{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{},\"panelRefName\":\"panel_1\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{},\"panelRefName\":\"panel_2\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":15,\"w\":48,\"h\":15,\"i\":\"3\"},\"panelIndex\":\"3\",\"embeddableConfig\":{},\"panelRefName\":\"panel_3\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":30,\"w\":16,\"h\":15,\"i\":\"4\"},\"panelIndex\":\"4\",\"embeddableConfig\":{},\"panelRefName\":\"panel_4\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":16,\"y\":30,\"w\":16,\"h\":15,\"i\":\"5\"},\"panelIndex\":\"5\",\"embeddableConfig\":{},\"panelRefName\":\"panel_5\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":32,\"y\":30,\"w\":16,\"h\":15,\"i\":\"6\"},\"panelIndex\":\"6\",\"embeddableConfig\":{},\"panelRefName\":\"panel_6\"}]",
+        "timeRestore": false,
+        "timeTo": "now",
+        "timeFrom": "now-24h",
+        "refreshInterval": {
+          "pause": false,
+          "value": 30000
+        },
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"query\":{\"match_all\":{}},\"filter\":[]}"
+        }
+      },
+      "references": [
+        {
+          "name": "panel_1",
+          "type": "visualization",
+          "id": "log-counts-by-level"
+        },
+        {
+          "name": "panel_2",
+          "type": "visualization",
+          "id": "log-timeline"
+        },
+        {
+          "name": "panel_3",
+          "type": "visualization",
+          "id": "error-rate-trend"
+        },
+        {
+          "name": "panel_4",
+          "type": "visualization",
+          "id": "top-error-messages"
+        },
+        {
+          "name": "panel_5",
+          "type": "visualization",
+          "id": "response-time-distribution"
+        },
+        {
+          "name": "panel_6",
+          "type": "visualization",
+          "id": "service-health"
+        }
+      ]
+    },
+    {
+      "id": "log-counts-by-level",
+      "type": "visualization",
+      "attributes": {
+        "title": "Log Counts by Level",
+        "visState": "{\"title\":\"Log Counts by Level\",\"type\":\"pie\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"level\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"match_all\":{}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "log-timeline",
+      "type": "visualization",
+      "attributes": {
+        "title": "Log Timeline",
+        "visState": "{\"title\":\"Log Timeline\",\"type\":\"histogram\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"min_doc_count\":1}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"match_all\":{}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "error-rate-trend",
+      "type": "visualization",
+      "attributes": {
+        "title": "Error Rate Trend",
+        "visState": "{\"title\":\"Error Rate Trend\",\"type\":\"line\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"min_doc_count\":1}},{\"id\":\"3\",\"type\":\"filters\",\"schema\":\"group\",\"params\":{\"filters\":[{\"input\":{\"query\":{\"match\":{\"level\":\"error\"}}},\"label\":\"Error\"},{\"input\":{\"query\":{\"match_all\":{}}},\"label\":\"Total\"}]}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"match_all\":{}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "top-error-messages",
+      "type": "visualization",
+      "attributes": {
+        "title": "Top Error Messages",
+        "visState": "{\"title\":\"Top Error Messages\",\"type\":\"table\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"error_message.keyword\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"match\":{\"level\":\"error\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "response-time-distribution",
+      "type": "visualization",
+      "attributes": {
+        "title": "Response Time Distribution",
+        "visState": "{\"title\":\"Response Time Distribution\",\"type\":\"histogram\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"response_time\",\"interval\":100,\"min_doc_count\":1}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"response_time\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "service-health",
+      "type": "visualization",
+      "attributes": {
+        "title": "Service Health",
+        "visState": "{\"title\":\"Service Health\",\"type\":\"metric\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"filters\",\"schema\":\"group\",\"params\":{\"filters\":[{\"input\":{\"query\":{\"match\":{\"level\":\"error\"}}},\"label\":\"Errors\"},{\"input\":{\"query\":{\"match\":{\"level\":\"warn\"}}},\"label\":\"Warnings\"},{\"input\":{\"query\":{\"match\":{\"level\":\"info\"}}},\"label\":\"Info\"}]}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"match_all\":{}},\"filter\":[]}"
+        }
+      }
+    }
+  ]
+}

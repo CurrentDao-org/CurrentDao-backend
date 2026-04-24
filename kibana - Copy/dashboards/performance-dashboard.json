@@ -1,0 +1,135 @@
+{
+  "version": "7.15.0",
+  "objects": [
+    {
+      "id": "currentdao-performance-dashboard",
+      "type": "dashboard",
+      "attributes": {
+        "title": "CurrentDAO - Performance Dashboard",
+        "hits": 0,
+        "description": "Performance monitoring dashboard for CurrentDAO application",
+        "panelsJSON": "[{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{},\"panelRefName\":\"panel_1\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{},\"panelRefName\":\"panel_2\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":15,\"w\":48,\"h\":15,\"i\":\"3\"},\"panelIndex\":\"3\",\"embeddableConfig\":{},\"panelRefName\":\"panel_3\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":30,\"w\":24,\"h\":15,\"i\":\"4\"},\"panelIndex\":\"4\",\"embeddableConfig\":{},\"panelRefName\":\"panel_4\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":24,\"y\":30,\"w\":24,\"h\":15,\"i\":\"5\"},\"panelIndex\":\"5\",\"embeddableConfig\":{},\"panelRefName\":\"panel_5\"},{\"version\":\"7.15.0\",\"gridData\":{\"x\":0,\"y\":45,\"w\":48,\"h\":15,\"i\":\"6\"},\"panelIndex\":\"6\",\"embeddableConfig\":{},\"panelRefName\":\"panel_6\"}]",
+        "timeRestore": false,
+        "timeTo": "now",
+        "timeFrom": "now-24h",
+        "refreshInterval": {
+          "pause": false,
+          "value": 30000
+        },
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"query\":{\"match_all\":{}},\"filter\":[]}"
+        }
+      },
+      "references": [
+        {
+          "name": "panel_1",
+          "type": "visualization",
+          "id": "avg-response-time"
+        },
+        {
+          "name": "panel_2",
+          "type": "visualization",
+          "id": "throughput-metrics"
+        },
+        {
+          "name": "panel_3",
+          "type": "visualization",
+          "id": "response-time-trend"
+        },
+        {
+          "name": "panel_4",
+          "type": "visualization",
+          "id": "slow-endpoints"
+        },
+        {
+          "name": "panel_5",
+          "type": "visualization",
+          "id": "memory-usage"
+        },
+        {
+          "name": "panel_6",
+          "type": "visualization",
+          "id": "cpu-usage"
+        }
+      ]
+    },
+    {
+      "id": "avg-response-time",
+      "type": "visualization",
+      "attributes": {
+        "title": "Average Response Time",
+        "visState": "{\"title\":\"Average Response Time\",\"type\":\"metric\",\"aggs\":[{\"id\":\"1\",\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"response_time\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"response_time\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "throughput-metrics",
+      "type": "visualization",
+      "attributes": {
+        "title": "Request Throughput",
+        "visState": "{\"title\":\"Request Throughput\",\"type\":\"metric\",\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"1m\",\"min_doc_count\":1}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"request_id\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "response-time-trend",
+      "type": "visualization",
+      "attributes": {
+        "title": "Response Time Trend",
+        "visState": "{\"title\":\"Response Time Trend\",\"type\":\"line\",\"aggs\":[{\"id\":\"1\",\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"response_time\"}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"min_doc_count\":1}},{\"id\":\"3\",\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"request_method\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"response_time\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "slow-endpoints",
+      "type": "visualization",
+      "attributes": {
+        "title": "Slow Endpoints",
+        "visState": "{\"title\":\"Slow Endpoints\",\"type\":\"table\",\"aggs\":[{\"id\":\"1\",\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"response_time\"}},{\"id\":\"2\",\"type\":\"terms\",\"schema\":\"bucket\",\"params\":{\"field\":\"request_url\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"range\":{\"response_time\":{\"gte\":1000}}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "memory-usage",
+      "type": "visualization",
+      "attributes": {
+        "title": "Memory Usage Trend",
+        "visState": "{\"title\":\"Memory Usage Trend\",\"type\":\"line\",\"aggs\":[{\"id\":\"1\",\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"memory_usage\"}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"min_doc_count\":1}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"memory_usage\"}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "cpu-usage",
+      "type": "visualization",
+      "attributes": {
+        "title": "CPU Usage Trend",
+        "visState": "{\"title\":\"CPU Usage Trend\",\"type\":\"line\",\"aggs\":[{\"id\":\"1\",\"type\":\"avg\",\"schema\":\"metric\",\"params\":{\"field\":\"cpu_usage\"}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"min_doc_count\":1}}]}",
+        "uiStateJSON": "{}",
+        "description": "",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"currentdao-logs-*\",\"query\":{\"exists\":{\"field\":\"cpu_usage\"}},\"filter\":[]}"
+        }
+      }
+    }
+  ]
+}

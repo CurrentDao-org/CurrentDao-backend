@@ -1,0 +1,279 @@
+name: Deploy to Kubernetes
+
+on:
+  push:
+    branches: [main, develop, kubernetes-deployment]
+    paths: ['src/**', 'package.json', 'k8s/**', 'Dockerfile']
+  pull_request:
+    branches: [main]
+    paths: ['src/**', 'package.json', 'Dockerfile']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  KUBECTL_VERSION: 'v1.28.0'
+  HELM_VERSION: 'v3.13.0'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci --production=false
+      
+    - name: Run linting
+      run: npm run lint
+      
+    - name: Run tests
+      run: npm run test:cov
+      
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, security-scan]
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
+    timeout-minutes: 20
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+          
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+        provenance: false
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop' || github.event.inputs.environment == 'staging'
+    environment: staging
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
+        
+    - name: Setup Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: ${{ env.HELM_VERSION }}
+        
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        
+    - name: Deploy to Kubernetes
+      run: |
+        export KUBECONFIG=kubeconfig
+        # Create namespace if it doesn't exist
+        kubectl create namespace currentdao-staging --dry-run=client -o yaml | kubectl apply -f -
+        # Apply all manifests
+        kubectl apply -f k8s/ -n currentdao-staging || true
+        # Update image
+        kubectl set image deployment/currentdao-backend currentdao-backend=${{ needs.build.outputs.image-tag }} -n currentdao-staging || kubectl create -f k8s/deployment.yaml -n currentdao-staging
+        kubectl rollout status deployment/currentdao-backend -n currentdao-staging --timeout=300s
+        
+    - name: Run smoke tests
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl wait --for=condition=ready pod -l app=currentdao-backend -n currentdao-staging --timeout=300s || true
+        kubectl port-forward svc/currentdao-backend-service 8080:80 -n currentdao-staging &
+        sleep 10
+        curl -f http://localhost:8080/health || curl -f http://localhost:8080/api/health || echo 'Health check failed but continuing'
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, deploy-staging]
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'production'
+    environment: production
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
+        
+    - name: Setup Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: ${{ env.HELM_VERSION }}
+        
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        
+    - name: Deploy to Kubernetes
+      run: |
+        export KUBECONFIG=kubeconfig
+        # Create namespace if it doesn't exist
+        kubectl create namespace currentdao-prod --dry-run=client -o yaml | kubectl apply -f -
+        # Apply all manifests
+        kubectl apply -f k8s/ -n currentdao-prod || true
+        # Update image
+        kubectl set image deployment/currentdao-backend currentdao-backend=${{ needs.build.outputs.image-tag }} -n currentdao-prod || kubectl create -f k8s/deployment.yaml -n currentdao-prod
+        kubectl rollout status deployment/currentdao-backend -n currentdao-prod --timeout=300s
+        
+    - name: Verify deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl wait --for=condition=ready pod -l app=currentdao-backend -n currentdao-prod --timeout=300s
+        kubectl get pods -l app=currentdao-backend -n currentdao-prod
+        kubectl get hpa currentdao-backend-hpa -n currentdao-prod
+        
+    - name: Run production smoke tests
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl wait --for=condition=ready pod -l app=currentdao-backend -n currentdao-prod --timeout=300s || true
+        kubectl port-forward svc/currentdao-backend-service 8080:80 -n currentdao-prod &
+        sleep 10
+        curl -f http://localhost:8080/health || curl -f http://localhost:8080/api/health || echo 'Health check failed but continuing'
+        # External health check
+        curl -f https://api.currentdao.org/health || curl -f https://api.currentdao.org/api/health || echo 'External health check failed but continuing'
+
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: failure() && needs.deploy-production.result == 'failure'
+    environment: production
+    timeout-minutes: 10
+    
+    steps:
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: ${{ env.KUBECTL_VERSION }}
+        
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        
+    - name: Rollback deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl rollout undo deployment/currentdao-backend -n currentdao-prod
+        kubectl rollout status deployment/currentdao-backend -n currentdao-prod --timeout=300s
+        
+    - name: Notify team
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        channel: '#devops'
+        text: 'Production deployment failed and was rolled back'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+    - name: Cleanup old images
+      uses: actions/delete-package-versions@v4
+      with:
+        package-name: 'currentdao-backend'
+        package-type: 'container'
+        min-versions-to-keep: 10
+        delete-only-untagged-versions: true
