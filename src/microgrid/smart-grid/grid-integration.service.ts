@@ -33,7 +33,9 @@ export interface GridMetrics {
 export class GridIntegrationService {
   private readonly logger = new Logger(GridIntegrationService.name);
   private readonly gridNodes = new Map<string, GridNode>();
-  private readonly maxNodes = 100;
+  private readonly maxNodes = 500;
+  private readonly nodeClusters = new Map<string, string[]>();
+  private readonly performanceMetrics = new Map<string, number>();
 
   async registerNode(node: MicrogridNode): Promise<void> {
     if (this.gridNodes.size >= this.maxNodes) {
@@ -48,7 +50,15 @@ export class GridIntegrationService {
     };
 
     this.gridNodes.set(node.id, gridNode);
-    this.logger.log(`Registered grid node: ${node.name} (${node.id})`);
+    
+    // Assign node to cluster for optimized management
+    const clusterId = this.assignNodeToCluster(node);
+    this.updateClusterMembership(clusterId, node.id);
+    
+    // Initialize performance metrics
+    this.performanceMetrics.set(node.id, 1.0);
+    
+    this.logger.log(`Registered grid node: ${node.name} (${node.id}) in cluster ${clusterId}`);
   }
 
   async unregisterNode(nodeId: string): Promise<void> {
@@ -298,6 +308,111 @@ export class GridIntegrationService {
     return {
       nodes,
       connections,
+    };
+  }
+
+  private assignNodeToCluster(node: MicrogridNode): string {
+    const clusterId = this.calculateClusterId(node.location);
+    return clusterId;
+  }
+
+  private calculateClusterId(location: { latitude: number; longitude: number }): string {
+    const latCluster = Math.floor(location.latitude / 0.1);
+    const lonCluster = Math.floor(location.longitude / 0.1);
+    return `cluster_${latCluster}_${lonCluster}`;
+  }
+
+  private updateClusterMembership(clusterId: string, nodeId: string): void {
+    if (!this.nodeClusters.has(clusterId)) {
+      this.nodeClusters.set(clusterId, []);
+    }
+    const cluster = this.nodeClusters.get(clusterId)!;
+    if (!cluster.includes(nodeId)) {
+      cluster.push(nodeId);
+    }
+  }
+
+  async getClusterMetrics(): Promise<Map<string, {
+    nodeCount: number;
+    totalCapacity: number;
+    averageLatency: number;
+    connectionQuality: number;
+  }>> {
+    const clusterMetrics = new Map();
+
+    for (const [clusterId, nodeIds] of this.nodeClusters) {
+      const clusterNodes = nodeIds.map(id => this.gridNodes.get(id)).filter(Boolean) as GridNode[];
+      
+      if (clusterNodes.length > 0) {
+        const totalCapacity = clusterNodes.reduce((sum, node) => sum + node.capacity, 0);
+        const averageLatency = clusterNodes.reduce((sum, node) => sum + node.latency, 0) / clusterNodes.length;
+        const connectionQuality = clusterNodes.reduce((sum, node) => sum + node.connectionQuality, 0) / clusterNodes.length;
+
+        clusterMetrics.set(clusterId, {
+          nodeCount: clusterNodes.length,
+          totalCapacity,
+          averageLatency,
+          connectionQuality,
+        });
+      }
+    }
+
+    return clusterMetrics;
+  }
+
+  async optimizeClusterPerformance(): Promise<{
+    optimizations: string[];
+    performanceGain: number;
+  }> {
+    const clusterMetrics = await this.getClusterMetrics();
+    const optimizations: string[] = [];
+    let performanceGain = 0;
+
+    for (const [clusterId, metrics] of clusterMetrics) {
+      if (metrics.averageLatency > 100) {
+        optimizations.push(`Optimize network routing in ${clusterId}`);
+        performanceGain += 0.1;
+      }
+
+      if (metrics.connectionQuality < 0.85) {
+        optimizations.push(`Upgrade infrastructure in ${clusterId}`);
+        performanceGain += 0.15;
+      }
+
+      if (metrics.nodeCount > 50) {
+        optimizations.push(`Subdivide ${clusterId} for better management`);
+        performanceGain += 0.2;
+      }
+    }
+
+    this.logger.log(`Cluster optimization: ${optimizations.length} improvements identified`);
+    return { optimizations, performanceGain };
+  }
+
+  async getScalabilityMetrics(): Promise<{
+    currentNodes: number;
+    maxNodes: number;
+    utilization: number;
+    clusterCount: number;
+    averageNodesPerCluster: number;
+    scalabilityScore: number;
+  }> {
+    const currentNodes = this.gridNodes.size;
+    const utilization = currentNodes / this.maxNodes;
+    const clusterCount = this.nodeClusters.size;
+    const averageNodesPerCluster = clusterCount > 0 ? currentNodes / clusterCount : 0;
+    
+    // Calculate scalability score based on utilization and cluster efficiency
+    const clusterEfficiency = averageNodesPerCluster > 0 && averageNodesPerCluster <= 50 ? 1 : 0.5;
+    const scalabilityScore = (1 - Math.abs(utilization - 0.7)) * clusterEfficiency;
+
+    return {
+      currentNodes,
+      maxNodes: this.maxNodes,
+      utilization,
+      clusterCount,
+      averageNodesPerCluster,
+      scalabilityScore,
     };
   }
 }

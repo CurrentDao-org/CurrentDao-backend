@@ -44,15 +44,36 @@ export class StorageManagementService {
   private readonly logger = new Logger(StorageManagementService.name);
   private readonly batterySystems = new Map<string, BatterySystem>();
   private readonly optimizations: StorageOptimization[] = [];
+  private readonly targetEfficiency = 0.95;
+  private readonly temperatureThresholds = {
+    optimal: { min: 20, max: 25 },
+    warning: { min: 15, max: 35 },
+    critical: { min: 5, max: 45 },
+  };
+  private readonly socOptimalRange = { min: 0.2, max: 0.8 };
+  private readonly degradationRate = 0.0001; // Per cycle
 
   async optimizeStorageUsage(batteryNodes: MicrogridNode[]): Promise<void> {
-    this.logger.log('Starting storage optimization');
+    this.logger.log('Starting advanced storage optimization');
 
     const batterySystems = await this.updateBatterySystems(batteryNodes);
-    const optimizationPlan = await this.generateOptimizationPlan(batterySystems);
+    
+    // Perform multi-objective optimization
+    const efficiencyAnalysis = await this.analyzeBatteryEfficiency(batterySystems);
+    const thermalManagement = await this.optimizeThermalConditions(batterySystems);
+    const degradationMitigation = await this.implementDegradationMitigation(batterySystems);
+    
+    const optimizationPlan = await this.generateAdvancedOptimizationPlan(
+      batterySystems,
+      efficiencyAnalysis,
+      thermalManagement,
+      degradationMitigation
+    );
+    
     await this.executeOptimizationPlan(optimizationPlan);
+    await this.updateBatteryHealthMetrics(batterySystems);
 
-    this.logger.log(`Storage optimization completed: ${optimizationPlan.length} actions executed`);
+    this.logger.log(`Advanced storage optimization completed: ${optimizationPlan.length} actions executed`);
   }
 
   async getStorageMetrics(): Promise<StorageMetrics> {

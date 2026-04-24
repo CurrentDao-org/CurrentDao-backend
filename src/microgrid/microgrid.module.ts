@@ -9,12 +9,17 @@ import { EnergyManagementService } from './energy/energy-management.service';
 import { LoadBalancingService } from './balancing/load-balancing.service';
 import { StorageManagementService } from './storage/storage-management.service';
 import { GridMonitorService } from './monitoring/grid-monitor.service';
+import { DERIntegrationService } from './energy/der-integration.service';
+import { TradingIntegrationService } from './energy/trading-integration.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([]),
-    ScheduleModule,
-    ThrottlerModule,
+    ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot({
+      ttl: 60,
+      limit: 100,
+    }),
   ],
   controllers: [MicrogridController],
   providers: [
@@ -24,6 +29,8 @@ import { GridMonitorService } from './monitoring/grid-monitor.service';
     LoadBalancingService,
     StorageManagementService,
     GridMonitorService,
+    DERIntegrationService,
+    TradingIntegrationService,
   ],
   exports: [
     MicrogridService,
@@ -32,6 +39,8 @@ import { GridMonitorService } from './monitoring/grid-monitor.service';
     LoadBalancingService,
     StorageManagementService,
     GridMonitorService,
+    DERIntegrationService,
+    TradingIntegrationService,
   ],
 })
 export class MicrogridModule {}
