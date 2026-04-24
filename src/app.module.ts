@@ -79,6 +79,7 @@ import { AdvancedPredictiveModule } from './advanced-predictive/advanced-predict
     CurrencyModule,
     BIModule,
     SettingsModule,
+    PricingModule,
     CurrencyModule,
   ],
   controllers: [AppController, HealthController],
