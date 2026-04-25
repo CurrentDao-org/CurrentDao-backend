@@ -11,6 +11,8 @@ import * as StellarSdk from '@stellar/stellar-sdk';
 import { Wallet, WalletType, WalletStatus, WalletBalance } from './entities/wallet.entity';
 import { FreighterWalletService } from './wallets/freighter.wallet';
 import { AlbedoWalletService } from './wallets/albedo.wallet';
+import { TransactionProcessorService } from './transactions/transaction-processor.service';
+import { EventListenerService } from './events/event-listener.service';
 
 @Injectable()
 export class StellarService {
@@ -27,8 +29,11 @@ export class StellarService {
     private configService: ConfigService,
     private freighterWallet: FreighterWalletService,
     private albedoWallet: AlbedoWalletService,
+    private txProcessor: TransactionProcessorService,
+    private eventListener: EventListenerService,
   ) {
     this.initializeStellarConnection();
+    this.eventListener.startListening();
   }
 
   /**

@@ -19,11 +19,15 @@ import { StellarService } from './stellar.service';
 import { ConnectWalletDto } from './dto/connect-wallet.dto';
 import { SignTransactionDto, SubmitTransactionDto, CheckBalanceDto } from './dto/transaction.dto';
 import { Wallet } from './entities/wallet.entity';
+import { ContractInteractionService } from './contracts/contract-interaction.service';
 
 @ApiTags('Stellar')
 @Controller('api/stellar')
 export class StellarController {
-  constructor(private readonly stellarService: StellarService) {}
+  constructor(
+    private readonly stellarService: StellarService,
+    private readonly contractService: ContractInteractionService
+  ) {}
 
   @Post('wallet/connect')
   @ApiOperation({ summary: 'Connect a Stellar wallet' })
@@ -100,5 +104,12 @@ export class StellarController {
   @ApiBearerAuth()
   async monitorTransaction(@Param('hash') hash: string) {
     return this.stellarService.monitorTransaction(hash);
+  }
+
+  @Post('contract/deploy')
+  @ApiOperation({ summary: 'Deploy a smart contract' })
+  @ApiBearerAuth()
+  async deployContract(@Body() dto: { wasmHash: string }) {
+    return this.contractService.deployContract(dto.wasmHash);
   }
 }
