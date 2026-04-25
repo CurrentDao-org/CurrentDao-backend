@@ -1,6 +1,50 @@
 version: '3.8'
 
 services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=currentdao
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - observability-network
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=currentdao
+      - MYSQL_USER=currentdao
+      - MYSQL_PASSWORD=currentdao
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - observability-network
+
   jaeger:
     image: jaegertracing/all-in-one:latest
     ports:
@@ -24,6 +68,9 @@ services:
       - "9090:9090"
     networks:
       - observability-network
+
+volumes:
+  mysql_data:
 
 networks:
   observability-network:
