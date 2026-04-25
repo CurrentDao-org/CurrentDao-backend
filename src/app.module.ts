@@ -12,6 +12,10 @@ import { HighFrequencyMatchingModule } from './matching/high-frequency-matching.
 import { SettlementModule } from './settlement/settlement.module';
 import { AuthModule } from './auth/auth.module';
 
+// Import new cross-border and webhook modules
+import { CrossBorderModule } from './cross-border/cross-border.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
+
 // Import existing modules
 import { PricingModule } from './pricing/pricing.module';
 import { SecurityHeadersService } from './security/headers/security-headers.service';
@@ -59,6 +63,10 @@ import { OrderBook } from './matching/entities/order-book.entity';
     // Import new settlement and auth modules
     SettlementModule,
     AuthModule,
+    
+    // Import new cross-border and webhook modules
+    CrossBorderModule,
+    WebhooksModule,
     
     // Import existing pricing module for integration
     PricingModule,
