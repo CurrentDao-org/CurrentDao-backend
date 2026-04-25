@@ -8,6 +8,10 @@ import { TerminusModule } from '@nestjs/terminus';
 // Import the new high-frequency matching module
 import { HighFrequencyMatchingModule } from './matching/high-frequency-matching.module';
 
+// Import new settlement and auth modules
+import { SettlementModule } from './settlement/settlement.module';
+import { AuthModule } from './auth/auth.module';
+
 // Import existing modules
 import { PricingModule } from './pricing/pricing.module';
 import { SecurityHeadersService } from './security/headers/security-headers.service';
@@ -51,6 +55,10 @@ import { OrderBook } from './matching/entities/order-book.entity';
     
     // Import the new high-frequency matching module
     HighFrequencyMatchingModule,
+    
+    // Import new settlement and auth modules
+    SettlementModule,
+    AuthModule,
     
     // Import existing pricing module for integration
     PricingModule,
