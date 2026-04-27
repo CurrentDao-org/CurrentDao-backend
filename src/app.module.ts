@@ -20,6 +20,9 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { LocationModule } from './location/location.module';
 import { GlobalEnergyModule } from './global-energy/global-energy.module';
 
+// Import trading module
+import { TradingModule } from './trading/trading.module';
+
 // Import existing modules
 import { PricingModule } from './pricing/pricing.module';
 import { SecurityHeadersService } from './security/headers/security-headers.service';
@@ -75,6 +78,9 @@ import { OrderBook } from './matching/entities/order-book.entity';
     // Import new location and global energy modules
     LocationModule,
     GlobalEnergyModule,
+    
+    // Import trading module
+    TradingModule,
     
     // Import existing pricing module for integration
     PricingModule,
