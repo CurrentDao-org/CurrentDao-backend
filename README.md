@@ -2,6 +2,8 @@
 
 A comprehensive NestJS backend for handling international energy trading with compliance, multi-currency support, and regulatory reporting.
 
+For a current progress summary and implementation overview, see [README-PROGRESS.md](README-PROGRESS.md).
+
 ## Features
 
 
