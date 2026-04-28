@@ -22,6 +22,7 @@ import { GlobalEnergyModule } from './global-energy/global-energy.module';
 
 // Import existing modules
 import { PricingModule } from './pricing/pricing.module';
+import { TransactionModule } from './transactions/transaction.module';
 import { SecurityHeadersService } from './security/headers/security-headers.service';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -78,6 +79,9 @@ import { OrderBook } from './matching/entities/order-book.entity';
     
     // Import existing pricing module for integration
     PricingModule,
+    
+    // Import high-volume transaction processing module
+    TransactionModule,
     
     // Other existing modules can be imported here as needed
   ],
